@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth/config'
+import { NavBar } from './NavBar'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
@@ -16,5 +17,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect('/blocked')
   }
 
-  return <>{children}</>
+  return (
+    <>
+      <NavBar isAdmin={session.user.isAdmin} />
+      {children}
+    </>
+  )
 }
