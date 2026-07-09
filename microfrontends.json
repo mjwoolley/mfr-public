@@ -1,0 +1,20 @@
+{
+  "$schema": "https://openapi.vercel.sh/microfrontends.json",
+  "applications": {
+    "mfr_web": {
+      "development": {
+        "fallback": "mfrweb.vercel.app"
+      }
+    },
+    "mfr_accounting": {
+      "routing": [
+        {
+          "paths": ["/accounting", "/accounting/:path*"]
+        }
+      ],
+      "development": {
+        "fallback": "mfraccounting.vercel.app"
+      }
+    }
+  }
+}
