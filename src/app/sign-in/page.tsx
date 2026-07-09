@@ -8,7 +8,7 @@ export default async function SignInPage() {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
       <div>
-        <h1 className="text-2xl font-semibold">The Corporation</h1>
+        <h1 className="text-2xl font-semibold">MFR</h1>
         <p className="mt-2 text-black/60 dark:text-white/60">
           Shareholder contribution &amp; ownership ledger for the Lake Lure lake house.
         </p>

@@ -1,4 +1,4 @@
-# The Corporation — Shareholder Ledger
+# MFR — Shareholder Ledger
 
 Tracks shareholder contributions and ownership for a family corporation whose asset is a lake
 house on Lake Lure. $1 contributed = 1 share, always. Shares/percent-ownership reports, an admin

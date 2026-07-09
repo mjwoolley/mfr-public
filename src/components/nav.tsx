@@ -10,7 +10,7 @@ export async function Nav() {
     <header className="border-b border-black/10 dark:border-white/10">
       <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
         <Link href="/" className="font-semibold">
-          The Corporation
+          MFR
         </Link>
         {user && (
           <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">

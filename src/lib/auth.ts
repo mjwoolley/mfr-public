@@ -34,14 +34,15 @@ export const {
             where: { id: user.id },
             data: { role: Role.ADMIN },
           });
-        } else {
-          const shareholder = await prisma.shareholder.findUnique({ where: { email } });
-          if (shareholder && !shareholder.userId) {
-            await prisma.shareholder.update({
-              where: { id: shareholder.id },
-              data: { userId: user.id },
-            });
-          }
+        }
+
+        // Independent of admin status — an admin can also be a shareholder.
+        const shareholder = await prisma.shareholder.findUnique({ where: { email } });
+        if (shareholder && !shareholder.userId) {
+          await prisma.shareholder.update({
+            where: { id: shareholder.id },
+            data: { userId: user.id },
+          });
         }
 
         const dbUser = await prisma.user.findUnique({

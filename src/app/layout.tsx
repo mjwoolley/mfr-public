@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "The Corporation — Shareholder Ledger",
+  title: "MFR — Shareholder Ledger",
   description: "Shareholder contribution and ownership tracker for the Lake Lure lake house corporation.",
 };
 
