@@ -1,6 +1,5 @@
+import type { Session } from 'next-auth'
 import { auth } from './config'
-
-type Session = NonNullable<Awaited<ReturnType<typeof auth>>>
 
 export type AuthResult =
   | { ok: true; session: Session }
