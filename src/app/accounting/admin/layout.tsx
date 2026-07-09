@@ -6,10 +6,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div>
       <nav className="mb-6 flex gap-4 text-sm">
-        <Link href="/admin/transactions" className="underline">
+        <Link href="/accounting/admin/transactions" className="underline">
           Activity log
         </Link>
-        <Link href="/admin/shareholders" className="underline">
+        <Link href="/accounting/admin/shareholders" className="underline">
           Shareholders
         </Link>
       </nav>

@@ -64,6 +64,6 @@ export async function createContribution(
     replyTo: session.user.email ?? undefined,
   });
 
-  revalidatePath("/admin/transactions");
-  redirect("/admin/transactions");
+  revalidatePath("/accounting/admin/transactions");
+  redirect("/accounting/admin/transactions");
 }

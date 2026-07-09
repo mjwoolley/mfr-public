@@ -8,8 +8,11 @@ function getClient() {
 }
 
 export function appUrl(path: string) {
-  const base = process.env.APP_BASE_URL ?? "http://localhost:3000";
-  return new URL(path, base).toString();
+  // Plain string join, not `new URL(path, base)` — that constructor treats a
+  // leading-slash path as absolute and silently drops any path segment
+  // already in `base` (relevant now that APP_BASE_URL includes /accounting).
+  const base = (process.env.APP_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  return `${base}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
 export async function sendEmail(opts: {

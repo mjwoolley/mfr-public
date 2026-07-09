@@ -19,19 +19,19 @@ export default async function AdminTransactionsPage() {
         <h1 className="text-xl font-semibold">Activity log</h1>
         <div className="flex flex-wrap gap-2">
           <Link
-            href="/admin/transactions/new/contribution"
+            href="/accounting/admin/transactions/new/contribution"
             className="rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background"
           >
             Record contribution
           </Link>
           <Link
-            href="/admin/transactions/new/transfer"
+            href="/accounting/admin/transactions/new/transfer"
             className="rounded-full border border-black/20 px-4 py-2 text-sm font-medium dark:border-white/20"
           >
             Record transfer
           </Link>
           <Link
-            href="/admin/transactions/new/adjustment"
+            href="/accounting/admin/transactions/new/adjustment"
             className="rounded-full border border-black/20 px-4 py-2 text-sm font-medium dark:border-white/20"
           >
             Record adjustment
@@ -81,7 +81,7 @@ export default async function AdminTransactionsPage() {
               <p className="text-black/40 dark:text-white/40">
                 Recorded by {t.createdBy.name ?? t.createdBy.email}
               </p>
-              <Link href={`/admin/transactions/${t.id}/correct`} className="underline">
+              <Link href={`/accounting/admin/transactions/${t.id}/correct`} className="underline">
                 Correct
               </Link>
             </div>

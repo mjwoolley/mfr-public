@@ -13,7 +13,7 @@ export default async function AdminShareholdersPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Shareholders</h1>
         <Link
-          href="/admin/shareholders/new"
+          href="/accounting/admin/shareholders/new"
           className="rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background"
         >
           Add shareholder

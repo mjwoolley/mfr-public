@@ -103,6 +103,6 @@ export async function createTransfer(
     }),
   ]);
 
-  revalidatePath("/admin/transactions");
-  redirect("/admin/transactions");
+  revalidatePath("/accounting/admin/transactions");
+  redirect("/accounting/admin/transactions");
 }

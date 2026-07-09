@@ -7,7 +7,7 @@ import type { Role } from "@/generated/prisma/client";
 export const authConfig = {
   session: { strategy: "jwt" },
   providers: [Google],
-  pages: { signIn: "/sign-in" },
+  pages: { signIn: "/accounting/sign-in" },
   callbacks: {
     async session({ session, token }) {
       if (session.user) {

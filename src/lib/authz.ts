@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 export async function requireSession() {
   const session = await auth();
-  if (!session?.user) redirect("/sign-in");
+  if (!session?.user) redirect("/accounting/sign-in");
   return session;
 }
 
@@ -12,19 +12,19 @@ export async function requireSession() {
 export async function requireAuthorized() {
   const session = await requireSession();
   const { role, shareholderId } = session.user;
-  if (role !== Role.ADMIN && !shareholderId) redirect("/unauthorized");
+  if (role !== Role.ADMIN && !shareholderId) redirect("/accounting/unauthorized");
   return session;
 }
 
 export async function requireAdmin() {
   const session = await requireSession();
-  if (session.user.role !== Role.ADMIN) redirect("/unauthorized");
+  if (session.user.role !== Role.ADMIN) redirect("/accounting/unauthorized");
   return session;
 }
 
 /** A signed-in, linked shareholder (admins are not necessarily shareholders). */
 export async function requireShareholder() {
   const session = await requireSession();
-  if (!session.user.shareholderId) redirect("/unauthorized");
+  if (!session.user.shareholderId) redirect("/accounting/unauthorized");
   return session as typeof session & { user: { shareholderId: string } };
 }

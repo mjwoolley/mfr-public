@@ -37,8 +37,8 @@ export async function createShareholder(
     data: { name: parsed.data.name, email },
   });
 
-  revalidatePath("/admin/shareholders");
-  redirect("/admin/shareholders");
+  revalidatePath("/accounting/admin/shareholders");
+  redirect("/accounting/admin/shareholders");
 }
 
 export async function setShareholderActive(shareholderId: string, active: boolean) {
@@ -47,5 +47,5 @@ export async function setShareholderActive(shareholderId: string, active: boolea
     where: { id: shareholderId },
     data: { active },
   });
-  revalidatePath("/admin/shareholders");
+  revalidatePath("/accounting/admin/shareholders");
 }

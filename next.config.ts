@@ -1,7 +1,12 @@
 import type { NextConfig } from "next";
+import { withMicrofrontends } from "@vercel/microfrontends/next/config";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  experimental: {
+    serverActions: {
+      allowedOrigins: ["millerfamilyreunions.org", "mfraccounting.vercel.app", "mfrweb.vercel.app"],
+    },
+  },
 };
 
-export default nextConfig;
+export default withMicrofrontends(nextConfig);

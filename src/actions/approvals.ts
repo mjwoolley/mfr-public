@@ -18,5 +18,5 @@ export async function approveTransaction(approvalId: string) {
     data: { approvedAt: new Date() },
   });
 
-  revalidatePath("/inbox");
+  revalidatePath("/accounting/inbox");
 }
