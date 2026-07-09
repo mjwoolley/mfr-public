@@ -85,14 +85,14 @@ export function BlockedDatesClient() {
             required
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="rounded border px-2 py-1 text-sm"
+            className="rounded border px-2 py-1 text-sm text-gray-900"
           />
           <input
             type="date"
             required
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="rounded border px-2 py-1 text-sm"
+            className="rounded border px-2 py-1 text-sm text-gray-900"
           />
         </div>
         <input
