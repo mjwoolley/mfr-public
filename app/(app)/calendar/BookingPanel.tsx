@@ -71,6 +71,8 @@ export function BookingPanel({
         return
       }
       onSubmitted()
+    } catch {
+      setSubmitError('Network error — please try again.')
     } finally {
       setSubmitting(false)
     }
@@ -79,7 +81,7 @@ export function BookingPanel({
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/30 p-4">
       <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-lg">
-        <h3 className="mb-2 text-lg font-semibold">Confirm your stay</h3>
+        <h3 className="mb-2 text-lg font-semibold text-gray-900">Confirm your stay</h3>
         <p className="mb-4 text-sm text-gray-600">
           {startDate} &rarr; {endDate} ({nights} night{nights === 1 ? '' : 's'})
         </p>

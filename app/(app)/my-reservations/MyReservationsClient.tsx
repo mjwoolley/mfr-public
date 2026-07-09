@@ -19,6 +19,8 @@ export function MyReservationsClient({ userId }: { userId: string }) {
   const [editStart, setEditStart] = useState('')
   const [editEnd, setEditEnd] = useState('')
   const [editError, setEditError] = useState<string | null>(null)
+  const [cancelError, setCancelError] = useState<string | null>(null)
+  const [cancelErrorId, setCancelErrorId] = useState<string | null>(null)
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['my-reservations', userId],
@@ -39,9 +41,20 @@ export function MyReservationsClient({ userId }: { userId: string }) {
 
   async function handleCancel(id: string) {
     setCancellingId(id)
+    setCancelError(null)
+    setCancelErrorId(null)
     try {
       const res = await fetch(`/api/reservations/${id}`, { method: 'DELETE' })
-      if (res.ok) invalidateAll()
+      if (res.ok) {
+        invalidateAll()
+      } else {
+        const body = await res.json().catch(() => ({}))
+        setCancelError(body.error ?? 'Failed to cancel reservation.')
+        setCancelErrorId(id)
+      }
+    } catch {
+      setCancelError('Network error — please try again.')
+      setCancelErrorId(id)
     } finally {
       setCancellingId(null)
     }
@@ -56,18 +69,22 @@ export function MyReservationsClient({ userId }: { userId: string }) {
 
   async function submitEdit(id: string) {
     setEditError(null)
-    const res = await fetch(`/api/reservations/${id}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ startDate: editStart, endDate: editEnd }),
-    })
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}))
-      setEditError(body.error ?? 'Failed to update reservation.')
-      return
+    try {
+      const res = await fetch(`/api/reservations/${id}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ startDate: editStart, endDate: editEnd }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        setEditError(body.error ?? 'Failed to update reservation.')
+        return
+      }
+      setEditingId(null)
+      invalidateAll()
+    } catch {
+      setEditError('Network error — please try again.')
     }
-    setEditingId(null)
-    invalidateAll()
   }
 
   if (isLoading) return <p className="p-8 text-center text-gray-500">Loading...</p>
@@ -113,25 +130,30 @@ export function MyReservationsClient({ userId }: { userId: string }) {
                 </div>
               </div>
             ) : (
-              <div className="flex items-center justify-between">
-                <span>
-                  {r.startDate} &rarr; {r.endDate}
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => startEdit(r)}
-                    className="rounded px-3 py-1 text-sm text-blue-600 hover:bg-blue-50"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleCancel(r.id)}
-                    disabled={cancellingId === r.id}
-                    className="rounded px-3 py-1 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
-                  >
-                    {cancellingId === r.id ? 'Cancelling...' : 'Cancel'}
-                  </button>
+              <div>
+                <div className="flex items-center justify-between">
+                  <span>
+                    {r.startDate} &rarr; {r.endDate}
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => startEdit(r)}
+                      className="rounded px-3 py-1 text-sm text-blue-600 hover:bg-blue-50"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleCancel(r.id)}
+                      disabled={cancellingId === r.id}
+                      className="rounded px-3 py-1 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      {cancellingId === r.id ? 'Cancelling...' : 'Cancel'}
+                    </button>
+                  </div>
                 </div>
+                {cancelErrorId === r.id && cancelError && (
+                  <p className="mt-1 text-sm text-red-700">{cancelError}</p>
+                )}
               </div>
             )}
           </li>
