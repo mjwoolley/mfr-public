@@ -20,7 +20,7 @@ describe('requireUser', () => {
   beforeEach(() => vi.mocked(auth).mockReset())
 
   it('returns ok:false with a 401 response when there is no session', async () => {
-    vi.mocked(auth).mockResolvedValue(null)
+    vi.mocked(auth).mockResolvedValue(null as never)
     const result = await requireUser()
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.response.status).toBe(401)
@@ -39,7 +39,7 @@ describe('requireApprovedUser', () => {
   beforeEach(() => vi.mocked(auth).mockReset())
 
   it('returns 401 when there is no session', async () => {
-    vi.mocked(auth).mockResolvedValue(null)
+    vi.mocked(auth).mockResolvedValue(null as never)
     const result = await requireApprovedUser()
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.response.status).toBe(401)
