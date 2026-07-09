@@ -32,8 +32,8 @@ describe('database overlap constraints', () => {
 
     await db.insert(reservations).values({
       userId: user.id,
-      startDate: '2027-07-01',
-      endDate: '2027-07-05',
+      startDate: '2030-07-01',
+      endDate: '2030-07-05',
       status: 'confirmed',
     })
 
@@ -42,8 +42,8 @@ describe('database overlap constraints', () => {
     await expect(
       db.insert(reservations).values({
         userId: user.id,
-        startDate: '2027-07-03',
-        endDate: '2027-07-08',
+        startDate: '2030-07-03',
+        endDate: '2030-07-08',
         status: 'confirmed',
       })
     ).rejects.toMatchObject({ cause: { code: '23P01' } })
@@ -54,16 +54,16 @@ describe('database overlap constraints', () => {
 
     await db.insert(reservations).values({
       userId: user.id,
-      startDate: '2027-08-01',
-      endDate: '2027-08-05',
+      startDate: '2030-08-01',
+      endDate: '2030-08-05',
       status: 'confirmed',
     })
 
     await expect(
       db.insert(reservations).values({
         userId: user.id,
-        startDate: '2027-08-05',
-        endDate: '2027-08-08',
+        startDate: '2030-08-05',
+        endDate: '2030-08-08',
         status: 'confirmed',
       })
     ).resolves.toBeDefined()
@@ -74,16 +74,16 @@ describe('database overlap constraints', () => {
 
     await db.insert(reservations).values({
       userId: user.id,
-      startDate: '2027-09-01',
-      endDate: '2027-09-05',
+      startDate: '2030-09-01',
+      endDate: '2030-09-05',
       status: 'cancelled',
     })
 
     await expect(
       db.insert(reservations).values({
         userId: user.id,
-        startDate: '2027-09-01',
-        endDate: '2027-09-05',
+        startDate: '2030-09-01',
+        endDate: '2030-09-05',
         status: 'confirmed',
       })
     ).resolves.toBeDefined()
@@ -93,8 +93,8 @@ describe('database overlap constraints', () => {
     const user = await makeTestUser('d')
 
     await db.insert(blockedDates).values({
-      startDate: '2027-10-01',
-      endDate: '2027-10-10',
+      startDate: '2030-10-01',
+      endDate: '2030-10-10',
       reason: 'maintenance',
       createdBy: user.id,
     })
@@ -104,8 +104,8 @@ describe('database overlap constraints', () => {
     await expect(
       db.insert(reservations).values({
         userId: user.id,
-        startDate: '2027-10-05',
-        endDate: '2027-10-06',
+        startDate: '2030-10-05',
+        endDate: '2030-10-06',
         status: 'confirmed',
       })
     ).rejects.toMatchObject({ cause: { message: expect.stringMatching(/reservation_overlaps_blocked_date/) } })
@@ -116,15 +116,15 @@ describe('database overlap constraints', () => {
 
     await db.insert(reservations).values({
       userId: user.id,
-      startDate: '2027-11-01',
-      endDate: '2027-11-05',
+      startDate: '2030-11-01',
+      endDate: '2030-11-05',
       status: 'confirmed',
     })
 
     await expect(
       db.insert(blockedDates).values({
-        startDate: '2027-11-03',
-        endDate: '2027-11-04',
+        startDate: '2030-11-03',
+        endDate: '2030-11-04',
         reason: 'maintenance',
         createdBy: user.id,
       })
@@ -135,7 +135,7 @@ describe('database overlap constraints', () => {
     await expect(
       db.insert(bookingRules).values({
         id: 2,
-        bookingHorizonDate: '2027-12-31',
+        bookingHorizonDate: '2030-12-31',
         maxConsecutiveNights: 7,
         maxNightsPerUserPerYear: 14,
       })
