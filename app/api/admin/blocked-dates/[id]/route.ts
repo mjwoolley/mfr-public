@@ -19,7 +19,12 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     await logActivity(tx, {
       eventType: 'blocked_date_removed',
       actorUserId: auth.session.user.id,
-      metadata: { blockedDateId: id },
+      metadata: {
+        blockedDateId: id,
+        startDate: existing.startDate,
+        endDate: existing.endDate,
+        reason: existing.reason,
+      },
     })
   })
 

@@ -75,7 +75,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       await logActivity(tx, {
         eventType: 'reservation_edited',
         actorUserId: auth.session.user.id,
-        metadata: { reservationId: id, startDate, endDate },
+        metadata: {
+          reservationId: id,
+          userId: reservation.userId,
+          startDate,
+          endDate,
+          previousStartDate: reservation.startDate,
+          previousEndDate: reservation.endDate,
+        },
       })
 
       return row
