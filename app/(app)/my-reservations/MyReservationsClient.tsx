@@ -65,6 +65,10 @@ export function MyReservationsClient({ userId }: { userId: string }) {
     setEditStart(r.startDate)
     setEditEnd(r.endDate)
     setEditError(null)
+    if (cancelErrorId === r.id) {
+      setCancelError(null)
+      setCancelErrorId(null)
+    }
   }
 
   async function submitEdit(id: string) {
