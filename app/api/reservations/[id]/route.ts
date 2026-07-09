@@ -113,7 +113,12 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await logActivity(tx, {
       eventType: 'reservation_cancelled',
       actorUserId: auth.session.user.id,
-      metadata: { reservationId: id },
+      metadata: {
+        reservationId: id,
+        userId: reservation.userId,
+        startDate: reservation.startDate,
+        endDate: reservation.endDate,
+      },
     })
 
     return row
