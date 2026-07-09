@@ -5,11 +5,6 @@ export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
     environment: 'node',
-    // Root-only option (NonProjectOptions): must live here, not inside a
-    // project's `test` block. Needed so `npm run test:integration` exits 0
-    // when the integration project matches zero test files (Tasks 2/3
-    // haven't written any yet) instead of Vitest's default exit 1.
-    passWithNoTests: true,
     projects: [
       {
         plugins: [tsconfigPaths()],

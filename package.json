@@ -9,7 +9,7 @@
     "lint": "eslint",
     "test": "vitest run --project unit",
     "test:watch": "vitest",
-    "test:integration": "vitest run --project integration"
+    "test:integration": "vitest run --project integration --passWithNoTests"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.2",
