@@ -65,33 +65,37 @@ const apps = [
 export default function Home() {
   return (
     <div className="flex flex-1 flex-col">
-      {/* Hero */}
-      <section className="relative isolate overflow-hidden bg-gradient-to-b from-lake-950 via-lake-900 to-lake-800">
-        {hasPhoto && (
-          <>
-            <Image
-              src={HERO_PHOTO}
-              alt="The Miller family lake house on Lake Lure"
-              fill
-              priority
-              sizes="100vw"
-              className="object-cover"
-            />
-            {/* scrim for text legibility over the photo */}
-            <div className="absolute inset-0 bg-gradient-to-t from-lake-950/85 via-lake-950/45 to-lake-950/25" />
-          </>
-        )}
-        <div className="relative mx-auto flex min-h-[46vh] max-w-5xl flex-col items-start justify-end px-4 pt-20 pb-14 sm:min-h-[54vh]">
-          <p className="text-xs font-medium tracking-[0.25em] text-lake-200 uppercase">
-            Lake Lure, North Carolina
-          </p>
-          <h1 className="font-display mt-3 max-w-xl text-4xl font-semibold text-sand-50 sm:text-5xl">
-            Our place on the lake.
-          </h1>
-          <p className="mt-4 max-w-md text-base text-lake-100">
-            Everything for the Miller family&rsquo;s lake house — plan your stay
-            and keep the books straight.
-          </p>
+      {/* Hero: headline beside the family snapshot */}
+      <section className="bg-gradient-to-b from-lake-950 via-lake-900 to-lake-800">
+        <div className="mx-auto flex max-w-5xl flex-col items-center gap-10 px-4 py-16 sm:py-20 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-xl">
+            <p className="text-xs font-medium tracking-[0.25em] text-lake-200 uppercase">
+              Lake Lure, North Carolina
+            </p>
+            <h1 className="font-display mt-3 text-4xl font-semibold text-sand-50 sm:text-5xl">
+              Our place on the lake.
+            </h1>
+            <p className="mt-4 max-w-md text-base text-lake-100">
+              Everything for the Miller family&rsquo;s lake house — plan your
+              stay and keep the books straight.
+            </p>
+          </div>
+          {hasPhoto && (
+            <figure className="w-full max-w-sm shrink-0 rotate-1 rounded-md bg-white p-3 shadow-xl shadow-lake-950/40 transition-transform hover:rotate-0 lg:max-w-md">
+              <Image
+                src={HERO_PHOTO}
+                alt="The Miller family gathered on the dock at Lake Lure"
+                width={1600}
+                height={1200}
+                priority
+                sizes="(min-width: 1024px) 28rem, 24rem"
+                className="rounded-sm"
+              />
+              <figcaption className="pt-2 pb-1 text-center text-xs text-stone-500">
+                The whole crew, on the dock
+              </figcaption>
+            </figure>
+          )}
         </div>
       </section>
 
