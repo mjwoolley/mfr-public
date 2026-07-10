@@ -1,0 +1,140 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- Auth.js ----------
+
+enum Role {
+  ADMIN
+  SHAREHOLDER
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          Role      @default(SHAREHOLDER)
+  createdAt     DateTime  @default(now())
+
+  accounts             Account[]
+  sessions             Session[]
+  shareholder          Shareholder?
+  createdTransactions  Transaction[]
+}
+
+model Account {
+  id                       String  @id @default(cuid())
+  userId                   String
+  type                     String
+  provider                 String
+  providerAccountId        String
+  refresh_token            String? @db.Text
+  access_token             String? @db.Text
+  expires_at               Int?
+  token_type               String?
+  scope                    String?
+  id_token                 String? @db.Text
+  session_state            String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------- Domain model ----------
+
+model Shareholder {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id])
+
+  ledgerEntries LedgerEntry[]
+  approvals     TransactionApproval[]
+}
+
+enum TransactionType {
+  CONTRIBUTION
+  TRANSFER
+  ADJUSTMENT
+  CORRECTION
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  type        TransactionType
+  description String?
+  createdAt   DateTime        @default(now())
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+
+  correctsTransactionId String?
+  correctsTransaction    Transaction?  @relation("Corrections", fields: [correctsTransactionId], references: [id])
+  correctedBy            Transaction[] @relation("Corrections")
+
+  entries    LedgerEntry[]
+  approvals  TransactionApproval[]
+
+  @@index([type])
+  @@index([correctsTransactionId])
+}
+
+model LedgerEntry {
+  id            String   @id @default(cuid())
+  transactionId String
+  shareholderId String
+  shares        Decimal  @db.Decimal(12, 2)
+  createdAt     DateTime @default(now())
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  shareholder Shareholder @relation(fields: [shareholderId], references: [id])
+
+  @@index([shareholderId])
+  @@index([transactionId])
+}
+
+model TransactionApproval {
+  id            String    @id @default(cuid())
+  transactionId String
+  shareholderId String
+  approvedAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  shareholder Shareholder @relation(fields: [shareholderId], references: [id])
+
+  @@unique([transactionId, shareholderId])
+  @@index([shareholderId])
+}
