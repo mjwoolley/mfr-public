@@ -1,7 +1,9 @@
 import { describe, it, expect, afterEach, beforeAll, vi } from 'vitest'
 import { eq } from 'drizzle-orm'
 import { testDb } from './testDb'
-import { users, reservations, bookingRules, activityLog } from '../../lib/db/schema'
+import { testIdentityDb } from './testIdentityDb'
+import { reservations, bookingRules, activityLog } from '../../lib/db/schema'
+import { users } from '@mfr/auth'
 
 // The route handlers under test call `requireApprovedUser()`, which calls
 // `auth()` from lib/auth/config.ts. There is no real HTTP session/cookie in
@@ -21,16 +23,22 @@ import { PATCH, DELETE } from '../../app/reservations/api/reservations/[id]/rout
 
 const createdUserIds: string[] = []
 
-function mockSessionFor(user: { id: string; isAdmin?: boolean; email?: string | null }) {
+function mockSessionFor(user: { id: string; isReservationsAdmin?: boolean; email?: string | null }) {
   vi.mocked(auth).mockResolvedValue({
-    user: { id: user.id, status: 'approved', isAdmin: user.isAdmin ?? false, email: user.email ?? undefined },
+    user: {
+      id: user.id,
+      status: 'approved',
+      isReservationsAdmin: user.isReservationsAdmin ?? false,
+      isAccountingAdmin: false,
+      email: user.email ?? undefined,
+    },
     expires: '2099-01-01',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any)
 }
 
 async function makeUser(suffix: string, overrides: Partial<typeof users.$inferInsert> = {}) {
-  const [user] = await testDb
+  const [user] = await testIdentityDb
     .insert(users)
     .values({ email: `res-test-${suffix}-${Date.now()}-${Math.random()}@example.com`, status: 'approved', ...overrides })
     .returning()
@@ -53,7 +61,7 @@ afterEach(async () => {
   for (const userId of createdUserIds) {
     await testDb.delete(activityLog).where(eq(activityLog.actorUserId, userId))
     await testDb.delete(reservations).where(eq(reservations.userId, userId))
-    await testDb.delete(users).where(eq(users.id, userId))
+    await testIdentityDb.delete(users).where(eq(users.id, userId))
   }
   createdUserIds.length = 0
 })

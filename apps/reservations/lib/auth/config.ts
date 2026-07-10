@@ -1,52 +1,20 @@
 import NextAuth from 'next-auth'
-import Google from 'next-auth/providers/google'
-import { DrizzleAdapter } from '@auth/drizzle-adapter'
-import { eq } from 'drizzle-orm'
+import { createAuthConfig } from '@mfr/auth'
+import { identityDb } from './identityDb'
 import { db } from '@/lib/db/client'
-import { users, accounts, sessions, verificationTokens, activityLog } from '@/lib/db/schema'
+import { activityLog } from '@/lib/db/schema'
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
-  basePath: '/reservations/api/auth',
-  adapter: DrizzleAdapter(db, {
-    usersTable: users,
-    accountsTable: accounts,
-    sessionsTable: sessions,
-    verificationTokensTable: verificationTokens,
-  }),
-  providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    }),
-  ],
-  session: {
-    strategy: 'database',
-  },
-  callbacks: {
-    async session({ session, user }) {
-      session.user.id = user.id
-      session.user.status = user.status
-      session.user.isAdmin = user.isAdmin
-      return session
+export const { handlers, auth, signIn, signOut } = NextAuth(
+  createAuthConfig({
+    db: identityDb,
+    basePath: '/reservations/api/auth',
+    cookieDomain: process.env.AUTH_COOKIE_DOMAIN,
+    onUserCreated: async ({ id }) => {
+      await db.insert(activityLog).values({
+        eventType: 'user_signed_up',
+        actorUserId: id,
+        metadata: {},
+      })
     },
-  },
-  events: {
-    async linkAccount({ user, account }) {
-      if (account.provider === 'google' && user.id) {
-        await db
-          .update(users)
-          .set({ googleSub: account.providerAccountId })
-          .where(eq(users.id, user.id))
-      }
-    },
-    async createUser({ user }) {
-      if (user.id) {
-        await db.insert(activityLog).values({
-          eventType: 'user_signed_up',
-          actorUserId: user.id,
-          metadata: {},
-        })
-      }
-    },
-  },
-})
+  })
+)

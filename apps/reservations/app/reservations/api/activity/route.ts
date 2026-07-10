@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { desc, lt } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
-import { activityLog, users } from '@/lib/db/schema'
+import { activityLog } from '@/lib/db/schema'
+import { users } from '@mfr/auth'
+import { identityDb } from '@/lib/auth/identityDb'
 import { requireApprovedUser } from '@/lib/auth/requireApprovedUser'
 
 const PAGE_SIZE = 30
@@ -30,7 +32,7 @@ export async function GET(request: NextRequest) {
         .limit(PAGE_SIZE)
     : await db.select(selection).from(activityLog).orderBy(desc(activityLog.createdAt)).limit(PAGE_SIZE)
 
-  const allUsers = await db.select({ id: users.id, name: users.name }).from(users)
+  const allUsers = await identityDb.select({ id: users.id, name: users.name }).from(users)
   const userNames: Record<string, string | null> = {}
   for (const u of allUsers) userNames[u.id] = u.name
 

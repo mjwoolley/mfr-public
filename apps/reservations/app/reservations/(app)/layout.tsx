@@ -19,7 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <>
-      <NavBar isAdmin={session.user.isAdmin} />
+      <NavBar isAdmin={session.user.isReservationsAdmin || session.user.isAccountingAdmin} />
       {children}
     </>
   )

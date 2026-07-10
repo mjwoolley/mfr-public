@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { requireUser } from './requireUser'
 import { requireApprovedUser } from './requireApprovedUser'
-import { requireAdmin } from './requireAdmin'
+import { requireReservationsAdmin } from './requireReservationsAdmin'
+import { requirePortalAdmin } from './requirePortalAdmin'
 
 vi.mock('./config', () => ({
   auth: vi.fn(),
@@ -9,9 +10,13 @@ vi.mock('./config', () => ({
 
 import { auth } from './config'
 
-function mockSession(status: 'pending' | 'approved' | 'blocked', isAdmin: boolean) {
+function mockSession(
+  status: 'pending' | 'approved' | 'blocked',
+  isReservationsAdmin: boolean,
+  isAccountingAdmin = false
+) {
   return {
-    user: { id: 'user-1', status, isAdmin, email: 'test@example.com' },
+    user: { id: 'user-1', status, isReservationsAdmin, isAccountingAdmin, email: 'test@example.com' },
     expires: '2099-01-01',
   }
 }
@@ -66,26 +71,63 @@ describe('requireApprovedUser', () => {
   })
 })
 
-describe('requireAdmin', () => {
+describe('requireReservationsAdmin', () => {
   beforeEach(() => vi.mocked(auth).mockReset())
 
-  it('returns 403 when the user is approved but not an admin', async () => {
+  it('returns 403 when the user is approved but not a reservations admin', async () => {
     vi.mocked(auth).mockResolvedValue(mockSession('approved', false) as never)
-    const result = await requireAdmin()
+    const result = await requireReservationsAdmin()
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.response.status).toBe(403)
   })
 
-  it('returns 403 when the user is pending, even if isAdmin is true', async () => {
+  it('returns 403 when the user is pending, even if isReservationsAdmin is true', async () => {
     vi.mocked(auth).mockResolvedValue(mockSession('pending', true) as never)
-    const result = await requireAdmin()
+    const result = await requireReservationsAdmin()
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.response.status).toBe(403)
   })
 
-  it('returns ok:true when the user is approved and an admin', async () => {
+  it('returns 403 when the user is only an accounting admin, not a reservations admin', async () => {
+    vi.mocked(auth).mockResolvedValue(mockSession('approved', false, true) as never)
+    const result = await requireReservationsAdmin()
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.response.status).toBe(403)
+  })
+
+  it('returns ok:true when the user is approved and a reservations admin', async () => {
     vi.mocked(auth).mockResolvedValue(mockSession('approved', true) as never)
-    const result = await requireAdmin()
+    const result = await requireReservationsAdmin()
     expect(result.ok).toBe(true)
+  })
+})
+
+describe('requirePortalAdmin', () => {
+  beforeEach(() => vi.mocked(auth).mockReset())
+
+  it('returns 403 when the user is approved but neither admin type', async () => {
+    vi.mocked(auth).mockResolvedValue(mockSession('approved', false, false) as never)
+    const result = await requirePortalAdmin()
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.response.status).toBe(403)
+  })
+
+  it('returns ok:true for a reservations-only admin', async () => {
+    vi.mocked(auth).mockResolvedValue(mockSession('approved', true, false) as never)
+    const result = await requirePortalAdmin()
+    expect(result.ok).toBe(true)
+  })
+
+  it('returns ok:true for an accounting-only admin', async () => {
+    vi.mocked(auth).mockResolvedValue(mockSession('approved', false, true) as never)
+    const result = await requirePortalAdmin()
+    expect(result.ok).toBe(true)
+  })
+
+  it('returns 403 when the user is pending, even if isAccountingAdmin is true', async () => {
+    vi.mocked(auth).mockResolvedValue(mockSession('pending', false, true) as never)
+    const result = await requirePortalAdmin()
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.response.status).toBe(403)
   })
 })

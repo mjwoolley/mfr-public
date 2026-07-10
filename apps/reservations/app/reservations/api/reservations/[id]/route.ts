@@ -8,10 +8,10 @@ import { isOverlapError } from '@/lib/db/isOverlapError'
 import { logActivity } from '@/lib/db/logActivity'
 import { logger } from '@/lib/logger'
 
-async function loadOwnedReservation(id: string, userId: string, isAdmin: boolean) {
+async function loadOwnedReservation(id: string, userId: string, isReservationsAdmin: boolean) {
   const [reservation] = await db.select().from(reservations).where(eq(reservations.id, id))
   if (!reservation) return { reservation: null, allowed: false }
-  const allowed = isAdmin || reservation.userId === userId
+  const allowed = isReservationsAdmin || reservation.userId === userId
   return { reservation, allowed }
 }
 
@@ -20,7 +20,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (!auth.ok) return auth.response
 
   const { id } = await params
-  const { reservation, allowed } = await loadOwnedReservation(id, auth.session.user.id, auth.session.user.isAdmin)
+  const { reservation, allowed } = await loadOwnedReservation(id, auth.session.user.id, auth.session.user.isReservationsAdmin)
   if (!reservation) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
@@ -106,7 +106,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   if (!auth.ok) return auth.response
 
   const { id } = await params
-  const { reservation, allowed } = await loadOwnedReservation(id, auth.session.user.id, auth.session.user.isAdmin)
+  const { reservation, allowed } = await loadOwnedReservation(id, auth.session.user.id, auth.session.user.isReservationsAdmin)
   if (!reservation) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 

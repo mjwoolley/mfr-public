@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.2",
+    "@mfr/auth": "*",
     "@tanstack/react-query": "^5.101.2",
     "@vercel/microfrontends": "^2.4.0",
     "drizzle-orm": "^0.45.2",

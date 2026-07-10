@@ -8,20 +8,32 @@ interface AdminUser {
   email: string
   name: string | null
   status: 'pending' | 'approved' | 'blocked'
-  isAdmin: boolean
+  isReservationsAdmin: boolean
+  isAccountingAdmin: boolean
   createdAt: string
+}
+
+type UserPatch = { status: 'approved' | 'blocked' } | { isReservationsAdmin: boolean } | { isAccountingAdmin: boolean }
+
+interface UsersClientProps {
+  actorIsReservationsAdmin: boolean
+  actorIsAccountingAdmin: boolean
 }
 
 function UserRow({
   user,
+  actorIsReservationsAdmin,
+  actorIsAccountingAdmin,
   updating,
   rowError,
-  onUpdateStatus,
+  onUpdate,
 }: {
   user: AdminUser
+  actorIsReservationsAdmin: boolean
+  actorIsAccountingAdmin: boolean
   updating: boolean
   rowError: string | null
-  onUpdateStatus: (id: string, status: 'approved' | 'blocked') => void
+  onUpdate: (id: string, patch: UserPatch) => void
 }) {
   return (
     <li className="rounded border p-3">
@@ -30,13 +42,14 @@ function UserRow({
           <p className="font-medium text-gray-900">{user.name ?? user.email}</p>
           <p className="text-sm text-gray-500">
             {user.email} &middot; {user.status}
-            {user.isAdmin ? ' · admin' : ''}
+            {user.isReservationsAdmin ? ' · reservations admin' : ''}
+            {user.isAccountingAdmin ? ' · accounting admin' : ''}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
           {user.status !== 'approved' && (
             <button
-              onClick={() => onUpdateStatus(user.id, 'approved')}
+              onClick={() => onUpdate(user.id, { status: 'approved' })}
               disabled={updating}
               className="rounded bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
             >
@@ -45,11 +58,29 @@ function UserRow({
           )}
           {user.status !== 'blocked' && (
             <button
-              onClick={() => onUpdateStatus(user.id, 'blocked')}
+              onClick={() => onUpdate(user.id, { status: 'blocked' })}
               disabled={updating}
               className="rounded px-3 py-1 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
             >
               Block
+            </button>
+          )}
+          {actorIsReservationsAdmin && (
+            <button
+              onClick={() => onUpdate(user.id, { isReservationsAdmin: !user.isReservationsAdmin })}
+              disabled={updating}
+              className="rounded px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+            >
+              {user.isReservationsAdmin ? 'Revoke reservations admin' : 'Make reservations admin'}
+            </button>
+          )}
+          {actorIsAccountingAdmin && (
+            <button
+              onClick={() => onUpdate(user.id, { isAccountingAdmin: !user.isAccountingAdmin })}
+              disabled={updating}
+              className="rounded px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+            >
+              {user.isAccountingAdmin ? 'Revoke accounting admin' : 'Make accounting admin'}
             </button>
           )}
         </div>
@@ -59,7 +90,7 @@ function UserRow({
   )
 }
 
-export function UsersClient() {
+export function UsersClient({ actorIsReservationsAdmin, actorIsAccountingAdmin }: UsersClientProps) {
   const queryClient = useQueryClient()
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [rowError, setRowError] = useState<{ id: string; message: string } | null>(null)
@@ -74,14 +105,14 @@ export function UsersClient() {
     },
   })
 
-  async function updateStatus(id: string, status: 'approved' | 'blocked') {
+  async function updateUser(id: string, patch: UserPatch) {
     setUpdatingId(id)
     setRowError((prev) => (prev?.id === id ? null : prev))
     try {
       const res = await fetch(`/reservations/api/admin/users/${id}`, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify(patch),
       })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
@@ -113,9 +144,11 @@ export function UsersClient() {
             <UserRow
               key={u.id}
               user={u}
+              actorIsReservationsAdmin={actorIsReservationsAdmin}
+              actorIsAccountingAdmin={actorIsAccountingAdmin}
               updating={updatingId === u.id}
               rowError={rowError?.id === u.id ? rowError.message : null}
-              onUpdateStatus={updateStatus}
+              onUpdate={updateUser}
             />
           ))}
         </ul>
@@ -127,9 +160,11 @@ export function UsersClient() {
             <UserRow
               key={u.id}
               user={u}
+              actorIsReservationsAdmin={actorIsReservationsAdmin}
+              actorIsAccountingAdmin={actorIsAccountingAdmin}
               updating={updatingId === u.id}
               rowError={rowError?.id === u.id ? rowError.message : null}
-              onUpdateStatus={updateStatus}
+              onUpdate={updateUser}
             />
           ))}
         </ul>

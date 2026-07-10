@@ -1,37 +1,36 @@
 import { describe, it, expect, afterEach } from 'vitest'
+import { randomUUID } from 'node:crypto'
 import { db } from '../../lib/db/client'
-import { users, reservations, blockedDates, bookingRules } from '../../lib/db/schema'
+import { reservations, blockedDates, bookingRules } from '../../lib/db/schema'
 import { eq } from 'drizzle-orm'
 
-const createdUserIds: string[] = []
+// reservations.userId and blockedDates.createdBy are plain, unconstrained
+// uuid columns now (users lives in the separate shared identity database —
+// no cross-database FK is possible), so these tests, which exist purely to
+// verify the business-DB-level overlap constraints/triggers, no longer need
+// a real user row at all — a random UUID satisfies the column just as well.
+const createdReservationUserIds: string[] = []
 
 afterEach(async () => {
-  // Deleting the user cascades to reservations/blockedDates(created_by) via
-  // the FK, except blockedDates.created_by has no ON DELETE CASCADE, so
-  // clean up explicitly in dependency order.
-  for (const userId of createdUserIds) {
+  for (const userId of createdReservationUserIds) {
     await db.delete(reservations).where(eq(reservations.userId, userId))
     await db.delete(blockedDates).where(eq(blockedDates.createdBy, userId))
-    await db.delete(users).where(eq(users.id, userId))
   }
-  createdUserIds.length = 0
+  createdReservationUserIds.length = 0
 })
 
-async function makeTestUser(emailSuffix: string) {
-  const [user] = await db
-    .insert(users)
-    .values({ email: `constraint-test-${emailSuffix}-${Date.now()}@example.com`, status: 'approved' })
-    .returning()
-  createdUserIds.push(user.id)
-  return user
+function fakeUserId(): string {
+  const id = randomUUID()
+  createdReservationUserIds.push(id)
+  return id
 }
 
 describe('database overlap constraints', () => {
   it('rejects a second confirmed reservation overlapping an existing confirmed reservation', async () => {
-    const user = await makeTestUser('a')
+    const userId = fakeUserId()
 
     await db.insert(reservations).values({
-      userId: user.id,
+      userId,
       startDate: '2030-07-01',
       endDate: '2030-07-05',
       status: 'confirmed',
@@ -41,7 +40,7 @@ describe('database overlap constraints', () => {
     // DrizzleQueryError; the Postgres error code lives on `.cause`.
     await expect(
       db.insert(reservations).values({
-        userId: user.id,
+        userId,
         startDate: '2030-07-03',
         endDate: '2030-07-08',
         status: 'confirmed',
@@ -50,10 +49,10 @@ describe('database overlap constraints', () => {
   })
 
   it('allows same-day turnover (one reservation ending the day another starts)', async () => {
-    const user = await makeTestUser('b')
+    const userId = fakeUserId()
 
     await db.insert(reservations).values({
-      userId: user.id,
+      userId,
       startDate: '2030-08-01',
       endDate: '2030-08-05',
       status: 'confirmed',
@@ -61,7 +60,7 @@ describe('database overlap constraints', () => {
 
     await expect(
       db.insert(reservations).values({
-        userId: user.id,
+        userId,
         startDate: '2030-08-05',
         endDate: '2030-08-08',
         status: 'confirmed',
@@ -70,10 +69,10 @@ describe('database overlap constraints', () => {
   })
 
   it('does not block on a cancelled reservation covering the same dates', async () => {
-    const user = await makeTestUser('c')
+    const userId = fakeUserId()
 
     await db.insert(reservations).values({
-      userId: user.id,
+      userId,
       startDate: '2030-09-01',
       endDate: '2030-09-05',
       status: 'cancelled',
@@ -81,7 +80,7 @@ describe('database overlap constraints', () => {
 
     await expect(
       db.insert(reservations).values({
-        userId: user.id,
+        userId,
         startDate: '2030-09-01',
         endDate: '2030-09-05',
         status: 'confirmed',
@@ -90,20 +89,20 @@ describe('database overlap constraints', () => {
   })
 
   it('rejects a confirmed reservation overlapping a blocked date range', async () => {
-    const user = await makeTestUser('d')
+    const userId = fakeUserId()
 
     await db.insert(blockedDates).values({
       startDate: '2030-10-01',
       endDate: '2030-10-10',
       reason: 'maintenance',
-      createdBy: user.id,
+      createdBy: userId,
     })
 
     // The trigger's RAISE EXCEPTION message ends up on the wrapped error's
     // `.cause.message`, not the top-level DrizzleQueryError message.
     await expect(
       db.insert(reservations).values({
-        userId: user.id,
+        userId,
         startDate: '2030-10-05',
         endDate: '2030-10-06',
         status: 'confirmed',
@@ -112,10 +111,10 @@ describe('database overlap constraints', () => {
   })
 
   it('rejects a blocked date range overlapping an existing confirmed reservation', async () => {
-    const user = await makeTestUser('e')
+    const userId = fakeUserId()
 
     await db.insert(reservations).values({
-      userId: user.id,
+      userId,
       startDate: '2030-11-01',
       endDate: '2030-11-05',
       status: 'confirmed',
@@ -126,7 +125,7 @@ describe('database overlap constraints', () => {
         startDate: '2030-11-03',
         endDate: '2030-11-04',
         reason: 'maintenance',
-        createdBy: user.id,
+        createdBy: userId,
       })
     ).rejects.toMatchObject({ cause: { message: expect.stringMatching(/blocked_date_overlaps_reservation/) } })
   })

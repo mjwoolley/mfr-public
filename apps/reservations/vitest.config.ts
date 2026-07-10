@@ -38,8 +38,13 @@ export default defineConfig({
           // before a worker evaluates the test file's module graph at all,
           // so it is not subject to that ordering problem. This is what
           // actually redirects the `db` singleton to the test branch.
+          //
+          // The same ordering gotcha applies identically to
+          // lib/auth/identityDb.ts's module-load-time singleton, which reads
+          // IDENTITY_DATABASE_URL — redirect it here too.
           env: {
             DATABASE_URL: process.env.TEST_DATABASE_URL,
+            IDENTITY_DATABASE_URL: process.env.TEST_IDENTITY_DATABASE_URL,
           },
         },
       },

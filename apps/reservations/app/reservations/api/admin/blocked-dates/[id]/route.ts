@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server'
 import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { blockedDates } from '@/lib/db/schema'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireReservationsAdmin } from '@/lib/auth/requireReservationsAdmin'
 import { logActivity } from '@/lib/db/logActivity'
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await requireAdmin()
+  const auth = await requireReservationsAdmin()
   if (!auth.ok) return auth.response
 
   const { id } = await params

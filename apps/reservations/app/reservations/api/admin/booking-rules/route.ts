@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { bookingRules } from '@/lib/db/schema'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireReservationsAdmin } from '@/lib/auth/requireReservationsAdmin'
 import { logActivity } from '@/lib/db/logActivity'
 
 export async function GET() {
-  const auth = await requireAdmin()
+  const auth = await requireReservationsAdmin()
   if (!auth.ok) return auth.response
 
   const [rules] = await db.select().from(bookingRules).where(eq(bookingRules.id, 1))
@@ -14,7 +14,7 @@ export async function GET() {
 }
 
 export async function PATCH(request: NextRequest) {
-  const auth = await requireAdmin()
+  const auth = await requireReservationsAdmin()
   if (!auth.ok) return auth.response
 
   const body = await request.json().catch(() => null)

@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/client'
 import { blockedDates } from '@/lib/db/schema'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireReservationsAdmin } from '@/lib/auth/requireReservationsAdmin'
 import { isOverlapError } from '@/lib/db/isOverlapError'
 import { logActivity } from '@/lib/db/logActivity'
 import { logger } from '@/lib/logger'
 
 export async function GET() {
-  const auth = await requireAdmin()
+  const auth = await requireReservationsAdmin()
   if (!auth.ok) return auth.response
 
   const rows = await db.select().from(blockedDates)
@@ -15,7 +15,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAdmin()
+  const auth = await requireReservationsAdmin()
   if (!auth.ok) return auth.response
 
   const body = await request.json().catch(() => null)

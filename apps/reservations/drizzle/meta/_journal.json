@@ -15,6 +15,13 @@
       "when": 1783544979011,
       "tag": "0001_overlap_constraints",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783649971633,
+      "tag": "0002_curved_living_tribunal",
+      "breakpoints": true
     }
   ]
 }

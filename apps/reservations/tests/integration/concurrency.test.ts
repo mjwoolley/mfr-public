@@ -1,7 +1,9 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { eq } from 'drizzle-orm'
 import { testDb } from './testDb'
-import { users, reservations, bookingRules, activityLog } from '../../lib/db/schema'
+import { testIdentityDb } from './testIdentityDb'
+import { reservations, bookingRules, activityLog } from '../../lib/db/schema'
+import { users } from '@mfr/auth'
 
 // See tests/integration/reservations.test.ts for why `auth` is mocked and
 // what that implies about the db/testDb seam (env override lives in
@@ -20,7 +22,7 @@ afterEach(async () => {
   for (const userId of createdUserIds) {
     await testDb.delete(activityLog).where(eq(activityLog.actorUserId, userId))
     await testDb.delete(reservations).where(eq(reservations.userId, userId))
-    await testDb.delete(users).where(eq(users.id, userId))
+    await testIdentityDb.delete(users).where(eq(users.id, userId))
   }
   createdUserIds.length = 0
 })
@@ -34,12 +36,12 @@ async function runRaceOnce(dateSuffix: string) {
       set: { bookingHorizonDate: '2028-12-31', maxConsecutiveNights: 30, maxNightsPerUserPerYear: 60 },
     })
 
-  const userA = await testDb
+  const userA = await testIdentityDb
     .insert(users)
     .values({ email: `race-a-${dateSuffix}-${Date.now()}@example.com`, status: 'approved' })
     .returning()
     .then((r) => r[0])
-  const userB = await testDb
+  const userB = await testIdentityDb
     .insert(users)
     .values({ email: `race-b-${dateSuffix}-${Date.now()}@example.com`, status: 'approved' })
     .returning()
@@ -60,12 +62,12 @@ async function runRaceOnce(dateSuffix: string) {
   // regardless of which user each belongs to.)
   vi.mocked(auth)
     .mockResolvedValueOnce({
-      user: { id: userA.id, status: 'approved', isAdmin: false, email: userA.email },
+      user: { id: userA.id, status: 'approved', isReservationsAdmin: false, isAccountingAdmin: false, email: userA.email },
       expires: '2099-01-01',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any)
     .mockResolvedValueOnce({
-      user: { id: userB.id, status: 'approved', isAdmin: false, email: userB.email },
+      user: { id: userB.id, status: 'approved', isReservationsAdmin: false, isAccountingAdmin: false, email: userB.email },
       expires: '2099-01-01',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any)

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { eq, and, gte, lt } from 'drizzle-orm'
+import { eq, and, gte, lt, inArray } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
-import { reservations, bookingRules, blockedDates, users } from '@/lib/db/schema'
+import { reservations, bookingRules, blockedDates } from '@/lib/db/schema'
+import { users } from '@mfr/auth'
+import { identityDb } from '@/lib/auth/identityDb'
 import { validateReservation, type ExistingReservation } from '@/lib/rules/validateReservation'
 import { requireApprovedUser } from '@/lib/auth/requireApprovedUser'
 import { isOverlapError } from '@/lib/db/isOverlapError'
@@ -26,10 +28,8 @@ export async function GET(request: NextRequest) {
       startDate: reservations.startDate,
       endDate: reservations.endDate,
       status: reservations.status,
-      userName: users.name,
     })
     .from(reservations)
-    .innerJoin(users, eq(reservations.userId, users.id))
     .where(
       and(
         eq(reservations.status, 'confirmed'),
@@ -38,7 +38,17 @@ export async function GET(request: NextRequest) {
       )
     )
 
-  return NextResponse.json({ reservations: rows })
+  // users lives in the separate shared identity database now — no SQL-level
+  // JOIN is possible across databases, so resolve names with a second query
+  // and merge in application code.
+  const userIds = [...new Set(rows.map((r) => r.userId))]
+  const userRows =
+    userIds.length > 0 ? await identityDb.select({ id: users.id, name: users.name }).from(users).where(inArray(users.id, userIds)) : []
+  const nameById = new Map(userRows.map((u) => [u.id, u.name]))
+
+  const withNames = rows.map((r) => ({ ...r, userName: nameById.get(r.userId) ?? null }))
+
+  return NextResponse.json({ reservations: withNames })
 }
 
 export async function POST(request: NextRequest) {

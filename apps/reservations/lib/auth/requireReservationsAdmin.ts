@@ -8,10 +8,10 @@ function jsonError(status: number, error: string): Response {
   })
 }
 
-export async function requireAdmin(): Promise<AuthResult> {
+export async function requireReservationsAdmin(): Promise<AuthResult> {
   const result = await requireApprovedUser()
   if (!result.ok) return result
-  if (!result.session.user.isAdmin) {
+  if (!result.session.user.isReservationsAdmin) {
     return { ok: false, response: jsonError(403, 'Forbidden') }
   }
   return result

@@ -1,17 +1,20 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { eq } from 'drizzle-orm'
 import { testDb } from './testDb'
-import { users, blockedDates, activityLog, bookingRules } from '../../lib/db/schema'
+import { testIdentityDb } from './testIdentityDb'
+import { blockedDates, activityLog, bookingRules } from '../../lib/db/schema'
+import { users } from '@mfr/auth'
 
 // See tests/integration/reservations.test.ts for why `auth` is mocked: the
-// route handlers under test call requireAdmin() -> requireApprovedUser() ->
-// requireUser() -> auth() from lib/auth/config.ts. Leaving that unmocked
-// pulls in lib/auth/config.ts's top-level NextAuth({ adapter:
-// DrizzleAdapter(db, ...), ... }) call, which imports `next/server` — a
-// module that only resolves inside the Next.js runtime, not under plain
-// Vitest. It also instantiates a second real postgres-js client at import
-// time. Mocking the module avoids both problems and lets each test control
-// exactly which session (admin or not) the route handler sees.
+// route handlers under test call requireReservationsAdmin/requirePortalAdmin
+// -> requireApprovedUser() -> requireUser() -> auth() from
+// lib/auth/config.ts. Leaving that unmocked pulls in lib/auth/config.ts's
+// top-level NextAuth({ adapter: DrizzleAdapter(identityDb, ...), ... }) call,
+// which imports `next/server` — a module that only resolves inside the
+// Next.js runtime, not under plain Vitest. It also instantiates a second
+// real postgres-js client at import time. Mocking the module avoids both
+// problems and lets each test control exactly which session (admin or not)
+// the route handler sees.
 vi.mock('../../lib/auth/config', () => ({ auth: vi.fn() }))
 
 import { auth } from '../../lib/auth/config'
@@ -22,12 +25,12 @@ import { PATCH as patchRules } from '../../app/reservations/api/admin/booking-ru
 const createdUserIds: string[] = []
 
 async function makeAdmin(suffix: string) {
-  const [admin] = await testDb
+  const [admin] = await testIdentityDb
     .insert(users)
     .values({
       email: `admin-test-actor-${suffix}-${Date.now()}-${Math.random()}@example.com`,
       status: 'approved',
-      isAdmin: true,
+      isReservationsAdmin: true,
     })
     .returning()
   createdUserIds.push(admin.id)
@@ -36,7 +39,7 @@ async function makeAdmin(suffix: string) {
 
 function mockSessionFor(admin: { id: string; email: string }) {
   vi.mocked(auth).mockResolvedValue({
-    user: { id: admin.id, status: 'approved', isAdmin: true, email: admin.email },
+    user: { id: admin.id, status: 'approved', isReservationsAdmin: true, isAccountingAdmin: false, email: admin.email },
     expires: '2099-01-01',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any)
@@ -51,7 +54,7 @@ afterEach(async () => {
     // test's fixtures; its updated_by FK must be cleared before the actor
     // user who last patched it can be deleted.
     await testDb.update(bookingRules).set({ updatedBy: null }).where(eq(bookingRules.updatedBy, userId))
-    await testDb.delete(users).where(eq(users.id, userId))
+    await testIdentityDb.delete(users).where(eq(users.id, userId))
   }
   createdUserIds.length = 0
 })
@@ -61,7 +64,7 @@ describe('admin routes', () => {
     const admin = await makeAdmin('approve')
     mockSessionFor(admin)
 
-    const pending = await testDb
+    const pending = await testIdentityDb
       .insert(users)
       .values({ email: `admin-test-pending-${Date.now()}@example.com`, status: 'pending' })
       .returning()
@@ -121,5 +124,34 @@ describe('admin routes', () => {
     const rulesEvent = activityRows.find((a) => a.eventType === 'booking_rules_updated')
     expect(rulesEvent).toBeDefined()
     expect((rulesEvent!.metadata as { before: { maxConsecutiveNights: number } }).before.maxConsecutiveNights).toBe(7)
+  })
+
+  it('rejects an accounting-only admin trying to grant reservations-admin', async () => {
+    const admin = await makeAdmin('accounting-only')
+    // Override the mock to simulate an accounting-only admin (not a
+    // reservations admin), proving the field-level permission check in the
+    // PATCH handler — not just the outer requirePortalAdmin gate.
+    vi.mocked(auth).mockResolvedValue({
+      user: { id: admin.id, status: 'approved', isReservationsAdmin: false, isAccountingAdmin: true, email: admin.email },
+      expires: '2099-01-01',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+
+    const target = await testIdentityDb
+      .insert(users)
+      .values({ email: `admin-test-target-${Date.now()}@example.com`, status: 'approved' })
+      .returning()
+      .then((r) => r[0])
+    createdUserIds.push(target.id)
+
+    const request = new Request(`http://localhost/api/admin/users/${target.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isReservationsAdmin: true }),
+    })
+    const response = await patchUser(request as never, { params: Promise.resolve({ id: target.id }) })
+    expect(response.status).toBe(403)
+
+    const [unchanged] = await testIdentityDb.select().from(users).where(eq(users.id, target.id))
+    expect(unchanged.isReservationsAdmin).toBe(false)
   })
 })

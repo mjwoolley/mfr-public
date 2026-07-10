@@ -5,9 +5,9 @@ import { auth } from '../../lib/auth/config'
 import { POST as postReservation } from '../../app/reservations/api/reservations/route'
 import { GET as getAdminUsers } from '../../app/reservations/api/admin/users/route'
 
-function mockSession(status: 'pending' | 'approved' | 'blocked', isAdmin: boolean) {
+function mockSession(status: 'pending' | 'approved' | 'blocked', isReservationsAdmin: boolean) {
   return {
-    user: { id: 'user-1', status, isAdmin, email: 'test@example.com' },
+    user: { id: 'user-1', status, isReservationsAdmin, isAccountingAdmin: false, email: 'test@example.com' },
     expires: '2099-01-01',
   }
 }
