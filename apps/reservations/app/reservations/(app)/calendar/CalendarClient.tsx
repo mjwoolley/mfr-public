@@ -76,7 +76,7 @@ export function CalendarClient({ userId }: CalendarClientProps) {
   }
 
   return (
-    <div className="mx-auto max-w-2xl p-4">
+    <div className="mx-auto w-full max-w-3xl p-4">
       <CalendarGrid
         year={year}
         month={month}

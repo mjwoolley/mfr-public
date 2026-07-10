@@ -12,15 +12,21 @@ const rules: BookingRulesRow = {
 describe('computeDayInfo', () => {
   it('reports an unbooked, unblocked, in-range day as fully open', () => {
     const info = computeDayInfo('2027-06-15', [], [], rules)
-    expect(info).toEqual({ bookedByName: null, isBlocked: false, isPastHorizon: false })
+    expect(info).toEqual({
+      bookedByName: null,
+      bookedByUserId: null,
+      isBlocked: false,
+      isPastHorizon: false,
+    })
   })
 
-  it('reports the booker name for a day covered by a confirmed reservation', () => {
+  it('reports the booker name and user id for a day covered by a confirmed reservation', () => {
     const reservations: ReservationRow[] = [
       { id: 'r1', userId: 'u1', startDate: '2027-06-10', endDate: '2027-06-15', status: 'confirmed', userName: 'Jane' },
     ]
     const info = computeDayInfo('2027-06-12', reservations, [], rules)
     expect(info.bookedByName).toBe('Jane')
+    expect(info.bookedByUserId).toBe('u1')
   })
 
   it('does not report a booking for the half-open end date itself', () => {

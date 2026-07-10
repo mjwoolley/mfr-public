@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import { computeDayInfo } from './dayInfo'
+import { colorForUser } from './reservationColor'
 import type { ReservationRow, BlockedDateRow, BookingRulesRow } from './useCalendarData'
 
 function toISODate(year: number, month: number, day: number): string {
@@ -75,11 +76,11 @@ export function CalendarGrid({
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between">
         <button onClick={onPrevMonth} className="rounded px-3 py-1 hover:bg-stone-100" aria-label="Previous month">
           &larr;
         </button>
-        <h2 className="text-lg font-semibold">{monthLabel}</h2>
+        <h2 className="text-base font-semibold text-stone-900 sm:text-lg">{monthLabel}</h2>
         <button onClick={onNextMonth} className="rounded px-3 py-1 hover:bg-stone-100" aria-label="Next month">
           &rarr;
         </button>
@@ -94,7 +95,8 @@ export function CalendarGrid({
           <div key={`blank-${i}`} />
         ))}
         {days.map((day) => {
-          const disabled = day.isBlocked || day.bookedByName !== null || day.isPastHorizon
+          const color = day.bookedByUserId ? colorForUser(day.bookedByUserId) : null
+          const disabled = day.isBlocked || day.bookedByUserId !== null || day.isPastHorizon
           return (
             <button
               key={day.date}
@@ -104,14 +106,22 @@ export function CalendarGrid({
               onMouseEnter={() => onDayHover(day.date)}
               onMouseLeave={() => onDayHover(null)}
               className={[
-                'flex h-16 flex-col items-center justify-center rounded border p-1 text-xs',
-                disabled ? 'cursor-not-allowed bg-stone-100 text-stone-400' : 'cursor-pointer hover:bg-lake-50',
-                day.isInSelection ? 'bg-lake-200' : '',
-                day.isSelectionStart ? 'ring-2 ring-lake-600' : '',
+                'flex h-14 flex-col items-center justify-center overflow-hidden rounded border p-1 text-xs sm:h-16',
+                color
+                  ? `cursor-not-allowed border-transparent ${color.bg} ${color.text}`
+                  : disabled
+                    ? 'cursor-not-allowed bg-stone-100 text-stone-400'
+                    : 'cursor-pointer hover:bg-lake-50',
+                !color && day.isInSelection ? 'bg-lake-200' : '',
+                !color && day.isSelectionStart ? 'ring-2 ring-lake-600' : '',
               ].join(' ')}
             >
               <span>{Number(day.date.slice(-2))}</span>
-              {day.bookedByName && <span className="truncate text-[10px]">{day.bookedByName}</span>}
+              {day.bookedByName && (
+                <span className="line-clamp-2 text-center text-[9px] leading-tight sm:text-[10px]">
+                  {day.bookedByName}
+                </span>
+              )}
               {day.isBlocked && !day.bookedByName && <span className="text-[10px]">Blocked</span>}
             </button>
           )

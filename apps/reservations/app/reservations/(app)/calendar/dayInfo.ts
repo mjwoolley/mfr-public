@@ -2,6 +2,7 @@ import type { ReservationRow, BlockedDateRow, BookingRulesRow } from './useCalen
 
 export interface DayInfo {
   bookedByName: string | null
+  bookedByUserId: string | null
   isBlocked: boolean
   isPastHorizon: boolean
 }
@@ -20,6 +21,7 @@ export function computeDayInfo(
 
   return {
     bookedByName: booking?.userName ?? null,
+    bookedByUserId: booking?.userId ?? null,
     isBlocked,
     isPastHorizon,
   }

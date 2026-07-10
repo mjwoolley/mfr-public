@@ -31,7 +31,13 @@ export interface CreateAuthConfigOptions {
 export function createAuthConfig(opts: CreateAuthConfigOptions): NextAuthConfig {
   return {
     basePath: opts.basePath,
-    pages: opts.pages,
+    // Omit the key entirely rather than `pages: opts.pages` when unset:
+    // @auth/core's init defaults `pages` to `{}` via
+    // `{ pages: {}, ...config }`, and an explicit `pages: undefined` own
+    // property survives that spread, clobbering the default. That leaves
+    // `options.pages` undefined, which crashes on `pages.newUser` for
+    // every new user's first sign-in.
+    ...(opts.pages ? { pages: opts.pages } : {}),
     adapter: DrizzleAdapter(opts.db, {
       usersTable: users,
       accountsTable: accounts,
