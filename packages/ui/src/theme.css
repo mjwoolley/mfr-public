@@ -1,0 +1,61 @@
+/*
+ * @mfr/ui — shared Lakeside theme for the Miller Family Reunions portal.
+ * Tailwind v4 design tokens. Light mode only (by decision, 2026-07-10).
+ *
+ * Palette story: a mountain lake. `lake` is the water (primary), `sand` is
+ * the shoreline (page backgrounds/borders), `pine` is the treeline (accent).
+ * Text uses Tailwind's stock warm `stone` scale; functional colors (red
+ * errors, green success, amber pending) stay stock Tailwind.
+ */
+
+@theme {
+  /* Lake — primary. Desaturated mountain-lake blue, anchored at 700. */
+  --color-lake-50: #f0f6f9;
+  --color-lake-100: #dcebf1;
+  --color-lake-200: #bedbe4;
+  --color-lake-300: #92c1d1;
+  --color-lake-400: #5f9fb6;
+  --color-lake-500: #40829c;
+  --color-lake-600: #2f6a83;
+  --color-lake-700: #24596d;
+  --color-lake-800: #22485a;
+  --color-lake-900: #203d4d;
+  --color-lake-950: #122733;
+
+  /* Sand — warm shoreline neutrals for page backgrounds and hairlines. */
+  --color-sand-50: #faf8f4;
+  --color-sand-100: #f3efe6;
+  --color-sand-200: #e8e1d3;
+  --color-sand-300: #d8cdb8;
+
+  /* Pine — treeline accent, used sparingly (success-adjacent highlights). */
+  --color-pine-500: #4c7f60;
+  --color-pine-600: #3e6b50;
+  --color-pine-700: #345741;
+
+  /* Semantic alias: primary === lake. Apps should prefer `primary-*`. */
+  --color-primary-50: var(--color-lake-50);
+  --color-primary-100: var(--color-lake-100);
+  --color-primary-200: var(--color-lake-200);
+  --color-primary-300: var(--color-lake-300);
+  --color-primary-400: var(--color-lake-400);
+  --color-primary-500: var(--color-lake-500);
+  --color-primary-600: var(--color-lake-600);
+  --color-primary-700: var(--color-lake-700);
+  --color-primary-800: var(--color-lake-800);
+  --color-primary-900: var(--color-lake-900);
+  --color-primary-950: var(--color-lake-950);
+
+  /* Type. Body = Geist Sans, display = Bitter (slab; brand + page titles),
+   * mono = Geist Mono. Each app's root layout loads the fonts and exposes
+   * these variables via next/font. */
+  --font-sans: var(--font-geist-sans);
+  --font-display: var(--font-bitter);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background-color: var(--color-sand-50);
+  color: var(--color-stone-900);
+  font-family: var(--font-sans);
+}

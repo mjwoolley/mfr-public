@@ -21,7 +21,7 @@ export default async function InboxPage() {
   return (
     <div>
       <h1 className="text-xl font-semibold">Inbox</h1>
-      <p className="mt-2 text-black/60 dark:text-white/60">
+      <p className="mt-2 text-stone-600">
         These are already reflected in your balance. Approving just confirms you&apos;ve seen
         them — it doesn&apos;t change anything.
       </p>
@@ -34,11 +34,11 @@ export default async function InboxPage() {
           return (
             <li
               key={approval.id}
-              className="rounded border border-black/10 p-4 text-sm dark:border-white/10"
+              className="rounded border border-sand-200 p-4 text-sm"
             >
               <div className="flex items-center justify-between">
                 <span className="font-medium">{approval.transaction.type}</span>
-                <span className="text-black/50 dark:text-white/50">
+                <span className="text-stone-500">
                   {formatDate(approval.transaction.createdAt)}
                 </span>
               </div>
@@ -51,7 +51,7 @@ export default async function InboxPage() {
               {approval.transaction.description && (
                 <p className="mt-1">{approval.transaction.description}</p>
               )}
-              <p className="mt-1 text-black/40 dark:text-white/40">
+              <p className="mt-1 text-stone-400">
                 Recorded by {recordedBy}
               </p>
               <form
@@ -62,7 +62,7 @@ export default async function InboxPage() {
               >
                 <button
                   type="submit"
-                  className="mt-3 rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-background"
+                  className="mt-3 rounded-full bg-lake-700 px-4 py-1.5 text-sm font-medium text-sand-50"
                 >
                   Approve
                 </button>
@@ -71,7 +71,7 @@ export default async function InboxPage() {
           );
         })}
         {pending.length === 0 && (
-          <li className="text-black/50 dark:text-white/50">Nothing pending.</li>
+          <li className="text-stone-500">Nothing pending.</li>
         )}
       </ul>
     </div>

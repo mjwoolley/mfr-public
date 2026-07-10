@@ -39,8 +39,8 @@ function UserRow({
     <li className="rounded border p-3">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <p className="font-medium text-gray-900">{user.name ?? user.email}</p>
-          <p className="text-sm text-gray-500">
+          <p className="font-medium text-stone-900">{user.name ?? user.email}</p>
+          <p className="text-sm text-stone-500">
             {user.email} &middot; {user.status}
             {user.isReservationsAdmin ? ' · reservations admin' : ''}
             {user.isAccountingAdmin ? ' · accounting admin' : ''}
@@ -51,7 +51,7 @@ function UserRow({
             <button
               onClick={() => onUpdate(user.id, { status: 'approved' })}
               disabled={updating}
-              className="rounded bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+              className="rounded bg-lake-600 px-3 py-1 text-sm text-white hover:bg-lake-700 disabled:opacity-50"
             >
               Approve
             </button>
@@ -69,7 +69,7 @@ function UserRow({
             <button
               onClick={() => onUpdate(user.id, { isReservationsAdmin: !user.isReservationsAdmin })}
               disabled={updating}
-              className="rounded px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+              className="rounded px-3 py-1 text-sm text-stone-600 hover:bg-stone-100 disabled:opacity-50"
             >
               {user.isReservationsAdmin ? 'Revoke reservations admin' : 'Make reservations admin'}
             </button>
@@ -78,7 +78,7 @@ function UserRow({
             <button
               onClick={() => onUpdate(user.id, { isAccountingAdmin: !user.isAccountingAdmin })}
               disabled={updating}
-              className="rounded px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+              className="rounded px-3 py-1 text-sm text-stone-600 hover:bg-stone-100 disabled:opacity-50"
             >
               {user.isAccountingAdmin ? 'Revoke accounting admin' : 'Make accounting admin'}
             </button>
@@ -127,7 +127,7 @@ export function UsersClient({ actorIsReservationsAdmin, actorIsAccountingAdmin }
     }
   }
 
-  if (isLoading) return <p className="p-8 text-center text-gray-500">Loading...</p>
+  if (isLoading) return <p className="p-8 text-center text-stone-500">Loading...</p>
   if (error) return <p className="p-8 text-center text-red-600">Failed to load users.</p>
 
   const pending = data?.filter((u) => u.status === 'pending') ?? []
@@ -135,10 +135,10 @@ export function UsersClient({ actorIsReservationsAdmin, actorIsAccountingAdmin }
 
   return (
     <div className="mx-auto max-w-2xl p-4">
-      <h1 className="mb-4 text-xl font-semibold text-gray-900">Manage Users</h1>
+      <h1 className="mb-4 text-xl font-semibold text-stone-900">Manage Users</h1>
       <section className="mb-6">
-        <h2 className="mb-2 text-sm font-semibold text-gray-500 uppercase">Pending approval</h2>
-        {pending.length === 0 && <p className="text-sm text-gray-500">No pending users.</p>}
+        <h2 className="mb-2 text-sm font-semibold text-stone-500 uppercase">Pending approval</h2>
+        {pending.length === 0 && <p className="text-sm text-stone-500">No pending users.</p>}
         <ul className="space-y-2">
           {pending.map((u) => (
             <UserRow
@@ -154,7 +154,7 @@ export function UsersClient({ actorIsReservationsAdmin, actorIsAccountingAdmin }
         </ul>
       </section>
       <section>
-        <h2 className="mb-2 text-sm font-semibold text-gray-500 uppercase">All users</h2>
+        <h2 className="mb-2 text-sm font-semibold text-stone-500 uppercase">All users</h2>
         <ul className="space-y-2">
           {others.map((u) => (
             <UserRow

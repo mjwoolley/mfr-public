@@ -19,10 +19,10 @@ export default async function CorrectTransactionPage({
     <div>
       <h1 className="text-xl font-semibold">Correct transaction</h1>
 
-      <div className="mt-4 rounded border border-black/10 p-4 text-sm dark:border-white/10">
+      <div className="mt-4 rounded border border-sand-200 p-4 text-sm">
         <div className="flex items-center justify-between">
           <span className="font-medium">{original.type}</span>
-          <span className="text-black/50 dark:text-white/50">{formatDate(original.createdAt)}</span>
+          <span className="text-stone-500">{formatDate(original.createdAt)}</span>
         </div>
         {original.description && <p className="mt-1">{original.description}</p>}
         <ul className="mt-2 flex flex-col gap-1">
@@ -35,7 +35,7 @@ export default async function CorrectTransactionPage({
         </ul>
       </div>
 
-      <p className="mt-4 text-black/60 dark:text-white/60">
+      <p className="mt-4 text-stone-600">
         This original entry can&apos;t be edited or deleted. The amounts below default to a full
         reversal — adjust them if this is a partial correction.
       </p>

@@ -21,7 +21,7 @@ export function ContributionForm({
           name="shareholderId"
           required
           defaultValue=""
-          className="rounded border border-black/20 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+          className="rounded border border-sand-300 px-3 py-2"
         >
           <option value="" disabled>
             Select a shareholder
@@ -41,14 +41,14 @@ export function ContributionForm({
           min="0.01"
           step="0.01"
           required
-          className="rounded border border-black/20 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+          className="rounded border border-sand-300 px-3 py-2"
         />
       </label>
       {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
       <button
         type="submit"
         disabled={pending}
-        className="rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-50"
+        className="rounded-full bg-lake-700 px-4 py-2 text-sm font-medium text-sand-50 disabled:opacity-50"
       >
         {pending ? "Recording…" : "Record contribution"}
       </button>

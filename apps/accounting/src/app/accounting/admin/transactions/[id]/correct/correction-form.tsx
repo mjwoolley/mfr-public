@@ -27,7 +27,7 @@ export function CorrectionForm({
             step="0.01"
             required
             defaultValue={(-Number(e.originalShares)).toString()}
-            className="rounded border border-black/20 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+            className="rounded border border-sand-300 px-3 py-2"
           />
         </label>
       ))}
@@ -37,14 +37,14 @@ export function CorrectionForm({
           name="description"
           required
           rows={3}
-          className="rounded border border-black/20 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+          className="rounded border border-sand-300 px-3 py-2"
         />
       </label>
       {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
       <button
         type="submit"
         disabled={pending}
-        className="rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-50"
+        className="rounded-full bg-lake-700 px-4 py-2 text-sm font-medium text-sand-50 disabled:opacity-50"
       >
         {pending ? "Recording…" : "Record correction"}
       </button>

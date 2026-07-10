@@ -11,7 +11,7 @@ export default async function NewAdjustmentPage() {
   return (
     <div>
       <h1 className="text-xl font-semibold">Record a balance adjustment</h1>
-      <p className="mt-2 text-black/60 dark:text-white/60">
+      <p className="mt-2 text-stone-600">
         For fixing data-entry mistakes that aren&apos;t tied to a specific contribution. The
         shareholder is emailed and it&apos;s reflected immediately.
       </p>

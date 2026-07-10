@@ -42,13 +42,13 @@ export default async function AdminIndexPage() {
 
   return (
     <div className="mx-auto max-w-2xl p-4">
-      <h1 className="mb-4 text-xl font-semibold text-gray-900">Admin</h1>
+      <h1 className="mb-4 text-xl font-semibold text-stone-900">Admin</h1>
       <ul className="space-y-2">
         {visibleSections.map((s) => (
           <li key={s.href}>
-            <Link href={s.href} className="block rounded border p-3 hover:bg-gray-50">
-              <p className="font-medium text-blue-700">{s.label}</p>
-              <p className="text-sm text-gray-500">{s.description}</p>
+            <Link href={s.href} className="block rounded border p-3 hover:bg-stone-50">
+              <p className="font-medium text-lake-700">{s.label}</p>
+              <p className="text-sm text-stone-500">{s.description}</p>
             </Link>
           </li>
         ))}

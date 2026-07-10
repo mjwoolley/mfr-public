@@ -1,26 +1,126 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
+import Image from "next/image";
+import { RidgelineMark } from "@mfr/ui";
+
+// The hero photo is provided by the family; until it lands in public/,
+// the lake-gradient treatment stands on its own.
+const HERO_PHOTO = "/lake-house.jpg";
+const hasPhoto = existsSync(path.join(process.cwd(), "public", "lake-house.jpg"));
+
+function CalendarIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 9h18" />
+      <path d="M8 3v4M16 3v4" />
+      <path d="M8 14h3M13 14h3M8 17.5h3" />
+    </svg>
+  );
+}
+
+function LedgerIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M5 3h13a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+      <path d="M8 3v18" />
+      <path d="M11.5 8h4M11.5 12h4M11.5 16h2.5" />
+    </svg>
+  );
+}
+
+const apps = [
+  {
+    name: "Reservations",
+    href: "https://reservations.millerfamilyreunions.org/reservations",
+    description: "See the calendar and book your stay at the house.",
+    Icon: CalendarIcon,
+  },
+  {
+    name: "Accounting",
+    href: "https://accounting.millerfamilyreunions.org/accounting",
+    description: "Shares, contributions, and who's paid what.",
+    Icon: LedgerIcon,
+  },
+];
+
 export default function Home() {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
-      <div>
-        <h1 className="text-2xl font-semibold">Miller Family Reunions</h1>
-        <p className="mt-2 text-black/60 dark:text-white/60">
-          Tools for the Lake Lure lake house.
-        </p>
+    <div className="flex flex-1 flex-col">
+      {/* Hero */}
+      <section className="relative isolate overflow-hidden bg-gradient-to-b from-lake-950 via-lake-900 to-lake-800">
+        {hasPhoto && (
+          <>
+            <Image
+              src={HERO_PHOTO}
+              alt="The Miller family lake house on Lake Lure"
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover"
+            />
+            {/* scrim for text legibility over the photo */}
+            <div className="absolute inset-0 bg-gradient-to-t from-lake-950/85 via-lake-950/45 to-lake-950/25" />
+          </>
+        )}
+        <div className="relative mx-auto flex min-h-[46vh] max-w-5xl flex-col items-start justify-end px-4 pt-20 pb-14 sm:min-h-[54vh]">
+          <p className="text-xs font-medium tracking-[0.25em] text-lake-200 uppercase">
+            Lake Lure, North Carolina
+          </p>
+          <h1 className="font-display mt-3 max-w-xl text-4xl font-semibold text-sand-50 sm:text-5xl">
+            Our place on the lake.
+          </h1>
+          <p className="mt-4 max-w-md text-base text-lake-100">
+            Everything for the Miller family&rsquo;s lake house — plan your stay
+            and keep the books straight.
+          </p>
+        </div>
+      </section>
+
+      {/* Ridgeline divider — the portal's mark, quietly repeated */}
+      <div className="flex justify-center bg-sand-50 pt-10">
+        <RidgelineMark className="h-8 w-8 text-lake-300" />
       </div>
-      <div className="flex flex-wrap items-center justify-center gap-3">
-        <a
-          href="https://reservations.millerfamilyreunions.org/reservations"
-          className="rounded-full bg-foreground px-6 py-3 text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
-        >
-          Go to Reservations
-        </a>
-        <a
-          href="https://accounting.millerfamilyreunions.org/accounting"
-          className="rounded-full border border-black/20 px-6 py-3 text-sm font-medium transition-colors hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5"
-        >
-          Go to Accounting
-        </a>
-      </div>
+
+      {/* App cards */}
+      <section className="bg-sand-50 px-4 pt-8 pb-16">
+        <div className="mx-auto grid max-w-3xl gap-5 sm:grid-cols-2">
+          {apps.map(({ name, href, description, Icon }) => (
+            <a
+              key={name}
+              href={href}
+              className="group rounded-xl border border-sand-200 bg-white p-6 transition-all hover:-translate-y-0.5 hover:border-lake-300 hover:shadow-md hover:shadow-lake-900/5"
+            >
+              <Icon className="h-8 w-8 text-lake-600" />
+              <h2 className="font-display mt-4 text-xl font-semibold text-stone-900">
+                {name}
+              </h2>
+              <p className="mt-1.5 text-sm text-stone-600">{description}</p>
+              <span className="mt-4 inline-block text-sm font-medium text-lake-700 group-hover:text-lake-600">
+                Open {name} &rarr;
+              </span>
+            </a>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

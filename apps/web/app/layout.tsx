@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Bitter, Geist, Geist_Mono } from "next/font/google";
+import { PortalHeader } from "@mfr/ui";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,9 +13,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const bitter = Bitter({
+  variable: "--font-bitter",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   title: "Miller Family Reunions",
-  description: "The Miller family's lake house tools: accounting and reservations.",
+  description: "The Miller family's lake house tools: reservations and accounting.",
 };
 
 export default function RootLayout({
@@ -25,25 +31,31 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${bitter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <header className="border-b border-black/10 dark:border-white/10">
-          <div className="mx-auto flex max-w-4xl items-center justify-between gap-x-4 px-4 py-3">
-            <a href="/" className="font-semibold">
-              Miller Family Reunions
+        <PortalHeader>
+          <nav className="flex gap-x-5 text-sm text-lake-100">
+            <a
+              href="https://reservations.millerfamilyreunions.org/reservations"
+              className="transition-colors hover:text-sand-50"
+            >
+              Reservations
             </a>
-            <nav className="flex gap-x-4 text-sm">
-              <a href="https://reservations.millerfamilyreunions.org/reservations">
-                Reservations
-              </a>
-              <a href="https://accounting.millerfamilyreunions.org/accounting">
-                Accounting
-              </a>
-            </nav>
+            <a
+              href="https://accounting.millerfamilyreunions.org/accounting"
+              className="transition-colors hover:text-sand-50"
+            >
+              Accounting
+            </a>
+          </nav>
+        </PortalHeader>
+        <main className="flex w-full flex-1 flex-col">{children}</main>
+        <footer className="border-t border-sand-200 bg-sand-50">
+          <div className="mx-auto max-w-5xl px-4 py-6 text-center text-sm text-stone-500">
+            The Miller family &middot; Lake Lure, North Carolina
           </div>
-        </header>
-        <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8">{children}</main>
+        </footer>
       </body>
     </html>
   );

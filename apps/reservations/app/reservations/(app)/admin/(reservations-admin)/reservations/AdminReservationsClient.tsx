@@ -92,21 +92,21 @@ export function AdminReservationsClient() {
     }
   }
 
-  if (isLoading) return <p className="p-8 text-center text-gray-500">Loading...</p>
+  if (isLoading) return <p className="p-8 text-center text-stone-500">Loading...</p>
   if (error) return <p className="p-8 text-center text-red-600">Failed to load reservations.</p>
 
   const sorted = [...(data ?? [])].sort((a, b) => a.startDate.localeCompare(b.startDate))
 
   return (
     <div className="mx-auto max-w-2xl p-4">
-      <h1 className="mb-4 text-xl font-semibold text-gray-900">All Reservations</h1>
-      {sorted.length === 0 && <p className="text-gray-500">No reservations in range.</p>}
+      <h1 className="mb-4 text-xl font-semibold text-stone-900">All Reservations</h1>
+      {sorted.length === 0 && <p className="text-stone-500">No reservations in range.</p>}
       <ul className="space-y-2">
         {sorted.map((r) => (
           <li key={r.id} className="rounded border p-3">
             {editingId === r.id ? (
               <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-900">{r.userName ?? 'Unknown user'}</p>
+                <p className="text-sm font-medium text-stone-900">{r.userName ?? 'Unknown user'}</p>
                 <div className="flex gap-2">
                   <input
                     type="date"
@@ -125,13 +125,13 @@ export function AdminReservationsClient() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => submitEdit(r.id)}
-                    className="rounded bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700"
+                    className="rounded bg-lake-600 px-3 py-1 text-sm text-white hover:bg-lake-700"
                   >
                     Save
                   </button>
                   <button
                     onClick={() => setEditingId(null)}
-                    className="rounded px-3 py-1 text-sm text-gray-600 hover:bg-gray-100"
+                    className="rounded px-3 py-1 text-sm text-stone-600 hover:bg-stone-100"
                   >
                     Cancel edit
                   </button>
@@ -140,13 +140,13 @@ export function AdminReservationsClient() {
             ) : (
               <div>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-gray-900">
+                  <span className="text-stone-900">
                     {r.userName ?? 'Unknown user'}: {r.startDate} &rarr; {r.endDate}
                   </span>
                   <div className="flex gap-2">
                     <button
                       onClick={() => startEdit(r)}
-                      className="rounded px-3 py-1 text-sm text-blue-600 hover:bg-blue-50"
+                      className="rounded px-3 py-1 text-sm text-lake-600 hover:bg-lake-50"
                     >
                       Edit
                     </button>

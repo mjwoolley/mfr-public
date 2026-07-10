@@ -19,19 +19,19 @@ export default async function AdminTransactionsPage() {
         <div className="flex flex-wrap gap-2">
           <Link
             href="/accounting/admin/transactions/new/contribution"
-            className="rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background"
+            className="rounded-full bg-lake-700 px-4 py-2 text-sm font-medium text-sand-50"
           >
             Record contribution
           </Link>
           <Link
             href="/accounting/admin/transactions/new/transfer"
-            className="rounded-full border border-black/20 px-4 py-2 text-sm font-medium dark:border-white/20"
+            className="rounded-full border border-sand-300 px-4 py-2 text-sm font-medium"
           >
             Record transfer
           </Link>
           <Link
             href="/accounting/admin/transactions/new/adjustment"
-            className="rounded-full border border-black/20 px-4 py-2 text-sm font-medium dark:border-white/20"
+            className="rounded-full border border-sand-300 px-4 py-2 text-sm font-medium"
           >
             Record adjustment
           </Link>
@@ -42,15 +42,15 @@ export default async function AdminTransactionsPage() {
         {transactions.map((t) => (
           <li
             key={t.id}
-            className="rounded border border-black/10 p-4 text-sm dark:border-white/10"
+            className="rounded border border-sand-200 p-4 text-sm"
           >
             <div className="flex items-center justify-between">
               <span className="font-medium">{t.type}</span>
-              <span className="text-black/50 dark:text-white/50">{formatDate(t.createdAt)}</span>
+              <span className="text-stone-500">{formatDate(t.createdAt)}</span>
             </div>
             {t.description && <p className="mt-1">{t.description}</p>}
             {t.correctsTransaction && (
-              <p className="mt-1 text-black/50 dark:text-white/50">
+              <p className="mt-1 text-stone-500">
                 Corrects {t.correctsTransaction.type} transaction #{t.correctsTransaction.id.slice(-6)}
               </p>
             )}
@@ -68,8 +68,8 @@ export default async function AdminTransactionsPage() {
                   key={a.id}
                   className={`rounded-full px-2 py-0.5 text-xs ${
                     a.approvedAt
-                      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                      : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-yellow-100 text-yellow-800"
                   }`}
                 >
                   {a.shareholder.name}: {a.approvedAt ? "Approved" : "Pending"}
@@ -77,7 +77,7 @@ export default async function AdminTransactionsPage() {
               ))}
             </div>
             <div className="mt-2 flex items-center justify-between">
-              <p className="text-black/40 dark:text-white/40">
+              <p className="text-stone-400">
                 Recorded by {t.createdByName ?? t.createdByEmail ?? "an admin"}
               </p>
               <Link href={`/accounting/admin/transactions/${t.id}/correct`} className="underline">
@@ -87,7 +87,7 @@ export default async function AdminTransactionsPage() {
           </li>
         ))}
         {transactions.length === 0 && (
-          <li className="text-black/50 dark:text-white/50">No transactions yet.</li>
+          <li className="text-stone-500">No transactions yet.</li>
         )}
       </ul>
     </div>

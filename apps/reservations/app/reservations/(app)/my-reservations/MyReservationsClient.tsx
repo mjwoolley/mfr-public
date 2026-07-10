@@ -91,13 +91,13 @@ export function MyReservationsClient({ userId }: { userId: string }) {
     }
   }
 
-  if (isLoading) return <p className="p-8 text-center text-gray-500">Loading...</p>
+  if (isLoading) return <p className="p-8 text-center text-stone-500">Loading...</p>
   if (error) return <p className="p-8 text-center text-red-600">Failed to load your reservations.</p>
 
   return (
     <div className="mx-auto max-w-2xl p-4">
       <h1 className="mb-4 text-xl font-semibold">My Reservations</h1>
-      {data && data.length === 0 && <p className="text-gray-500">You have no upcoming reservations.</p>}
+      {data && data.length === 0 && <p className="text-stone-500">You have no upcoming reservations.</p>}
       <ul className="space-y-2">
         {data?.map((r) => (
           <li key={r.id} className="rounded border p-3">
@@ -121,13 +121,13 @@ export function MyReservationsClient({ userId }: { userId: string }) {
                 <div className="flex gap-2">
                   <button
                     onClick={() => submitEdit(r.id)}
-                    className="rounded bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700"
+                    className="rounded bg-lake-600 px-3 py-1 text-sm text-white hover:bg-lake-700"
                   >
                     Save
                   </button>
                   <button
                     onClick={() => setEditingId(null)}
-                    className="rounded px-3 py-1 text-sm text-gray-600 hover:bg-gray-100"
+                    className="rounded px-3 py-1 text-sm text-stone-600 hover:bg-stone-100"
                   >
                     Cancel
                   </button>
@@ -142,7 +142,7 @@ export function MyReservationsClient({ userId }: { userId: string }) {
                   <div className="flex gap-2">
                     <button
                       onClick={() => startEdit(r)}
-                      className="rounded px-3 py-1 text-sm text-blue-600 hover:bg-blue-50"
+                      className="rounded px-3 py-1 text-sm text-lake-600 hover:bg-lake-50"
                     >
                       Edit
                     </button>

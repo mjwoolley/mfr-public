@@ -11,7 +11,7 @@ export default async function NewTransferPage() {
   return (
     <div>
       <h1 className="text-xl font-semibold">Record a transfer</h1>
-      <p className="mt-2 text-black/60 dark:text-white/60">
+      <p className="mt-2 text-stone-600">
         Moves shares from one shareholder to another. Both are emailed and it&apos;s reflected in
         both balances immediately.
       </p>

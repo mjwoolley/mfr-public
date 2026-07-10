@@ -16,7 +16,7 @@ export function ShareholderForm() {
         <input
           name="name"
           required
-          className="rounded border border-black/20 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+          className="rounded border border-sand-300 px-3 py-2"
         />
       </label>
       <label className="flex flex-col gap-1 text-sm">
@@ -25,14 +25,14 @@ export function ShareholderForm() {
           name="email"
           type="email"
           required
-          className="rounded border border-black/20 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+          className="rounded border border-sand-300 px-3 py-2"
         />
       </label>
       {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
       <button
         type="submit"
         disabled={pending}
-        className="rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-50"
+        className="rounded-full bg-lake-700 px-4 py-2 text-sm font-medium text-sand-50 disabled:opacity-50"
       >
         {pending ? "Adding…" : "Add shareholder"}
       </button>

@@ -60,7 +60,7 @@ export function CalendarClient({ userId }: CalendarClientProps) {
   }
 
   if (isLoading || !bookingRules) {
-    return <p className="p-8 text-center text-gray-500">Loading calendar...</p>
+    return <p className="p-8 text-center text-stone-500">Loading calendar...</p>
   }
   if (error) {
     return <p className="p-8 text-center text-red-600">Failed to load the calendar. Please refresh.</p>

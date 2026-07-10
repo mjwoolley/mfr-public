@@ -66,15 +66,15 @@ export function BookingRulesClient() {
     }
   }
 
-  if (isLoading) return <p className="p-8 text-center text-gray-500">Loading...</p>
+  if (isLoading) return <p className="p-8 text-center text-stone-500">Loading...</p>
   if (error) return <p className="p-8 text-center text-red-600">Failed to load booking rules.</p>
 
   return (
     <div className="mx-auto max-w-md p-4">
-      <h1 className="mb-4 text-xl font-semibold text-gray-900">Booking Rules</h1>
+      <h1 className="mb-4 text-xl font-semibold text-stone-900">Booking Rules</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-stone-700">
             Booking horizon date (no reservations past this date)
           </label>
           <input
@@ -82,11 +82,11 @@ export function BookingRulesClient() {
             required
             value={horizonDate}
             onChange={(e) => setHorizonDate(e.target.value)}
-            className="w-full rounded border px-2 py-1 text-sm text-gray-900"
+            className="w-full rounded border px-2 py-1 text-sm text-stone-900"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-stone-700">
             Max consecutive nights per reservation
           </label>
           <input
@@ -95,11 +95,11 @@ export function BookingRulesClient() {
             required
             value={maxConsecutive}
             onChange={(e) => setMaxConsecutive(e.target.value)}
-            className="w-full rounded border px-2 py-1 text-sm text-gray-900"
+            className="w-full rounded border px-2 py-1 text-sm text-stone-900"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-stone-700">
             Max nights per user per calendar year
           </label>
           <input
@@ -108,7 +108,7 @@ export function BookingRulesClient() {
             required
             value={maxYearly}
             onChange={(e) => setMaxYearly(e.target.value)}
-            className="w-full rounded border px-2 py-1 text-sm text-gray-900"
+            className="w-full rounded border px-2 py-1 text-sm text-stone-900"
           />
         </div>
         {formError && <p className="text-sm text-red-700">{formError}</p>}
@@ -116,7 +116,7 @@ export function BookingRulesClient() {
         <button
           type="submit"
           disabled={submitting}
-          className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="rounded bg-lake-600 px-4 py-2 text-sm font-medium text-white hover:bg-lake-700 disabled:opacity-50"
         >
           {submitting ? 'Saving...' : 'Save changes'}
         </button>

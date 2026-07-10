@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // The @mfr/auth workspace package ships TypeScript source (no build step) —
   // Next transpiles it in place.
-  transpilePackages: ["@mfr/auth"],
+  transpilePackages: ["@mfr/auth", "@mfr/ui"],
   // All routes are physically nested under /accounting; make the bare
   // origin (e.g. accounting.millerfamilyreunions.org) land on the app.
   async redirects() {

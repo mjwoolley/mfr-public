@@ -6,7 +6,7 @@ export default async function UnauthorizedPage() {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
       <h1 className="text-2xl font-semibold">Not authorized</h1>
-      <p className="max-w-md text-black/60 dark:text-white/60">
+      <p className="max-w-md text-stone-600">
         {session?.user?.email ? (
           <>
             <span className="font-mono">{session.user.email}</span> isn&apos;t set up as a

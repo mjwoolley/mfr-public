@@ -24,7 +24,7 @@ export function ActivityClient() {
     getNextPageParam: (lastPage: ActivityPage) => lastPage.nextCursor,
   })
 
-  if (isLoading) return <p className="p-8 text-center text-gray-500">Loading...</p>
+  if (isLoading) return <p className="p-8 text-center text-stone-500">Loading...</p>
   if (error) return <p className="p-8 text-center text-red-600">Failed to load activity.</p>
 
   const pages = data?.pages ?? []
@@ -33,13 +33,13 @@ export function ActivityClient() {
 
   return (
     <div className="mx-auto max-w-2xl p-4">
-      <h1 className="mb-4 text-xl font-semibold text-gray-900">Activity</h1>
-      {events.length === 0 && <p className="text-gray-500">No activity yet.</p>}
+      <h1 className="mb-4 text-xl font-semibold text-stone-900">Activity</h1>
+      {events.length === 0 && <p className="text-stone-500">No activity yet.</p>}
       <ul className="space-y-2">
         {events.map((event) => (
           <li key={event.id} className="rounded border p-3">
-            <p className="text-gray-900">{formatActivityMessage(event, users)}</p>
-            <p className="mt-1 text-xs text-gray-500">{new Date(event.createdAt).toLocaleString()}</p>
+            <p className="text-stone-900">{formatActivityMessage(event, users)}</p>
+            <p className="mt-1 text-xs text-stone-500">{new Date(event.createdAt).toLocaleString()}</p>
           </li>
         ))}
       </ul>
@@ -47,7 +47,7 @@ export function ActivityClient() {
         <button
           onClick={() => fetchNextPage()}
           disabled={isFetchingNextPage}
-          className="mt-4 w-full rounded border px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+          className="mt-4 w-full rounded border px-4 py-2 text-sm font-medium text-lake-700 hover:bg-lake-50 disabled:opacity-50"
         >
           {isFetchingNextPage ? 'Loading...' : 'Load more'}
         </button>

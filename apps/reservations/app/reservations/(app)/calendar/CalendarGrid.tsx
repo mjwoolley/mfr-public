@@ -76,15 +76,15 @@ export function CalendarGrid({
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <button onClick={onPrevMonth} className="rounded px-3 py-1 hover:bg-gray-100" aria-label="Previous month">
+        <button onClick={onPrevMonth} className="rounded px-3 py-1 hover:bg-stone-100" aria-label="Previous month">
           &larr;
         </button>
         <h2 className="text-lg font-semibold">{monthLabel}</h2>
-        <button onClick={onNextMonth} className="rounded px-3 py-1 hover:bg-gray-100" aria-label="Next month">
+        <button onClick={onNextMonth} className="rounded px-3 py-1 hover:bg-stone-100" aria-label="Next month">
           &rarr;
         </button>
       </div>
-      <div className="grid grid-cols-7 gap-1 text-center text-xs text-gray-500">
+      <div className="grid grid-cols-7 gap-1 text-center text-xs text-stone-500">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
           <div key={d}>{d}</div>
         ))}
@@ -105,9 +105,9 @@ export function CalendarGrid({
               onMouseLeave={() => onDayHover(null)}
               className={[
                 'flex h-16 flex-col items-center justify-center rounded border p-1 text-xs',
-                disabled ? 'cursor-not-allowed bg-gray-100 text-gray-400' : 'cursor-pointer hover:bg-blue-50',
-                day.isInSelection ? 'bg-blue-200' : '',
-                day.isSelectionStart ? 'ring-2 ring-blue-600' : '',
+                disabled ? 'cursor-not-allowed bg-stone-100 text-stone-400' : 'cursor-pointer hover:bg-lake-50',
+                day.isInSelection ? 'bg-lake-200' : '',
+                day.isSelectionStart ? 'ring-2 ring-lake-600' : '',
               ].join(' ')}
             >
               <span>{Number(day.date.slice(-2))}</span>

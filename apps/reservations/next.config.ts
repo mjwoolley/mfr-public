@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@mfr/auth"],
+  transpilePackages: ["@mfr/auth", "@mfr/ui"],
   // All routes are physically nested under /reservations; make the bare
   // origin (e.g. reservations.millerfamilyreunions.org) land on the app.
   async redirects() {

@@ -81,8 +81,8 @@ export function BookingPanel({
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/30 p-4">
       <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-lg">
-        <h3 className="mb-2 text-lg font-semibold text-gray-900">Confirm your stay</h3>
-        <p className="mb-4 text-sm text-gray-600">
+        <h3 className="mb-2 text-lg font-semibold text-stone-900">Confirm your stay</h3>
+        <p className="mb-4 text-sm text-stone-600">
           {startDate} &rarr; {endDate} ({nights} night{nights === 1 ? '' : 's'})
         </p>
         {!validation.valid && (
@@ -90,13 +90,13 @@ export function BookingPanel({
         )}
         {submitError && <p className="mb-4 rounded bg-red-50 p-2 text-sm text-red-700">{submitError}</p>}
         <div className="flex justify-end gap-2">
-          <button onClick={onCancel} className="rounded px-4 py-2 text-sm text-gray-600 hover:bg-gray-100">
+          <button onClick={onCancel} className="rounded px-4 py-2 text-sm text-stone-600 hover:bg-stone-100">
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={!validation.valid || submitting}
-            className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            className="rounded bg-lake-600 px-4 py-2 text-sm font-medium text-white hover:bg-lake-700 disabled:opacity-50"
           >
             {submitting ? 'Booking...' : 'Book these dates'}
           </button>

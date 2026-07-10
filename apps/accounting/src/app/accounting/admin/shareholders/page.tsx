@@ -13,7 +13,7 @@ export default async function AdminShareholdersPage() {
         <h1 className="text-xl font-semibold">Shareholders</h1>
         <Link
           href="/accounting/admin/shareholders/new"
-          className="rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background"
+          className="rounded-full bg-lake-700 px-4 py-2 text-sm font-medium text-sand-50"
         >
           Add shareholder
         </Link>
@@ -22,7 +22,7 @@ export default async function AdminShareholdersPage() {
       <div className="mt-6 overflow-x-auto">
         <table className="w-full min-w-[560px] text-left text-sm">
           <thead>
-            <tr className="border-b border-black/10 dark:border-white/10">
+            <tr className="border-b border-sand-200">
               <th className="py-2">Name</th>
               <th className="py-2">Email</th>
               <th className="py-2">Login linked</th>
@@ -32,7 +32,7 @@ export default async function AdminShareholdersPage() {
           </thead>
           <tbody>
             {shareholders.map((s) => (
-              <tr key={s.id} className="border-b border-black/5 dark:border-white/5">
+              <tr key={s.id} className="border-b border-sand-100">
                 <td className="py-2">{s.name}</td>
                 <td className="py-2">{s.email}</td>
                 <td className="py-2">{s.userId ? "Yes" : "Not yet signed in"}</td>
@@ -53,7 +53,7 @@ export default async function AdminShareholdersPage() {
             ))}
             {shareholders.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-6 text-center text-black/50 dark:text-white/50">
+                <td colSpan={5} className="py-6 text-center text-stone-500">
                   No shareholders yet.
                 </td>
               </tr>
