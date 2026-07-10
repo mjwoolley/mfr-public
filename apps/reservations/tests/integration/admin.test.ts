@@ -126,6 +126,44 @@ describe('admin routes', () => {
     expect((rulesEvent!.metadata as { before: { maxConsecutiveNights: number } }).before.maxConsecutiveNights).toBe(7)
   })
 
+  it('creates the booking rules row when none exists (bootstrap)', async () => {
+    const admin = await makeAdmin('rules-bootstrap')
+    mockSessionFor(admin)
+
+    await testDb.delete(bookingRules)
+
+    const request = new Request('http://localhost/api/admin/booking-rules', {
+      method: 'PATCH',
+      body: JSON.stringify({
+        bookingHorizonDate: '2026-12-31',
+        maxConsecutiveNights: 10,
+        maxNightsPerUserPerYear: 20,
+      }),
+    })
+    const response = await patchRules(request as never)
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.bookingRules.maxConsecutiveNights).toBe(10)
+
+    const [row] = await testDb.select().from(bookingRules).where(eq(bookingRules.id, 1))
+    expect(row).toBeDefined()
+    expect(row.maxNightsPerUserPerYear).toBe(20)
+  })
+
+  it('rejects a partial PATCH when no rules row exists yet', async () => {
+    const admin = await makeAdmin('rules-partial-bootstrap')
+    mockSessionFor(admin)
+
+    await testDb.delete(bookingRules)
+
+    const request = new Request('http://localhost/api/admin/booking-rules', {
+      method: 'PATCH',
+      body: JSON.stringify({ maxConsecutiveNights: 5 }),
+    })
+    const response = await patchRules(request as never)
+    expect(response.status).toBe(400)
+  })
+
   it('rejects an accounting-only admin trying to grant reservations-admin', async () => {
     const admin = await makeAdmin('accounting-only')
     // Override the mock to simulate an accounting-only admin (not a

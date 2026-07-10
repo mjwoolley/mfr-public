@@ -59,11 +59,20 @@ export function CalendarClient({ userId }: CalendarClientProps) {
     setHoverDate(null)
   }
 
-  if (isLoading || !bookingRules) {
+  if (isLoading) {
     return <p className="p-8 text-center text-stone-500">Loading calendar...</p>
   }
   if (error) {
     return <p className="p-8 text-center text-red-600">Failed to load the calendar. Please refresh.</p>
+  }
+  if (!bookingRules) {
+    // Fresh environment: the booking_rules row hasn't been created yet.
+    return (
+      <p className="p-8 text-center text-stone-500">
+        The calendar isn&rsquo;t set up yet — an admin needs to configure booking rules under Admin
+        &rarr; Booking Rules.
+      </p>
+    )
   }
 
   return (

@@ -29,17 +29,44 @@ export async function PATCH(request: NextRequest) {
   if (typeof body.maxConsecutiveNights === 'number') patch.maxConsecutiveNights = body.maxConsecutiveNights
   if (typeof body.maxNightsPerUserPerYear === 'number') patch.maxNightsPerUserPerYear = body.maxNightsPerUserPerYear
 
+  // Bootstrap path: no rules row exists yet (fresh environment). A partial
+  // patch can't create a complete row, so require all three fields.
+  if (
+    !before &&
+    !(
+      typeof patch.bookingHorizonDate === 'string' &&
+      typeof patch.maxConsecutiveNights === 'number' &&
+      typeof patch.maxNightsPerUserPerYear === 'number'
+    )
+  ) {
+    return NextResponse.json(
+      { error: 'No booking rules exist yet — horizon date and both night limits are all required to create them' },
+      { status: 400 },
+    )
+  }
+
   const updated = await db.transaction(async (tx) => {
-    const [row] = await tx
-      .update(bookingRules)
-      .set({ ...patch, updatedAt: new Date(), updatedBy: auth.session.user.id })
-      .where(eq(bookingRules.id, 1))
-      .returning()
+    const [row] = before
+      ? await tx
+          .update(bookingRules)
+          .set({ ...patch, updatedAt: new Date(), updatedBy: auth.session.user.id })
+          .where(eq(bookingRules.id, 1))
+          .returning()
+      : await tx
+          .insert(bookingRules)
+          .values({
+            id: 1,
+            bookingHorizonDate: patch.bookingHorizonDate!,
+            maxConsecutiveNights: patch.maxConsecutiveNights!,
+            maxNightsPerUserPerYear: patch.maxNightsPerUserPerYear!,
+            updatedBy: auth.session.user.id,
+          })
+          .returning()
 
     await logActivity(tx, {
       eventType: 'booking_rules_updated',
       actorUserId: auth.session.user.id,
-      metadata: { before, after: row },
+      metadata: { before: before ?? null, after: row },
     })
 
     return row
