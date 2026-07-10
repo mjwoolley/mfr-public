@@ -1,0 +1,16 @@
+{
+  "name": "mfr",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:reservations": "npm run dev -w apps/reservations",
+    "dev:accounting": "npm run dev -w apps/accounting",
+    "dev:web": "npm run dev -w apps/web",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  }
+}
