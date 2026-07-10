@@ -34,6 +34,7 @@ export default function RootLayout({
               Miller Family Reunions
             </a>
             <nav className="flex gap-x-4 text-sm">
+              <a href="/reservations">Reservations</a>
               <a href="/accounting">Accounting</a>
             </nav>
           </div>

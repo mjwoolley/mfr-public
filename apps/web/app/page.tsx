@@ -7,12 +7,20 @@ export default function Home() {
           Tools for the Lake Lure lake house.
         </p>
       </div>
-      <a
-        href="/accounting"
-        className="rounded-full bg-foreground px-6 py-3 text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
-      >
-        Go to Accounting
-      </a>
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        <a
+          href="/reservations"
+          className="rounded-full bg-foreground px-6 py-3 text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
+        >
+          Go to Reservations
+        </a>
+        <a
+          href="/accounting"
+          className="rounded-full border border-black/20 px-6 py-3 text-sm font-medium transition-colors hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/5"
+        >
+          Go to Accounting
+        </a>
+      </div>
     </div>
   );
 }
