@@ -44,6 +44,8 @@ export async function createAdjustment(
       type: TransactionType.ADJUSTMENT,
       description,
       createdById: session.user.id,
+      createdByName: session.user.name ?? null,
+      createdByEmail: session.user.email ?? null,
       entries: { create: { shareholderId: shareholder.id, shares: amount } },
       approvals: { create: { shareholderId: shareholder.id } },
     },

@@ -1,58 +1,42 @@
 import NextAuth from "next-auth";
-import { PrismaAdapter } from "@auth/prisma-adapter";
+import { createAuthConfig } from "@mfr/auth";
+import { identityDb } from "@/lib/identityDb";
 import { prisma } from "@/lib/prisma";
-import { Role } from "@/generated/prisma/client";
-import { authConfig } from "@/lib/auth.config";
-
-function adminEmails(): string[] {
-  return (process.env.ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-}
 
 export const {
   handlers: { GET, POST },
   signIn,
   signOut,
   auth,
-} = NextAuth({
-  ...authConfig,
-  adapter: PrismaAdapter(prisma),
-  callbacks: {
-    ...authConfig.callbacks,
-    async jwt({ token, user }) {
-      // `user` is only present on first sign-in, and only here (not in the
-      // signIn callback) is it guaranteed to be the adapter-persisted DB user
-      // — the signIn callback fires before the Prisma adapter creates the
-      // user/account rows, so `user.id` there doesn't exist yet for new users.
-      if (user?.id && user.email) {
-        const email = user.email.toLowerCase();
+} = NextAuth(
+  createAuthConfig({
+    db: identityDb,
+    basePath: "/accounting/api/auth",
+    cookieDomain: process.env.AUTH_COOKIE_DOMAIN,
+    pages: { signIn: "/accounting/sign-in" },
+    // Runs on every session read. Portal-wide fields (id, status, admin flags)
+    // are attached by the shared config; here we add accounting's own
+    // business-DB field: the linked Shareholder. Linking by email happens once
+    // — the first time an approved identity user with a matching Shareholder
+    // row signs in (moved from the old JWT callback).
+    extendSession: async (session, user) => {
+      const email = user.email?.toLowerCase();
+      let shareholderId: string | null = null;
 
-        if (adminEmails().includes(email)) {
-          await prisma.user.update({
-            where: { id: user.id },
-            data: { role: Role.ADMIN },
-          });
-        }
-
-        // Independent of admin status — an admin can also be a shareholder.
+      if (email) {
         const shareholder = await prisma.shareholder.findUnique({ where: { email } });
-        if (shareholder && !shareholder.userId) {
-          await prisma.shareholder.update({
-            where: { id: shareholder.id },
-            data: { userId: user.id },
-          });
+        if (shareholder) {
+          if (shareholder.userId !== user.id) {
+            await prisma.shareholder.update({
+              where: { id: shareholder.id },
+              data: { userId: user.id },
+            });
+          }
+          shareholderId = shareholder.id;
         }
-
-        const dbUser = await prisma.user.findUnique({
-          where: { id: user.id },
-          include: { shareholder: true },
-        });
-        token.role = dbUser?.role ?? Role.SHAREHOLDER;
-        token.shareholderId = dbUser?.shareholder?.id ?? null;
       }
-      return token;
+
+      session.user.shareholderId = shareholderId;
     },
-  },
-});
+  }),
+);

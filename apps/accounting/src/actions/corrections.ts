@@ -58,6 +58,8 @@ export async function createCorrection(
       type: TransactionType.CORRECTION,
       description,
       createdById: session.user.id,
+      createdByName: session.user.name ?? null,
+      createdByEmail: session.user.email ?? null,
       correctsTransactionId: original.id,
       entries: { create: entries },
       approvals: { create: entries.map((e) => ({ shareholderId: e.shareholderId })) },

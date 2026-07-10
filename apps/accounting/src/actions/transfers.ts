@@ -54,6 +54,8 @@ export async function createTransfer(
       type: TransactionType.TRANSFER,
       description,
       createdById: session.user.id,
+      createdByName: session.user.name ?? null,
+      createdByEmail: session.user.email ?? null,
       entries: {
         create: [
           { shareholderId: from.id, shares: -amount },

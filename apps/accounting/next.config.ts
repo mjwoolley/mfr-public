@@ -1,12 +1,14 @@
 import type { NextConfig } from "next";
-import { withMicrofrontends } from "@vercel/microfrontends/next/config";
 
 const nextConfig: NextConfig = {
+  // The @mfr/auth workspace package ships TypeScript source (no build step) —
+  // Next transpiles it in place.
+  transpilePackages: ["@mfr/auth"],
   experimental: {
     serverActions: {
-      allowedOrigins: ["millerfamilyreunions.org", "mfraccounting.vercel.app", "mfrweb.vercel.app"],
+      allowedOrigins: ["millerfamilyreunions.org", "mfrweb.vercel.app"],
     },
   },
 };
 
-export default withMicrofrontends(nextConfig);
+export default nextConfig;

@@ -13,7 +13,6 @@ export default async function InboxPage() {
       transaction: {
         include: {
           entries: { where: { shareholderId: session.user.shareholderId } },
-          createdBy: { select: { name: true, email: true } },
         },
       },
     },
@@ -30,7 +29,8 @@ export default async function InboxPage() {
       <ul className="mt-6 flex flex-col gap-4">
         {pending.map((approval) => {
           const entry = approval.transaction.entries[0];
-          const admin = approval.transaction.createdBy;
+          const recordedBy =
+            approval.transaction.createdByName ?? approval.transaction.createdByEmail ?? "an admin";
           return (
             <li
               key={approval.id}
@@ -52,7 +52,7 @@ export default async function InboxPage() {
                 <p className="mt-1">{approval.transaction.description}</p>
               )}
               <p className="mt-1 text-black/40 dark:text-white/40">
-                Recorded by {admin.name ?? admin.email}
+                Recorded by {recordedBy}
               </p>
               <form
                 action={async () => {

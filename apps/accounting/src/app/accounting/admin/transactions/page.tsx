@@ -6,7 +6,6 @@ export default async function AdminTransactionsPage() {
   const transactions = await prisma.transaction.findMany({
     orderBy: { createdAt: "desc" },
     include: {
-      createdBy: { select: { name: true, email: true } },
       entries: { include: { shareholder: { select: { name: true } } } },
       approvals: { include: { shareholder: { select: { name: true } } } },
       correctsTransaction: { select: { id: true, type: true } },
@@ -79,7 +78,7 @@ export default async function AdminTransactionsPage() {
             </div>
             <div className="mt-2 flex items-center justify-between">
               <p className="text-black/40 dark:text-white/40">
-                Recorded by {t.createdBy.name ?? t.createdBy.email}
+                Recorded by {t.createdByName ?? t.createdByEmail ?? "an admin"}
               </p>
               <Link href={`/accounting/admin/transactions/${t.id}/correct`} className="underline">
                 Correct

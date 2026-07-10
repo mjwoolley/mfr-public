@@ -5,7 +5,6 @@ import { setShareholderActive } from "@/actions/shareholders";
 export default async function AdminShareholdersPage() {
   const shareholders = await prisma.shareholder.findMany({
     orderBy: { name: "asc" },
-    include: { user: { select: { email: true } } },
   });
 
   return (

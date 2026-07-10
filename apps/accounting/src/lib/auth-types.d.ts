@@ -1,19 +1,11 @@
-import type { Role } from "@/generated/prisma/client";
-import type { DefaultSession } from "next-auth";
+// The portal-wide fields (id, status, isReservationsAdmin, isAccountingAdmin)
+// are declared by @mfr/auth on AppSessionUser. This app adds its own per-app
+// session field — the linked Shareholder — by augmenting the same interface;
+// it merges cleanly into Session.user (see @mfr/auth/types).
+import "@mfr/auth/types";
 
 declare module "next-auth" {
-  interface Session {
-    user: {
-      id: string;
-      role: Role;
-      shareholderId: string | null;
-    } & DefaultSession["user"];
-  }
-}
-
-declare module "next-auth/jwt" {
-  interface JWT {
-    role?: Role;
-    shareholderId?: string | null;
+  interface AppSessionUser {
+    shareholderId: string | null;
   }
 }

@@ -42,6 +42,8 @@ export async function createContribution(
     data: {
       type: TransactionType.CONTRIBUTION,
       createdById: session.user.id,
+      createdByName: session.user.name ?? null,
+      createdByEmail: session.user.email ?? null,
       entries: {
         create: { shareholderId: shareholder.id, shares: parsed.data.amount },
       },

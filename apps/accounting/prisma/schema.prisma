@@ -10,63 +10,13 @@ datasource db {
   provider = "postgresql"
 }
 
-// ---------- Auth.js ----------
-
-enum Role {
-  ADMIN
-  SHAREHOLDER
-}
-
-model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  role          Role      @default(SHAREHOLDER)
-  createdAt     DateTime  @default(now())
-
-  accounts             Account[]
-  sessions             Session[]
-  shareholder          Shareholder?
-  createdTransactions  Transaction[]
-}
-
-model Account {
-  id                       String  @id @default(cuid())
-  userId                   String
-  type                     String
-  provider                 String
-  providerAccountId        String
-  refresh_token            String? @db.Text
-  access_token             String? @db.Text
-  expires_at               Int?
-  token_type               String?
-  scope                    String?
-  id_token                 String? @db.Text
-  session_state            String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-}
+// ---------- Identity ----------
+//
+// Users/accounts/sessions/verification_tokens now live in the shared @mfr/auth
+// identity database (a separate Neon project). Postgres has no cross-database
+// foreign keys, so the columns below that logically reference an identity user
+// (Shareholder.userId, Transaction.createdById) are plain, unconstrained
+// strings holding an identity `users.id` (a uuid) — not real relations.
 
 // ---------- Domain model ----------
 
@@ -77,8 +27,9 @@ model Shareholder {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
 
+  // Logical link to the shared identity DB's users.id — set by the auth
+  // extendSession hook on first sign-in by email match. No FK (cross-database).
   userId String? @unique
-  user   User?   @relation(fields: [userId], references: [id])
 
   ledgerEntries LedgerEntry[]
   approvals     TransactionApproval[]
@@ -97,8 +48,13 @@ model Transaction {
   description String?
   createdAt   DateTime        @default(now())
 
-  createdById String
-  createdBy   User   @relation(fields: [createdById], references: [id])
+  // Logical link to the identity DB's users.id (no cross-database FK), plus a
+  // denormalized snapshot of the recording admin's name/email captured at write
+  // time — the source of truth for "Recorded by …" since a runtime join into
+  // the separate identity database isn't possible. Immune to later name changes.
+  createdById    String
+  createdByName  String?
+  createdByEmail String?
 
   correctsTransactionId String?
   correctsTransaction    Transaction?  @relation("Corrections", fields: [correctsTransactionId], references: [id])

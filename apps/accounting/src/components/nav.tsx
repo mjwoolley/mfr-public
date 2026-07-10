@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { auth, signOut } from "@/lib/auth";
-import { Role } from "@/generated/prisma/client";
 
 export async function Nav() {
   const session = await auth();
@@ -17,7 +16,7 @@ export async function Nav() {
             <Link href="/accounting/dashboard">Dashboard</Link>
             <Link href="/accounting/inbox">Inbox</Link>
             <Link href="/accounting/reports">Reports</Link>
-            {user.role === Role.ADMIN && <Link href="/accounting/admin/transactions">Admin</Link>}
+            {user.isAccountingAdmin && <Link href="/accounting/admin/transactions">Admin</Link>}
             <span className="hidden text-black/50 sm:inline dark:text-white/50">{user.email}</span>
             <form
               action={async () => {
