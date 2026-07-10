@@ -31,7 +31,7 @@ export function AdminReservationsClient() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['reservations', from, to],
     queryFn: async (): Promise<Reservation[]> => {
-      const res = await fetch(`/api/reservations?from=${from}&to=${to}`)
+      const res = await fetch(`/reservations/api/reservations?from=${from}&to=${to}`)
       if (!res.ok) throw new Error('Failed to load reservations')
       const body = await res.json()
       return body.reservations
@@ -51,7 +51,7 @@ export function AdminReservationsClient() {
     setCancellingId(id)
     clearRowError(id)
     try {
-      const res = await fetch(`/api/reservations/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/reservations/api/reservations/${id}`, { method: 'DELETE' })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         setRowError({ id, message: body.error ?? 'Failed to cancel reservation.' })
@@ -75,7 +75,7 @@ export function AdminReservationsClient() {
   async function submitEdit(id: string) {
     clearRowError(id)
     try {
-      const res = await fetch(`/api/reservations/${id}`, {
+      const res = await fetch(`/reservations/api/reservations/${id}`, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ startDate: editStart, endDate: editEnd }),

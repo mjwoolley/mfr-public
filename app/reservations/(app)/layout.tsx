@@ -6,15 +6,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const session = await auth()
 
   if (!session?.user) {
-    redirect('/login')
+    redirect('/reservations/login')
   }
 
   if (session.user.status === 'pending') {
-    redirect('/pending')
+    redirect('/reservations/pending')
   }
 
   if (session.user.status === 'blocked') {
-    redirect('/blocked')
+    redirect('/reservations/blocked')
   }
 
   return (

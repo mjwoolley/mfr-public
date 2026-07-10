@@ -11,7 +11,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // still independently enforces requireAdmin() server-side regardless
   // of what this UI-level gate does.
   if (!session?.user?.isAdmin) {
-    redirect('/calendar')
+    redirect('/reservations/calendar')
   }
 
   return <>{children}</>

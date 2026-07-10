@@ -38,7 +38,7 @@ export function useCalendarData() {
   const reservationsQuery = useQuery({
     queryKey: ['reservations', from, to],
     queryFn: async (): Promise<ReservationRow[]> => {
-      const res = await fetch(`/api/reservations?from=${from}&to=${to}`)
+      const res = await fetch(`/reservations/api/reservations?from=${from}&to=${to}`)
       if (!res.ok) throw new Error('Failed to load reservations')
       const data = await res.json()
       return data.reservations
@@ -49,7 +49,7 @@ export function useCalendarData() {
   const blockedDatesQuery = useQuery({
     queryKey: ['blockedDates'],
     queryFn: async (): Promise<BlockedDateRow[]> => {
-      const res = await fetch('/api/blocked-dates')
+      const res = await fetch('/reservations/api/blocked-dates')
       if (!res.ok) throw new Error('Failed to load blocked dates')
       const data = await res.json()
       return data.blockedDates
@@ -60,7 +60,7 @@ export function useCalendarData() {
   const bookingRulesQuery = useQuery({
     queryKey: ['bookingRules'],
     queryFn: async (): Promise<BookingRulesRow> => {
-      const res = await fetch('/api/booking-rules')
+      const res = await fetch('/reservations/api/booking-rules')
       if (!res.ok) throw new Error('Failed to load booking rules')
       const data = await res.json()
       return data.bookingRules

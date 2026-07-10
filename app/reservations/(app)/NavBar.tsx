@@ -9,13 +9,13 @@ interface NavLink {
 }
 
 const baseLinks: NavLink[] = [
-  { href: '/calendar', label: 'Calendar' },
-  { href: '/my-reservations', label: 'My Reservations' },
-  { href: '/history', label: 'History' },
-  { href: '/activity', label: 'Activity' },
+  { href: '/reservations/calendar', label: 'Calendar' },
+  { href: '/reservations/my-reservations', label: 'My Reservations' },
+  { href: '/reservations/history', label: 'History' },
+  { href: '/reservations/activity', label: 'Activity' },
 ]
 
-const adminLink: NavLink = { href: '/admin', label: 'Admin' }
+const adminLink: NavLink = { href: '/reservations/admin', label: 'Admin' }
 
 export function NavBar({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname()

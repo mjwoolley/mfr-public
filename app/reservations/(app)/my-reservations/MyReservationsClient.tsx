@@ -27,7 +27,7 @@ export function MyReservationsClient({ userId }: { userId: string }) {
     queryFn: async (): Promise<Reservation[]> => {
       const today = new Date().toISOString().slice(0, 10)
       const farFuture = '2099-12-31'
-      const res = await fetch(`/api/reservations?from=${today}&to=${farFuture}`)
+      const res = await fetch(`/reservations/api/reservations?from=${today}&to=${farFuture}`)
       if (!res.ok) throw new Error('Failed to load reservations')
       const body = await res.json()
       return (body.reservations as Reservation[]).filter((r) => r.userId === userId)
@@ -44,7 +44,7 @@ export function MyReservationsClient({ userId }: { userId: string }) {
     setCancelError(null)
     setCancelErrorId(null)
     try {
-      const res = await fetch(`/api/reservations/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/reservations/api/reservations/${id}`, { method: 'DELETE' })
       if (res.ok) {
         invalidateAll()
       } else {
@@ -74,7 +74,7 @@ export function MyReservationsClient({ userId }: { userId: string }) {
   async function submitEdit(id: string) {
     setEditError(null)
     try {
-      const res = await fetch(`/api/reservations/${id}`, {
+      const res = await fetch(`/reservations/api/reservations/${id}`, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ startDate: editStart, endDate: editEnd }),

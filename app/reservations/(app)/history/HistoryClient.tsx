@@ -55,7 +55,7 @@ export function HistoryClient() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['history'],
     queryFn: async (): Promise<HistoryReservation[]> => {
-      const res = await fetch('/api/history')
+      const res = await fetch('/reservations/api/history')
       if (!res.ok) throw new Error('Failed to load history')
       const body = await res.json()
       return body.reservations

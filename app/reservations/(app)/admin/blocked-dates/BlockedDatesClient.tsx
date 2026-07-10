@@ -23,7 +23,7 @@ export function BlockedDatesClient() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['blockedDates'],
     queryFn: async (): Promise<BlockedDate[]> => {
-      const res = await fetch('/api/blocked-dates')
+      const res = await fetch('/reservations/api/blocked-dates')
       if (!res.ok) throw new Error('Failed to load blocked dates')
       const body = await res.json()
       return body.blockedDates
@@ -35,7 +35,7 @@ export function BlockedDatesClient() {
     setFormError(null)
     setSubmitting(true)
     try {
-      const res = await fetch('/api/admin/blocked-dates', {
+      const res = await fetch('/reservations/api/admin/blocked-dates', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ startDate, endDate, reason: reason || undefined }),
@@ -60,7 +60,7 @@ export function BlockedDatesClient() {
     setDeletingId(id)
     setRowError((prev) => (prev?.id === id ? null : prev))
     try {
-      const res = await fetch(`/api/admin/blocked-dates/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/reservations/api/admin/blocked-dates/${id}`, { method: 'DELETE' })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         setRowError({ id, message: body.error ?? 'Failed to remove blocked dates.' })

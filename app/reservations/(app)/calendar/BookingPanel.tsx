@@ -60,7 +60,7 @@ export function BookingPanel({
     setSubmitting(true)
     setSubmitError(null)
     try {
-      const response = await fetch('/api/reservations', {
+      const response = await fetch('/reservations/api/reservations', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ startDate, endDate }),

@@ -1,10 +1,10 @@
 import Link from 'next/link'
 
 const sections = [
-  { href: '/admin/users', label: 'Manage Users', description: 'Approve pending signups, block users.' },
-  { href: '/admin/reservations', label: 'All Reservations', description: 'View, edit, or cancel any reservation.' },
-  { href: '/admin/blocked-dates', label: 'Blocked Dates', description: 'Block off dates the cabin is unavailable.' },
-  { href: '/admin/booking-rules', label: 'Booking Rules', description: 'Set the booking horizon and per-user limits.' },
+  { href: '/reservations/admin/users', label: 'Manage Users', description: 'Approve pending signups, block users.' },
+  { href: '/reservations/admin/reservations', label: 'All Reservations', description: 'View, edit, or cancel any reservation.' },
+  { href: '/reservations/admin/blocked-dates', label: 'Blocked Dates', description: 'Block off dates the cabin is unavailable.' },
+  { href: '/reservations/admin/booking-rules', label: 'Booking Rules', description: 'Set the booking horizon and per-user limits.' },
 ]
 
 export default function AdminIndexPage() {

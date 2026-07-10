@@ -67,7 +67,7 @@ export function UsersClient() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin-users'],
     queryFn: async (): Promise<AdminUser[]> => {
-      const res = await fetch('/api/admin/users')
+      const res = await fetch('/reservations/api/admin/users')
       if (!res.ok) throw new Error('Failed to load users')
       const body = await res.json()
       return body.users
@@ -78,7 +78,7 @@ export function UsersClient() {
     setUpdatingId(id)
     setRowError((prev) => (prev?.id === id ? null : prev))
     try {
-      const res = await fetch(`/api/admin/users/${id}`, {
+      const res = await fetch(`/reservations/api/admin/users/${id}`, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ status }),

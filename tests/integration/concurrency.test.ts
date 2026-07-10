@@ -11,7 +11,7 @@ import { users, reservations, bookingRules, activityLog } from '../../lib/db/sch
 vi.mock('../../lib/auth/config', () => ({ auth: vi.fn() }))
 
 import { auth } from '../../lib/auth/config'
-import { POST } from '../../app/api/reservations/route'
+import { POST } from '../../app/reservations/api/reservations/route'
 
 const createdUserIds: string[] = []
 

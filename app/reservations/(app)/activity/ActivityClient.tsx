@@ -10,7 +10,7 @@ interface ActivityPage {
 }
 
 async function fetchActivityPage(cursor: string | null): Promise<ActivityPage> {
-  const url = cursor ? `/api/activity?before=${encodeURIComponent(cursor)}` : '/api/activity'
+  const url = cursor ? `/reservations/api/activity?before=${encodeURIComponent(cursor)}` : '/reservations/api/activity'
   const res = await fetch(url)
   if (!res.ok) throw new Error('Failed to load activity')
   return res.json()

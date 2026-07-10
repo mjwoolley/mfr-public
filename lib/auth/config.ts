@@ -6,6 +6,7 @@ import { db } from '@/lib/db/client'
 import { users, accounts, sessions, verificationTokens, activityLog } from '@/lib/db/schema'
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  basePath: '/reservations/api/auth',
   adapter: DrizzleAdapter(db, {
     usersTable: users,
     accountsTable: accounts,

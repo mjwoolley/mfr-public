@@ -2,8 +2,8 @@ import { describe, it, expect, vi } from 'vitest'
 
 vi.mock('../../lib/auth/config', () => ({ auth: vi.fn() }))
 import { auth } from '../../lib/auth/config'
-import { POST as postReservation } from '../../app/api/reservations/route'
-import { GET as getAdminUsers } from '../../app/api/admin/users/route'
+import { POST as postReservation } from '../../app/reservations/api/reservations/route'
+import { GET as getAdminUsers } from '../../app/reservations/api/admin/users/route'
 
 function mockSession(status: 'pending' | 'approved' | 'blocked', isAdmin: boolean) {
   return {

@@ -22,7 +22,7 @@ export function BookingRulesClient() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['bookingRules'],
     queryFn: async (): Promise<BookingRules> => {
-      const res = await fetch('/api/booking-rules')
+      const res = await fetch('/reservations/api/booking-rules')
       if (!res.ok) throw new Error('Failed to load booking rules')
       const body = await res.json()
       return body.bookingRules
@@ -43,7 +43,7 @@ export function BookingRulesClient() {
     setSaved(false)
     setSubmitting(true)
     try {
-      const res = await fetch('/api/admin/booking-rules', {
+      const res = await fetch('/reservations/api/admin/booking-rules', {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({

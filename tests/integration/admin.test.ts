@@ -15,9 +15,9 @@ import { users, blockedDates, activityLog, bookingRules } from '../../lib/db/sch
 vi.mock('../../lib/auth/config', () => ({ auth: vi.fn() }))
 
 import { auth } from '../../lib/auth/config'
-import { PATCH as patchUser } from '../../app/api/admin/users/[id]/route'
-import { POST as postBlockedDate } from '../../app/api/admin/blocked-dates/route'
-import { PATCH as patchRules } from '../../app/api/admin/booking-rules/route'
+import { PATCH as patchUser } from '../../app/reservations/api/admin/users/[id]/route'
+import { POST as postBlockedDate } from '../../app/reservations/api/admin/blocked-dates/route'
+import { PATCH as patchRules } from '../../app/reservations/api/admin/booking-rules/route'
 
 const createdUserIds: string[] = []
 
