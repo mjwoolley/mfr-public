@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import { computeDayInfo } from './dayInfo'
+import { isDayInSelection } from './dayInSelection'
 import { colorForUser } from './reservationColor'
 import type { ReservationRow, BlockedDateRow, BookingRulesRow } from './useCalendarData'
 
@@ -49,18 +50,11 @@ export function CalendarGrid({
   const days = useMemo(() => {
     const total = daysInMonth(year, month)
     const result: Array<{ date: string; isSelectionStart: boolean; isInSelection: boolean } & ReturnType<typeof computeDayInfo>> = []
-    const rangeOtherEnd = selectionEnd ?? hoverDate
 
     for (let day = 1; day <= total; day++) {
       const date = toISODate(year, month, day)
       const info = computeDayInfo(date, reservations, blockedDates, bookingRules)
-
-      let isInSelection = false
-      if (selectionStart && rangeOtherEnd) {
-        const lo = selectionStart < rangeOtherEnd ? selectionStart : rangeOtherEnd
-        const hi = selectionStart < rangeOtherEnd ? rangeOtherEnd : selectionStart
-        isInSelection = date >= lo && date <= hi
-      }
+      const isInSelection = isDayInSelection(date, selectionStart, selectionEnd, hoverDate)
 
       result.push({ date, ...info, isInSelection, isSelectionStart: date === selectionStart })
     }
