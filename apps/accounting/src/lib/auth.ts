@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import { createAuthConfig } from "@mfr/auth";
 import { identityDb } from "@/lib/identityDb";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 
 export const {
   handlers: { GET, POST },
@@ -27,10 +28,20 @@ export const {
         const shareholder = await prisma.shareholder.findUnique({ where: { email } });
         if (shareholder) {
           if (shareholder.userId !== user.id) {
-            await prisma.shareholder.update({
-              where: { id: shareholder.id },
-              data: { userId: user.id },
-            });
+            try {
+              await prisma.shareholder.update({
+                where: { id: shareholder.id },
+                data: { userId: user.id },
+              });
+            } catch (err) {
+              // An admin can now manually link a different shareholder to this
+              // same user.id via linkShareholderToUser. If that already
+              // happened, this write loses the race — don't let it crash the
+              // session callback; just skip the (re)link for this read.
+              if (!(err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002")) {
+                throw err;
+              }
+            }
           }
           shareholderId = shareholder.id;
         }
