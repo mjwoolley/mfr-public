@@ -42,7 +42,7 @@ export default async function RootLayout({
               Accounting
             </a>
           </nav>
-          {session?.user && (
+          {session?.user ? (
             <AuthStatus
               email={session.user.email ?? ""}
               onSignOut={async () => {
@@ -50,6 +50,14 @@ export default async function RootLayout({
                 await signOut({ redirectTo: "/" });
               }}
             />
+          ) : (
+            <a
+              href="/sign-in"
+              className="text-sm underline underline-offset-[3px]"
+              style={{ color: "var(--color-accent)" }}
+            >
+              Sign in
+            </a>
           )}
         </PortalHeader>
         <main className="flex w-full flex-1 flex-col">{children}</main>
