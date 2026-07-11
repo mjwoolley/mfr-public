@@ -1,5 +1,16 @@
 import { auth } from "@/lib/auth";
+import { createPortalStatusGate } from "@mfr/auth";
 import { redirect } from "next/navigation";
+
+// Accounting's portal-status gate: no session -> sign-in, pending -> pending
+// page, blocked -> blocked page. Same branch-on-status logic reservations
+// uses (via its own lib/auth/portalStatusGate.ts), just configured with
+// accounting's own paths.
+const gatePortalStatus = createPortalStatusGate({
+  loginPath: "/accounting/sign-in",
+  pendingPath: "/accounting/pending",
+  blockedPath: "/accounting/blocked",
+});
 
 export async function requireSession() {
   const session = await auth();
@@ -16,10 +27,7 @@ export async function requireSession() {
  */
 export async function requirePortalApproved() {
   const session = await requireSession();
-  const status = session.user.status;
-  if (status === "blocked") redirect("/accounting/blocked");
-  if (status !== "approved") redirect("/accounting/pending");
-  return session;
+  return gatePortalStatus(session);
 }
 
 /** Admin, or an unlinked-but-allowed account. Redirects unauthorized users away. */

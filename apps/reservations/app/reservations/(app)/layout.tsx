@@ -1,22 +1,10 @@
-import { redirect } from 'next/navigation'
 import { PortalHeader, AuthStatus } from '@mfr/ui'
 import { auth, signOut } from '@/lib/auth/config'
+import { gatePortalStatus } from '@/lib/auth/portalStatusGate'
 import { NavBar } from './NavBar'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth()
-
-  if (!session?.user) {
-    redirect('/reservations/login')
-  }
-
-  if (session.user.status === 'pending') {
-    redirect('/reservations/pending')
-  }
-
-  if (session.user.status === 'blocked') {
-    redirect('/reservations/blocked')
-  }
+  const session = gatePortalStatus(await auth())
 
   return (
     <>

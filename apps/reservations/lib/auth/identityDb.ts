@@ -1,8 +1,7 @@
-import { createIdentityDb } from '@mfr/auth'
+import { createIdentityDbFromEnv } from '@mfr/auth'
 
-const connectionString = process.env.IDENTITY_DATABASE_URL
-if (!connectionString) {
-  throw new Error('IDENTITY_DATABASE_URL is not set')
-}
-
-export const identityDb = createIdentityDb(connectionString)
+// Module-load-time singleton (same pattern as lib/db/client.ts). Points at
+// the shared @mfr/auth identity database — the same IDENTITY_DATABASE_URL
+// value the other apps use, so all three apps share one set of
+// users/sessions.
+export const identityDb = createIdentityDbFromEnv()

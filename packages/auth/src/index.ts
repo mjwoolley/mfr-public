@@ -1,3 +1,5 @@
 export { createIdentityDb, type IdentityDb } from './db'
+export { createIdentityDbFromEnv } from './identityDbFromEnv'
 export { createAuthConfig, type CreateAuthConfigOptions } from './config'
+export { createPortalStatusGate, type PortalStatusGatePaths } from './portalStatusGate'
 export { users, accounts, sessions, verificationTokens, userStatusEnum } from './schema'
