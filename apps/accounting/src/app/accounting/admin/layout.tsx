@@ -9,9 +9,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <Link href="/accounting/admin/transactions" className="underline">
           Activity log
         </Link>
-        <Link href="/accounting/admin/shareholders" className="underline">
-          Shareholders
-        </Link>
       </nav>
       {children}
     </div>

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { setShareholderActive } from "@/actions/shareholders";
 
 export default async function AdminShareholdersPage() {
   const shareholders = await prisma.shareholder.findMany({
@@ -34,20 +33,13 @@ export default async function AdminShareholdersPage() {
             {shareholders.map((s) => (
               <tr key={s.id} className="border-b border-sand-100">
                 <td className="py-2">{s.name}</td>
-                <td className="py-2">{s.email}</td>
+                <td className="py-2">{s.email ?? "—"}</td>
                 <td className="py-2">{s.userId ? "Yes" : "Not yet signed in"}</td>
                 <td className="py-2">{s.active ? "Active" : "Inactive"}</td>
                 <td className="py-2 text-right">
-                  <form
-                    action={async () => {
-                      "use server";
-                      await setShareholderActive(s.id, !s.active);
-                    }}
-                  >
-                    <button type="submit" className="underline">
-                      {s.active ? "Deactivate" : "Reactivate"}
-                    </button>
-                  </form>
+                  <Link href={`/accounting/admin/shareholders/${s.id}/edit`} className="underline">
+                    Edit
+                  </Link>
                 </td>
               </tr>
             ))}

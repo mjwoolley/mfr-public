@@ -69,9 +69,11 @@ export async function createCorrection(
   const adminName = session.user.name ?? session.user.email ?? "The admin";
   const dateStr = formatDate(correction.createdAt);
 
+  // Shareholder.email is optional (Phase 11) — no address to notify if unset.
   await Promise.all(
     original.entries.map((e) => {
       const entry = entries.find((x) => x.shareholderId === e.shareholderId)!;
+      if (!e.shareholder.email) return Promise.resolve();
       return sendEmail({
         to: e.shareholder.email,
         subject: `Correction of ${formatUSD(entry.shares)} recorded`,

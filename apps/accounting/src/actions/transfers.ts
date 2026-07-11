@@ -72,37 +72,42 @@ export async function createTransfer(
   const amountStr = formatUSD(amount);
   const dateStr = formatDate(transaction.createdAt);
 
+  // Shareholder.email is optional (Phase 11) — no address to notify if unset.
   await Promise.all([
-    sendEmail({
-      to: from.email,
-      subject: `Transfer of ${amountStr} to ${to.name} recorded`,
-      react: TransferNotification({
-        recipientName: from.name,
-        direction: "sent",
-        counterpartyName: to.name,
-        amount: amountStr,
-        description,
-        date: dateStr,
-        adminName,
-        inboxUrl: appUrl("/inbox"),
-      }),
-      replyTo: session.user.email ?? undefined,
-    }),
-    sendEmail({
-      to: to.email,
-      subject: `Transfer of ${amountStr} from ${from.name} recorded`,
-      react: TransferNotification({
-        recipientName: to.name,
-        direction: "received",
-        counterpartyName: from.name,
-        amount: amountStr,
-        description,
-        date: dateStr,
-        adminName,
-        inboxUrl: appUrl("/inbox"),
-      }),
-      replyTo: session.user.email ?? undefined,
-    }),
+    from.email
+      ? sendEmail({
+          to: from.email,
+          subject: `Transfer of ${amountStr} to ${to.name} recorded`,
+          react: TransferNotification({
+            recipientName: from.name,
+            direction: "sent",
+            counterpartyName: to.name,
+            amount: amountStr,
+            description,
+            date: dateStr,
+            adminName,
+            inboxUrl: appUrl("/inbox"),
+          }),
+          replyTo: session.user.email ?? undefined,
+        })
+      : Promise.resolve(),
+    to.email
+      ? sendEmail({
+          to: to.email,
+          subject: `Transfer of ${amountStr} from ${from.name} recorded`,
+          react: TransferNotification({
+            recipientName: to.name,
+            direction: "received",
+            counterpartyName: from.name,
+            amount: amountStr,
+            description,
+            date: dateStr,
+            adminName,
+            inboxUrl: appUrl("/inbox"),
+          }),
+          replyTo: session.user.email ?? undefined,
+        })
+      : Promise.resolve(),
   ]);
 
   revalidatePath("/accounting/admin/transactions");

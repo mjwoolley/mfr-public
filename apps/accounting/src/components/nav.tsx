@@ -27,6 +27,14 @@ export async function Nav() {
               Admin
             </Link>
           )}
+          {user.isAccountingAdmin && (
+            <Link
+              href="/accounting/admin/shareholders"
+              className="text-lake-100 transition-colors hover:text-sand-50"
+            >
+              Manage Shareholders
+            </Link>
+          )}
           <span className="hidden text-lake-200 sm:inline">{user.email}</span>
           <form
             action={async () => {

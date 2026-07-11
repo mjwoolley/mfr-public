@@ -51,19 +51,22 @@ export async function createAdjustment(
     },
   });
 
-  await sendEmail({
-    to: shareholder.email,
-    subject: `Balance adjustment of ${formatUSD(amount)} recorded`,
-    react: AdjustmentNotification({
-      shareholderName: shareholder.name,
-      amount: formatUSD(amount),
-      description,
-      date: formatDate(transaction.createdAt),
-      adminName: session.user.name ?? session.user.email ?? "The admin",
-      inboxUrl: appUrl("/inbox"),
-    }),
-    replyTo: session.user.email ?? undefined,
-  });
+  // Shareholder.email is optional (Phase 11) — no address to notify if unset.
+  if (shareholder.email) {
+    await sendEmail({
+      to: shareholder.email,
+      subject: `Balance adjustment of ${formatUSD(amount)} recorded`,
+      react: AdjustmentNotification({
+        shareholderName: shareholder.name,
+        amount: formatUSD(amount),
+        description,
+        date: formatDate(transaction.createdAt),
+        adminName: session.user.name ?? session.user.email ?? "The admin",
+        inboxUrl: appUrl("/inbox"),
+      }),
+      replyTo: session.user.email ?? undefined,
+    });
+  }
 
   revalidatePath("/accounting/admin/transactions");
   redirect("/accounting/admin/transactions");

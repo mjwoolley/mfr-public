@@ -23,7 +23,7 @@ datasource db {
 model Shareholder {
   id        String   @id @default(cuid())
   name      String
-  email     String   @unique
+  email     String?  @unique
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
 

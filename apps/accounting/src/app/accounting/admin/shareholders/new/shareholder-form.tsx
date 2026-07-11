@@ -20,11 +20,10 @@ export function ShareholderForm() {
         />
       </label>
       <label className="flex flex-col gap-1 text-sm">
-        Email
+        Email (optional)
         <input
           name="email"
           type="email"
-          required
           className="rounded border border-sand-300 px-3 py-2"
         />
       </label>

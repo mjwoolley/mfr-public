@@ -1,0 +1,37 @@
+import { notFound } from "next/navigation";
+import { eq } from "drizzle-orm";
+import { users } from "@mfr/auth";
+import { prisma } from "@/lib/prisma";
+import { identityDb } from "@/lib/identityDb";
+import { EditShareholderForm } from "./edit-shareholder-form";
+import { LinkLoginControl } from "./link-login-control";
+
+export default async function EditShareholderPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const shareholder = await prisma.shareholder.findUnique({ where: { id } });
+  if (!shareholder) notFound();
+
+  // No cross-database join is possible (Shareholder.userId is a plain string,
+  // not a real FK, since users live in the separate identity database) — look
+  // the linked user up by id directly against identityDb.
+  let linkedEmail: string | null = null;
+  if (shareholder.userId) {
+    const [linkedUser] = await identityDb
+      .select({ email: users.email })
+      .from(users)
+      .where(eq(users.id, shareholder.userId));
+    linkedEmail = linkedUser?.email ?? null;
+  }
+
+  return (
+    <div>
+      <h1 className="text-xl font-semibold">Edit shareholder</h1>
+      <EditShareholderForm shareholder={shareholder} />
+      <LinkLoginControl shareholderId={shareholder.id} linkedEmail={linkedEmail} />
+    </div>
+  );
+}
