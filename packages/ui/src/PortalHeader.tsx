@@ -13,36 +13,36 @@ export interface PortalHeaderProps {
 }
 
 /**
- * The one header every app shares — a dark lake bar with the ridgeline mark.
- * The wordmark always routes back to the portal homepage; that's the
+ * The one header every app shares — the Organic light header: ridgeline mark
+ * in terracotta beside the Caprasimo wordmark on the cream ground. The
+ * wordmark always routes back to the portal homepage; that's the
  * "back to home" affordance across the whole portal.
  */
 export function PortalHeader({ appName, appHref, children }: PortalHeaderProps) {
   return (
-    <header className="bg-lake-950 text-sand-50">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
-        <a
-          href={HOME_URL}
-          className="flex shrink-0 items-center gap-2.5 text-sand-50 transition-colors hover:text-lake-200"
-        >
-          <RidgelineMark className="h-6 w-6 text-lake-300" />
-          <span className="font-display text-lg font-semibold tracking-tight">
-            <span className="hidden sm:inline">Miller Family Reunions</span>
-            <span className="sm:hidden">MFR</span>
-          </span>
-        </a>
-        {appName && (
-          <a
-            href={appHref ?? '#'}
-            className="rounded-full bg-lake-800 px-3 py-1 text-xs font-medium tracking-wide text-lake-100 uppercase transition-colors hover:bg-lake-700 hover:text-sand-50"
-          >
-            {appName}
+    <header>
+      <nav className="nav mx-auto max-w-5xl flex-wrap gap-y-2 px-4 pt-5 pb-2.5 sm:px-7">
+        <span className="mr-auto flex items-center gap-3">
+          <a href={HOME_URL} className="flex shrink-0 items-center gap-3" style={{ color: 'inherit' }}>
+            <RidgelineMark
+              className="h-[30px] w-[30px]"
+              style={{ color: 'var(--color-accent)' }}
+            />
+            <span className="nav-brand" style={{ marginRight: 0 }}>
+              <span className="hidden sm:inline">Miller Family Reunions</span>
+              <span className="sm:hidden">MFR</span>
+            </span>
           </a>
-        )}
+          {appName && (
+            <a href={appHref ?? '#'} className="tag tag-accent-2 self-center no-underline">
+              {appName}
+            </a>
+          )}
+        </span>
         {children && (
-          <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-2">{children}</div>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">{children}</div>
         )}
-      </div>
+      </nav>
     </header>
   )
 }

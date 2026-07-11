@@ -2,7 +2,13 @@
  * The portal's signature mark: a mountain ridgeline mirrored over water —
  * Lake Lure. Drawn with currentColor; reflection is rendered fainter.
  */
-export function RidgelineMark({ className }: { className?: string }) {
+export function RidgelineMark({
+  className,
+  style,
+}: {
+  className?: string
+  style?: React.CSSProperties
+}) {
   return (
     <svg
       viewBox="0 0 32 32"
@@ -12,6 +18,7 @@ export function RidgelineMark({ className }: { className?: string }) {
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
+      style={style}
       aria-hidden="true"
     >
       {/* ridge */}

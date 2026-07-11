@@ -18,11 +18,12 @@ export interface AuthStatusProps {
 export function AuthStatus({ email, onSignOut }: AuthStatusProps) {
   return (
     <>
-      <span className="hidden text-sm text-lake-200 sm:inline">{email}</span>
+      <span className="text-muted hidden text-sm sm:inline">{email}</span>
       <form action={onSignOut}>
         <button
           type="submit"
-          className="text-sm text-lake-100 underline transition-colors hover:text-sand-50"
+          className="cursor-pointer text-sm underline underline-offset-[3px]"
+          style={{ color: 'var(--color-accent)' }}
         >
           Sign out
         </button>
