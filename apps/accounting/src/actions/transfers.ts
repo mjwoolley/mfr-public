@@ -110,6 +110,6 @@ export async function createTransfer(
       : Promise.resolve(),
   ]);
 
-  revalidatePath("/accounting/admin/transactions");
-  redirect("/accounting/admin/transactions");
+  revalidatePath("/accounting/activity");
+  redirect("/accounting/activity");
 }

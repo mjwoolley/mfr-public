@@ -81,12 +81,30 @@ model LedgerEntry {
   @@index([transactionId])
 }
 
+enum ApprovalStatus {
+  PENDING
+  CONFIRMED
+  DISPUTED
+}
+
 model TransactionApproval {
-  id            String    @id @default(cuid())
+  id            String         @id @default(cuid())
   transactionId String
   shareholderId String
-  approvedAt    DateTime?
-  createdAt     DateTime  @default(now())
+  status        ApprovalStatus @default(PENDING)
+  confirmedAt   DateTime?
+  disputedAt    DateTime?
+  disputeReason String?
+  resolvedAt    DateTime?
+
+  // Optional, informational-only pointer to the CORRECTION transaction that
+  // resolved this dispute (if any) — same "no cross-model enforcement"
+  // pattern as Transaction.correctsTransactionId. A dispute never silently
+  // reverts to CONFIRMED once resolved; status stays DISPUTED with
+  // resolvedAt/resolutionTransactionId set, preserving the audit trail.
+  resolutionTransactionId String?
+
+  createdAt DateTime @default(now())
 
   transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
   shareholder Shareholder @relation(fields: [shareholderId], references: [id])

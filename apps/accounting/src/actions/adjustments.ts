@@ -68,6 +68,6 @@ export async function createAdjustment(
     });
   }
 
-  revalidatePath("/accounting/admin/transactions");
-  redirect("/accounting/admin/transactions");
+  revalidatePath("/accounting/activity");
+  redirect("/accounting/activity");
 }

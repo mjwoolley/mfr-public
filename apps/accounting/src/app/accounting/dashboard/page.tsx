@@ -2,6 +2,7 @@ import { requireShareholder } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { getShareholderBalance } from "@/lib/ledger";
 import { formatUSD, formatDate } from "@/lib/format";
+import { ApprovalStatus } from "@/generated/prisma/client";
 
 export default async function DashboardPage() {
   const session = await requireShareholder();
@@ -59,12 +60,18 @@ export default async function DashboardPage() {
               {approval && (
                 <span
                   className={`mt-2 inline-block rounded-full px-2 py-0.5 text-xs ${
-                    approval.approvedAt
+                    approval.status === ApprovalStatus.CONFIRMED
                       ? "bg-green-100 text-green-800"
-                      : "bg-yellow-100 text-yellow-800"
+                      : approval.status === ApprovalStatus.DISPUTED
+                        ? "bg-red-100 text-red-800"
+                        : "bg-yellow-100 text-yellow-800"
                   }`}
                 >
-                  {approval.approvedAt ? "Approved" : "Pending your approval"}
+                  {approval.status === ApprovalStatus.CONFIRMED
+                    ? "Confirmed"
+                    : approval.status === ApprovalStatus.DISPUTED
+                      ? "Disputed"
+                      : "Pending your confirmation"}
                 </span>
               )}
             </li>

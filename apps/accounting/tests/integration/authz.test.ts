@@ -54,7 +54,8 @@ describe("requireShareholder()", () => {
   });
 });
 
-// requireAuthorized() gates reports/page.tsx (admin OR linked shareholder).
+// requireAuthorized() gates reports/page.tsx and (as of Phase 12) the
+// promoted activity/page.tsx (admin OR linked shareholder).
 describe("requireAuthorized()", () => {
   it("resolves for an admin, even without a linked shareholder", async () => {
     vi.mocked(auth).mockResolvedValue(session({ isAccountingAdmin: true, shareholderId: null }));
@@ -109,8 +110,3 @@ describe("requirePortalApproved() prerequisite", () => {
     await expect(requireAuthorized()).rejects.toThrow();
   });
 });
-
-// NOTE: Phase 12's "Activity" tab does not exist yet on this branch (it's a
-// separate, later phase). The brief mentions gating it, but there is no
-// route to test — this is a deliberate omission, not an oversight. Phase 12
-// should extend this file with an equivalent case once that route lands.

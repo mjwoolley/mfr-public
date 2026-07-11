@@ -69,6 +69,6 @@ export async function createContribution(
     });
   }
 
-  revalidatePath("/accounting/admin/transactions");
-  redirect("/accounting/admin/transactions");
+  revalidatePath("/accounting/activity");
+  redirect("/accounting/activity");
 }

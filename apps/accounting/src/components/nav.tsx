@@ -16,17 +16,12 @@ export async function Nav() {
           <Link href="/accounting/inbox" className="text-lake-100 transition-colors hover:text-sand-50">
             Inbox
           </Link>
+          <Link href="/accounting/activity" className="text-lake-100 transition-colors hover:text-sand-50">
+            Activity
+          </Link>
           <Link href="/accounting/reports" className="text-lake-100 transition-colors hover:text-sand-50">
             Reports
           </Link>
-          {user.isAccountingAdmin && (
-            <Link
-              href="/accounting/admin/transactions"
-              className="text-lake-100 transition-colors hover:text-sand-50"
-            >
-              Admin
-            </Link>
-          )}
           {user.isAccountingAdmin && (
             <Link
               href="/accounting/admin/shareholders"

@@ -1,13 +1,14 @@
 import { requireShareholder } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { formatUSD, formatDate } from "@/lib/format";
-import { approveTransaction } from "@/actions/approvals";
+import { ApprovalStatus } from "@/generated/prisma/client";
+import { InboxApprovalActions } from "./inbox-approval-actions";
 
 export default async function InboxPage() {
   const session = await requireShareholder();
 
   const pending = await prisma.transactionApproval.findMany({
-    where: { shareholderId: session.user.shareholderId, approvedAt: null },
+    where: { shareholderId: session.user.shareholderId, status: ApprovalStatus.PENDING },
     orderBy: { createdAt: "desc" },
     include: {
       transaction: {
@@ -22,8 +23,8 @@ export default async function InboxPage() {
     <div>
       <h1 className="text-xl font-semibold">Inbox</h1>
       <p className="mt-2 text-stone-600">
-        These are already reflected in your balance. Approving just confirms you&apos;ve seen
-        them — it doesn&apos;t change anything.
+        These are already reflected in your balance. Confirming just acknowledges you&apos;ve seen
+        them — it doesn&apos;t change anything. If something looks wrong, dispute it instead.
       </p>
 
       <ul className="mt-6 flex flex-col gap-4">
@@ -54,19 +55,7 @@ export default async function InboxPage() {
               <p className="mt-1 text-stone-400">
                 Recorded by {recordedBy}
               </p>
-              <form
-                action={async () => {
-                  "use server";
-                  await approveTransaction(approval.id);
-                }}
-              >
-                <button
-                  type="submit"
-                  className="mt-3 rounded-full bg-lake-700 px-4 py-1.5 text-sm font-medium text-sand-50"
-                >
-                  Approve
-                </button>
-              </form>
+              <InboxApprovalActions approvalId={approval.id} />
             </li>
           );
         })}
