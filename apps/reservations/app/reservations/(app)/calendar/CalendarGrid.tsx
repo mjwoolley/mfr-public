@@ -1,9 +1,9 @@
 'use client'
 
 import { useMemo } from 'react'
-import { computeDayInfo } from './dayInfo'
+import { computeDayInfo, type DayInfo } from './dayInfo'
 import { isDayInSelection } from './dayInSelection'
-import { colorForUser } from './reservationColor'
+import { reservationTone } from './tones'
 import type { ReservationRow, BlockedDateRow, BookingRulesRow } from './useCalendarData'
 
 function toISODate(year: number, month: number, day: number): string {
@@ -18,24 +18,28 @@ function firstWeekdayOfMonth(year: number, month: number): number {
   return new Date(Date.UTC(year, month, 1)).getUTCDay()
 }
 
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
 interface CalendarGridProps {
   year: number
   month: number // 0-11
+  userId: string
   reservations: ReservationRow[]
   blockedDates: BlockedDateRow[]
   bookingRules: BookingRulesRow
   selectionStart: string | null
   selectionEnd: string | null
   hoverDate: string | null
-  onDayClick: (date: string) => void
+  onDayClick: (date: string, info: DayInfo) => void
   onDayHover: (date: string | null) => void
-  onPrevMonth: () => void
-  onNextMonth: () => void
 }
 
 export function CalendarGrid({
   year,
   month,
+  userId,
   reservations,
   blockedDates,
   bookingRules,
@@ -44,12 +48,14 @@ export function CalendarGrid({
   hoverDate,
   onDayClick,
   onDayHover,
-  onPrevMonth,
-  onNextMonth,
 }: CalendarGridProps) {
+  const today = todayISO()
+
   const days = useMemo(() => {
     const total = daysInMonth(year, month)
-    const result: Array<{ date: string; isSelectionStart: boolean; isInSelection: boolean } & ReturnType<typeof computeDayInfo>> = []
+    const result: Array<
+      { date: string; isSelectionStart: boolean; isInSelection: boolean } & DayInfo
+    > = []
 
     for (let day = 1; day <= total; day++) {
       const date = toISODate(year, month, day)
@@ -62,61 +68,80 @@ export function CalendarGrid({
   }, [year, month, reservations, blockedDates, bookingRules, selectionStart, selectionEnd, hoverDate])
 
   const leadingBlanks = firstWeekdayOfMonth(year, month)
-  const monthLabel = new Date(Date.UTC(year, month, 1)).toLocaleDateString('en-US', {
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  })
 
   return (
     <div>
-      <div className="mb-3 flex items-center justify-between">
-        <button onClick={onPrevMonth} className="rounded px-3 py-1 hover:bg-stone-100" aria-label="Previous month">
-          &larr;
-        </button>
-        <h2 className="text-base font-semibold text-stone-900 sm:text-lg">{monthLabel}</h2>
-        <button onClick={onNextMonth} className="rounded px-3 py-1 hover:bg-stone-100" aria-label="Next month">
-          &rarr;
-        </button>
-      </div>
-      <div className="grid grid-cols-7 gap-1 text-center text-xs text-stone-500">
+      <div className="mb-2 grid grid-cols-7 gap-2">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-          <div key={d}>{d}</div>
+          <div
+            key={d}
+            className="text-muted py-0.5 text-center text-[11px] font-bold tracking-[0.08em] uppercase"
+          >
+            {d}
+          </div>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-2">
         {Array.from({ length: leadingBlanks }).map((_, i) => (
           <div key={`blank-${i}`} />
         ))}
         {days.map((day) => {
-          const color = day.bookedByUserId ? colorForUser(day.bookedByUserId) : null
-          const disabled = day.isBlocked || day.bookedByUserId !== null || day.isPastHorizon
+          const booked = day.reservationId !== null
+          const tone = booked ? reservationTone(day.bookedByUserId === userId) : null
+          const disabled = !booked && (day.isBlocked || day.isPastHorizon)
+          const isToday = day.date === today
+
+          let background = 'var(--color-neutral-100)'
+          if (tone) background = tone.fill
+          if (day.isInSelection) background = 'var(--color-accent-200)'
+          if (disabled) background = 'var(--color-neutral-200)'
+
           return (
             <button
               key={day.date}
               type="button"
               disabled={disabled}
-              onClick={() => onDayClick(day.date)}
+              onClick={() => onDayClick(day.date, day)}
               onMouseEnter={() => onDayHover(day.date)}
               onMouseLeave={() => onDayHover(null)}
-              className={[
-                'flex h-14 flex-col items-center justify-center overflow-hidden rounded border p-1 text-xs sm:h-16',
-                color
-                  ? `cursor-not-allowed border-transparent ${color.bg} ${color.text}`
-                  : disabled
-                    ? 'cursor-not-allowed bg-stone-100 text-stone-400'
-                    : 'cursor-pointer hover:bg-lake-50',
-                !color && day.isInSelection ? 'bg-lake-200' : '',
-                !color && day.isSelectionStart ? 'ring-2 ring-lake-600' : '',
-              ].join(' ')}
+              className={`daycell relative flex flex-col items-start gap-[3px] overflow-hidden p-2 text-left transition-[box-shadow,transform] duration-100 ${
+                disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+              }`}
+              style={{
+                minHeight: 'clamp(60px, 8.5vw, 92px)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid transparent',
+                background,
+                color: 'var(--color-text)',
+                boxShadow:
+                  isToday || day.isInSelection || day.isSelectionStart
+                    ? 'inset 0 0 0 2px var(--color-accent)'
+                    : undefined,
+              }}
             >
-              <span>{Number(day.date.slice(-2))}</span>
-              {day.bookedByName && (
-                <span className="line-clamp-2 text-center text-[9px] leading-tight sm:text-[10px]">
+              {tone && (
+                <span
+                  className="absolute top-0 bottom-0 left-0 w-[5px]"
+                  style={{ background: tone.bar }}
+                />
+              )}
+              <span
+                className="text-sm font-bold"
+                style={{ color: isToday ? 'var(--color-accent)' : 'var(--color-text)' }}
+              >
+                {Number(day.date.slice(-2))}
+              </span>
+              {day.isReservationStart && day.bookedByName && tone && (
+                <span
+                  className="mt-auto max-w-full overflow-hidden text-[11px] font-semibold text-ellipsis whitespace-nowrap"
+                  style={{ color: tone.ink }}
+                >
                   {day.bookedByName}
                 </span>
               )}
-              {day.isBlocked && !day.bookedByName && <span className="text-[10px]">Blocked</span>}
+              {day.isBlocked && !booked && (
+                <span className="text-muted mt-auto text-[10px]">Blocked</span>
+              )}
             </button>
           )
         })}

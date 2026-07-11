@@ -13,8 +13,10 @@ describe('computeDayInfo', () => {
   it('reports an unbooked, unblocked, in-range day as fully open', () => {
     const info = computeDayInfo('2027-06-15', [], [], rules)
     expect(info).toEqual({
+      reservationId: null,
       bookedByName: null,
       bookedByUserId: null,
+      isReservationStart: false,
       isBlocked: false,
       isPastHorizon: false,
     })
@@ -27,6 +29,15 @@ describe('computeDayInfo', () => {
     const info = computeDayInfo('2027-06-12', reservations, [], rules)
     expect(info.bookedByName).toBe('Jane')
     expect(info.bookedByUserId).toBe('u1')
+    expect(info.reservationId).toBe('r1')
+  })
+
+  it('flags only the check-in day as the reservation start', () => {
+    const reservations: ReservationRow[] = [
+      { id: 'r1', userId: 'u1', startDate: '2027-06-10', endDate: '2027-06-15', status: 'confirmed', userName: 'Jane' },
+    ]
+    expect(computeDayInfo('2027-06-10', reservations, [], rules).isReservationStart).toBe(true)
+    expect(computeDayInfo('2027-06-11', reservations, [], rules).isReservationStart).toBe(false)
   })
 
   it('does not report a booking for the half-open end date itself', () => {
