@@ -74,7 +74,9 @@ export function ContributionsClient({
     <div>
       <div className="mb-3.5 flex flex-wrap items-center justify-between gap-3">
         <h2 className="m-0 text-[22px]">
-          {group === "year" ? "Contributions by year" : "Every shareholder's contributions"}
+          {group === "year"
+            ? "Contributions and transfers by year"
+            : "Contributions and transfers by shareholder"}
         </h2>
         <div className="seg" style={{ background: "var(--color-surface)" }}>
           <label className="seg-opt">

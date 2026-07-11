@@ -88,28 +88,38 @@ export default async function ContributionsPage() {
           <p className="text-muted mb-5 text-[13px]">
             Every dollar contributed is one share. The founding year raised the down payment.
           </p>
-          <div className="flex h-[200px] items-end gap-3.5 pt-2">
+          <div className="flex flex-col gap-1.5 pt-1">
             {years.map((year) => {
               const value = totalsByYear.get(year) ?? 0;
-              const h = Math.max(6, Math.round((value / maxYearTotal) * 150));
+              const w = Math.max(1, (value / maxYearTotal) * 100);
               return (
                 <div
                   key={year}
-                  className="flex h-full flex-1 flex-col items-center justify-end gap-2"
+                  className="flex items-center gap-3"
+                  title={`${year} — ${usd0(value)}`}
                 >
-                  <div className="text-xs font-bold" style={{ color: "var(--color-accent-2-800)" }}>
-                    {usd0(value)}
+                  <div className="text-muted w-[38px] flex-none text-right text-[13px] font-semibold">
+                    {year}
+                  </div>
+                  <div className="flex-1">
+                    <div
+                      className="h-[15px]"
+                      style={{
+                        width: `${w}%`,
+                        background: "var(--color-accent-2-400)",
+                        borderRadius: "0 4px 4px 0",
+                      }}
+                    />
                   </div>
                   <div
-                    className="w-full max-w-[54px]"
+                    className="w-[76px] flex-none text-right text-xs font-bold"
                     style={{
-                      height: h,
-                      background: "var(--color-accent-2-400)",
-                      borderRadius: "8px 8px 0 0",
-                      transition: "height .3s ease",
+                      fontVariantNumeric: "tabular-nums",
+                      color: "var(--color-accent-2-800)",
                     }}
-                  />
-                  <div className="text-muted text-[13px] font-semibold">{year}</div>
+                  >
+                    {usd0(value)}
+                  </div>
                 </div>
               );
             })}

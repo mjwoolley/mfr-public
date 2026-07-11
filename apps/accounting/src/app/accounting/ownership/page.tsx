@@ -7,7 +7,7 @@ export default async function OwnershipPage() {
   const session = await requireAuthorized();
   const { rows, total } = await getAllShareholderBalances();
 
-  // Largest holder first — the stacked bar, legend, and table share this order.
+  // Largest holder first — same order as the shareholder dots elsewhere.
   const sorted = [...rows].sort((a, b) => Number(b.shares) - Number(a.shares));
   const colors = assignShareholderColors(sorted.map((r) => r.shareholder.id));
   const currentShareholderId = session.user.shareholderId ?? null;
@@ -19,37 +19,6 @@ export default async function OwnershipPage() {
         {formatUSD(total.toString())} shares outstanding across {rows.length} shareholder
         {rows.length === 1 ? "" : "s"}.
       </p>
-
-      {rows.length > 0 && (
-        <>
-          <div
-            className="mb-2.5 flex h-[26px] overflow-hidden rounded-full"
-            style={{ boxShadow: "var(--shadow-sm)" }}
-          >
-            {sorted.map(({ shareholder, shares, percent }) => (
-              <span
-                key={shareholder.id}
-                style={{
-                  width: `${total.isZero() ? 0 : (Number(shares) / Number(total)) * 100}%`,
-                  background: colors[shareholder.id],
-                }}
-                title={`${shareholder.name} — ${percent.toFixed(1)}%`}
-              />
-            ))}
-          </div>
-          <div className="mb-7 flex flex-wrap gap-4">
-            {sorted.map(({ shareholder }) => (
-              <span key={shareholder.id} className="flex items-center gap-[7px] text-[13px]">
-                <span
-                  className="h-3 w-3 flex-none rounded-full"
-                  style={{ background: colors[shareholder.id] }}
-                />
-                {shareholder.name}
-              </span>
-            ))}
-          </div>
-        </>
-      )}
 
       <div className="card elev-sm bg-white px-5 pt-2 pb-1">
         <div className="overflow-x-auto">
