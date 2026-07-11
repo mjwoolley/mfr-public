@@ -10,9 +10,8 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-const { groupExpensesByYear, getExpensesByYear, mergeIncomeAndExpenses } = await import(
-  "@/lib/expenses"
-);
+const { groupExpensesByYear, getExpensesByYear, mergeIncomeAndExpenses, splitExpensesByYear } =
+  await import("@/lib/expenses");
 const { Prisma } = await import("@/generated/prisma/client");
 const { Decimal } = Prisma;
 
@@ -39,6 +38,31 @@ describe("groupExpensesByYear", () => {
 
   it("returns an empty array when there are no expenses", () => {
     expect(groupExpensesByYear([])).toEqual([]);
+  });
+});
+
+describe("splitExpensesByYear", () => {
+  it("splits each year's total into operating vs capital by the capital flag", () => {
+    const expenses = [
+      { amount: new Decimal(40), incurredAt: new Date("2024-02-01"), capital: false },
+      { amount: new Decimal(10), incurredAt: new Date("2024-09-01"), capital: true },
+      { amount: new Decimal(5), incurredAt: new Date("2024-11-01"), capital: true },
+      { amount: new Decimal(300), incurredAt: new Date("2025-04-01"), capital: false },
+    ];
+
+    const groups = splitExpensesByYear(expenses);
+
+    expect(groups).toHaveLength(2);
+    expect(groups[0].year).toBe(2024);
+    expect(groups[0].operating.toString()).toBe("40");
+    expect(groups[0].capital.toString()).toBe("15");
+    expect(groups[1].year).toBe(2025);
+    expect(groups[1].operating.toString()).toBe("300");
+    expect(groups[1].capital.toString()).toBe("0");
+  });
+
+  it("returns an empty array when there are no expenses", () => {
+    expect(splitExpensesByYear([])).toEqual([]);
   });
 });
 

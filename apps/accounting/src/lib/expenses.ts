@@ -44,6 +44,39 @@ export async function getExpensesByYear(): Promise<ExpenseYearGroup[]> {
   return groupExpensesByYear(expenses);
 }
 
+export type ExpenseSplitYearGroup = {
+  year: number;
+  operating: Decimal;
+  capital: Decimal;
+};
+
+type ExpenseForSplitting = ExpenseForGrouping & { capital: boolean };
+
+/**
+ * Groups expenses by calendar year of `incurredAt`, split into operating vs
+ * capital (the per-expense `capital` flag, independent of category) — the
+ * shape the Expenses tab's stacked bars and net table consume.
+ */
+export function splitExpensesByYear(expenses: ExpenseForSplitting[]): ExpenseSplitYearGroup[] {
+  const byYear = new Map<number, ExpenseSplitYearGroup>();
+
+  for (const expense of expenses) {
+    const year = expense.incurredAt.getUTCFullYear();
+    let group = byYear.get(year);
+    if (!group) {
+      group = { year, operating: new Decimal(0), capital: new Decimal(0) };
+      byYear.set(year, group);
+    }
+    if (expense.capital) {
+      group.capital = group.capital.add(expense.amount);
+    } else {
+      group.operating = group.operating.add(expense.amount);
+    }
+  }
+
+  return Array.from(byYear.values()).sort((a, b) => a.year - b.year);
+}
+
 export type IncomeExpenseYear = {
   year: number;
   income: Decimal;
