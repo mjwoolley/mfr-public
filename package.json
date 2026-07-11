@@ -11,7 +11,6 @@
     "dev:web": "npm run dev -w apps/web",
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
-    "promote:web": "node scripts/promote-web.mjs"
+    "test": "npm run test --workspaces --if-present"
   }
 }
