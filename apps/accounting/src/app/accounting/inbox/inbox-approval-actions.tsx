@@ -17,7 +17,7 @@ export function InboxApprovalActions({ approvalId }: { approvalId: string }) {
             await disputeTransaction(approvalId, reason);
           });
         }}
-        className="mt-3 flex flex-col gap-2"
+        className="mt-1 flex flex-col gap-2"
       >
         <textarea
           value={reason}
@@ -25,21 +25,18 @@ export function InboxApprovalActions({ approvalId }: { approvalId: string }) {
           required
           rows={2}
           placeholder="Why are you disputing this?"
-          className="rounded border border-sand-300 px-3 py-2 text-sm"
+          className="input text-sm"
         />
         <div className="flex gap-2">
           <button
             type="submit"
             disabled={pending || !reason.trim()}
-            className="rounded-full bg-red-700 px-4 py-1.5 text-sm font-medium text-sand-50 disabled:opacity-50"
+            className="btn btn-primary"
+            style={{ background: "var(--color-accent-800)" }}
           >
             {pending ? "Submitting…" : "Submit dispute"}
           </button>
-          <button
-            type="button"
-            onClick={() => setDisputing(false)}
-            className="rounded-full border border-sand-300 px-4 py-1.5 text-sm font-medium"
-          >
+          <button type="button" onClick={() => setDisputing(false)} className="btn btn-secondary">
             Cancel
           </button>
         </div>
@@ -48,20 +45,16 @@ export function InboxApprovalActions({ approvalId }: { approvalId: string }) {
   }
 
   return (
-    <div className="mt-3 flex gap-2">
+    <div className="mt-1 flex gap-2">
       <button
         type="button"
         disabled={pending}
         onClick={() => startTransition(async () => { await confirmTransaction(approvalId); })}
-        className="rounded-full bg-lake-700 px-4 py-1.5 text-sm font-medium text-sand-50 disabled:opacity-50"
+        className="btn btn-primary"
       >
         Confirm
       </button>
-      <button
-        type="button"
-        onClick={() => setDisputing(true)}
-        className="rounded-full border border-sand-300 px-4 py-1.5 text-sm font-medium"
-      >
+      <button type="button" onClick={() => setDisputing(true)} className="btn btn-secondary">
         Dispute
       </button>
     </div>

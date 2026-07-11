@@ -17,35 +17,33 @@ export function EditShareholderForm({ shareholder }: { shareholder: Shareholder 
   const [isTogglePending, startToggleTransition] = useTransition();
 
   return (
-    <div className="mt-6 flex max-w-sm flex-col gap-6">
-      <form action={formAction} className="flex flex-col gap-4">
+    <div className="mt-5 flex max-w-sm flex-col gap-6">
+      <form action={formAction} className="flex flex-col gap-3.5">
         <input type="hidden" name="shareholderId" value={shareholder.id} />
-        <label className="flex flex-col gap-1 text-sm">
-          Name
+        <div className="field">
+          <label htmlFor="edit-sh-name">Name</label>
+          <input id="edit-sh-name" name="name" defaultValue={shareholder.name} required className="input" />
+        </div>
+        <div className="field">
+          <label htmlFor="edit-sh-email">Email (optional)</label>
           <input
-            name="name"
-            defaultValue={shareholder.name}
-            required
-            className="rounded border border-sand-300 px-3 py-2"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Email (optional)
-          <input
+            id="edit-sh-email"
             name="email"
             type="email"
             defaultValue={shareholder.email ?? ""}
-            className="rounded border border-sand-300 px-3 py-2"
+            className="input"
           />
-        </label>
-        {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-full bg-lake-700 px-4 py-2 text-sm font-medium text-sand-50 disabled:opacity-50"
-        >
-          {pending ? "Saving…" : "Save"}
-        </button>
+        </div>
+        {state?.error && (
+          <p className="m-0 text-[13px] font-semibold" style={{ color: "var(--color-accent-800)" }}>
+            {state.error}
+          </p>
+        )}
+        <div>
+          <button type="submit" disabled={pending} className="btn btn-primary">
+            {pending ? "Saving…" : "Save"}
+          </button>
+        </div>
       </form>
 
       <label className="flex items-center gap-2 text-sm">

@@ -62,9 +62,9 @@ export function LinkLoginControl({
   }
 
   return (
-    <div className="mt-2 max-w-sm border-t border-sand-200 pt-6">
-      <h2 className="text-sm font-semibold">Linked login</h2>
-      <p className="mt-1 text-sm text-stone-600">
+    <div className="mt-2 max-w-sm pt-6" style={{ borderTop: "1px solid var(--color-divider)" }}>
+      <h2 className="text-base">Linked login</h2>
+      <p className="text-muted mt-1 text-sm">
         {currentlyLinked ? `Linked to ${currentlyLinked}` : "Not yet signed in / linked."}
       </p>
       {currentlyLinked && (
@@ -72,7 +72,8 @@ export function LinkLoginControl({
           type="button"
           onClick={handleUnlink}
           disabled={isPending}
-          className="mt-2 text-sm underline disabled:opacity-50"
+          className="mt-2 cursor-pointer text-sm font-semibold underline underline-offset-[3px] disabled:opacity-50"
+          style={{ color: "var(--color-accent)" }}
         >
           Unlink
         </button>
@@ -84,22 +85,26 @@ export function LinkLoginControl({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by email"
-          className="flex-1 rounded border border-sand-300 px-3 py-2 text-sm"
+          className="input flex-1 text-sm"
         />
         <button
           type="button"
           onClick={handleSearch}
           disabled={searching || query.trim().length === 0}
-          className="rounded-full bg-lake-700 px-4 py-2 text-sm font-medium text-sand-50 disabled:opacity-50"
+          className="btn btn-primary flex-none"
         >
           {searching ? "Searching…" : "Search"}
         </button>
       </div>
 
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {error && (
+        <p className="mt-2 text-sm font-semibold" style={{ color: "var(--color-accent-800)" }}>
+          {error}
+        </p>
+      )}
 
       {results.length > 0 && (
-        <ul className="mt-2 flex flex-col gap-1">
+        <ul className="m-0 mt-2 flex list-none flex-col gap-1 p-0">
           {results.map((u) => (
             <li key={u.id} className="flex items-center justify-between text-sm">
               <span>{u.email}</span>
@@ -107,7 +112,8 @@ export function LinkLoginControl({
                 type="button"
                 onClick={() => handleLink(u.id, u.email)}
                 disabled={isPending}
-                className="underline disabled:opacity-50"
+                className="cursor-pointer font-semibold underline underline-offset-[3px] disabled:opacity-50"
+                style={{ color: "var(--color-accent)" }}
               >
                 Link
               </button>
