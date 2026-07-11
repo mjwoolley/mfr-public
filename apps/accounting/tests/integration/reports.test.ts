@@ -217,6 +217,7 @@ describe("Reports figures — hand-computed against seeded data", () => {
       data: {
         description: `IE Expense 1 ${Date.now()}`,
         amount: 40,
+        category: "REPAIRS",
         incurredAt: new Date("2015-04-01T00:00:00Z"),
         createdByUserId: "seed-admin",
       },
@@ -225,6 +226,8 @@ describe("Reports figures — hand-computed against seeded data", () => {
       data: {
         description: `IE Expense 2 ${Date.now()}`,
         amount: 10,
+        category: "UTILITIES",
+        capital: true,
         incurredAt: new Date("2015-09-01T00:00:00Z"),
         createdByUserId: "seed-admin",
       },
