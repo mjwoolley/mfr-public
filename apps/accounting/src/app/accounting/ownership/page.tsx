@@ -1,15 +1,13 @@
 import { requireAuthorized } from "@/lib/authz";
 import { getAllShareholderBalances } from "@/lib/ledger";
-import { assignShareholderColors } from "@/lib/shareholderColors";
 import { formatUSD } from "@/lib/format";
 
 export default async function OwnershipPage() {
   const session = await requireAuthorized();
   const { rows, total } = await getAllShareholderBalances();
 
-  // Largest holder first — same order as the shareholder dots elsewhere.
+  // Largest holder first.
   const sorted = [...rows].sort((a, b) => Number(b.shares) - Number(a.shares));
-  const colors = assignShareholderColors(sorted.map((r) => r.shareholder.id));
   const currentShareholderId = session.user.shareholderId ?? null;
 
   return (
@@ -42,10 +40,6 @@ export default async function OwnershipPage() {
                 >
                   <td>
                     <span className="flex items-center gap-2.5">
-                      <span
-                        className="h-3 w-3 flex-none rounded-full"
-                        style={{ background: colors[shareholder.id] }}
-                      />
                       {shareholder.name}
                       {shareholder.id === currentShareholderId && (
                         <span className="tag tag-accent px-2 py-0 text-[10px]">You</span>

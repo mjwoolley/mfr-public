@@ -57,23 +57,20 @@ function EntryLine({
 interface ContributionsClientProps {
   perShareholder: ShareholderGroup[];
   perYear: YearGroup[];
-  /** Shareholder dot colors, keyed by shareholderId (assigned server-side). */
-  colors: Record<string, string>;
   currentShareholderId: string | null;
 }
 
 export function ContributionsClient({
   perShareholder,
   perYear,
-  colors,
   currentShareholderId,
 }: ContributionsClientProps) {
   const [group, setGroup] = useState<"shareholder" | "year">("shareholder");
 
   return (
     <div>
-      <div className="mb-3.5 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="m-0 text-[22px]">
+      <div className="mb-3.5">
+        <h2 className="m-0 mb-2.5 text-[22px]">
           {group === "year"
             ? "Contributions and transfers by year"
             : "Contributions and transfers by shareholder"}
@@ -105,10 +102,6 @@ export function ContributionsClient({
           {perShareholder.map((p) => (
             <div key={p.shareholderId} className="card elev-sm bg-white px-5 py-4" style={{ gap: 12 }}>
               <div className="flex flex-wrap items-center gap-3">
-                <span
-                  className="h-[13px] w-[13px] flex-none rounded-full"
-                  style={{ background: colors[p.shareholderId] ?? "var(--color-neutral-400)" }}
-                />
                 <span className="text-[19px]" style={{ fontFamily: "var(--font-heading)" }}>
                   {p.name}
                 </span>

@@ -3,7 +3,6 @@ import { requireAuthorized } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { getAllShareholderBalances } from "@/lib/ledger";
 import { getAppSettings } from "@/lib/settings";
-import { assignShareholderColors } from "@/lib/shareholderColors";
 import { TransactionType } from "@/generated/prisma/client";
 import {
   contributionTotalsByYear,
@@ -58,7 +57,6 @@ export default async function ContributionsPage() {
 
   const perShareholder = groupEntriesByShareholder(rows, balances);
   const perYear = groupEntriesByYear(rows);
-  const colors = assignShareholderColors(perShareholder.map((p) => p.shareholderId));
 
   // Shares sold by year (CONTRIBUTION entries only).
   const totalsByYear = contributionTotalsByYear(rows);
@@ -83,36 +81,36 @@ export default async function ContributionsPage() {
       <p className="text-muted mb-6 max-w-[70ch] text-[15px]">{summary}</p>
 
       {years.length > 0 && (
-        <div className="card elev-sm mb-8 bg-white px-6 py-6">
+        <div className="card elev-sm mb-8 bg-white px-6 py-5">
           <h2 className="mb-1 text-xl">Shares sold by year</h2>
-          <p className="text-muted mb-5 text-[13px]">
+          <p className="text-muted mb-3 text-[13px]">
             Every dollar contributed is one share. The founding year raised the down payment.
           </p>
-          <div className="flex flex-col gap-1.5 pt-1">
+          <div className="flex flex-col gap-[3px]">
             {years.map((year) => {
               const value = totalsByYear.get(year) ?? 0;
               const w = Math.max(1, (value / maxYearTotal) * 100);
               return (
                 <div
                   key={year}
-                  className="flex items-center gap-3"
+                  className="flex items-center gap-2.5"
                   title={`${year} — ${usd0(value)}`}
                 >
-                  <div className="text-muted w-[38px] flex-none text-right text-[13px] font-semibold">
+                  <div className="text-muted w-[34px] flex-none text-right text-[11px] font-semibold">
                     {year}
                   </div>
                   <div className="flex-1">
                     <div
-                      className="h-[15px]"
+                      className="h-[10px]"
                       style={{
                         width: `${w}%`,
                         background: "var(--color-accent-2-400)",
-                        borderRadius: "0 4px 4px 0",
+                        borderRadius: "0 3px 3px 0",
                       }}
                     />
                   </div>
                   <div
-                    className="w-[76px] flex-none text-right text-xs font-bold"
+                    className="w-[70px] flex-none text-right text-[11px] font-bold"
                     style={{
                       fontVariantNumeric: "tabular-nums",
                       color: "var(--color-accent-2-800)",
@@ -130,7 +128,6 @@ export default async function ContributionsPage() {
       <ContributionsClient
         perShareholder={perShareholder}
         perYear={perYear}
-        colors={colors}
         currentShareholderId={session.user.shareholderId ?? null}
       />
     </div>
