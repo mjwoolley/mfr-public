@@ -1,7 +1,6 @@
 "use server";
 
 import { z } from "zod";
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/authz";
@@ -13,9 +12,14 @@ import { TransactionType } from "@/generated/prisma/client";
 const schema = z.object({
   shareholderId: z.string().min(1, "Select a shareholder"),
   amount: z.coerce.number().positive("Amount must be greater than zero"),
+  description: z
+    .string()
+    .trim()
+    .transform((value) => (value === "" ? null : value))
+    .nullish(),
 });
 
-export type ActionState = { error?: string } | undefined;
+export type ActionState = { error?: string; success?: boolean } | undefined;
 
 export async function createContribution(
   _prevState: ActionState,
@@ -26,6 +30,7 @@ export async function createContribution(
   const parsed = schema.safeParse({
     shareholderId: formData.get("shareholderId"),
     amount: formData.get("amount"),
+    description: formData.get("description"),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
@@ -41,6 +46,7 @@ export async function createContribution(
   const transaction = await prisma.transaction.create({
     data: {
       type: TransactionType.CONTRIBUTION,
+      description: parsed.data.description ?? null,
       createdById: session.user.id,
       createdByName: session.user.name ?? null,
       createdByEmail: session.user.email ?? null,
@@ -69,6 +75,9 @@ export async function createContribution(
     });
   }
 
-  revalidatePath("/accounting/activity");
-  redirect("/accounting/activity");
+  revalidatePath("/accounting/admin/transactions");
+  revalidatePath("/accounting/admin/activity");
+  revalidatePath("/accounting/dashboard");
+  revalidatePath("/accounting/contributions");
+  return { success: true };
 }

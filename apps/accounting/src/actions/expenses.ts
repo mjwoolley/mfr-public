@@ -19,7 +19,7 @@ const createSchema = z.object({
 // fact.
 const updateSchema = createSchema.omit({ incurredAt: true });
 
-export type ActionState = { error?: string } | undefined;
+export type ActionState = { error?: string; success?: boolean } | undefined;
 
 function revalidateExpenseViews() {
   revalidatePath("/accounting/expenses");
@@ -57,6 +57,7 @@ export async function createExpense(
   });
 
   revalidateExpenseViews();
+  return { success: true };
 }
 
 export async function updateExpense(
@@ -93,4 +94,5 @@ export async function updateExpense(
   });
 
   revalidateExpenseViews();
+  return { success: true };
 }

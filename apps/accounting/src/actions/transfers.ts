@@ -1,7 +1,6 @@
 "use server";
 
 import { z } from "zod";
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/authz";
@@ -22,7 +21,7 @@ const schema = z
     path: ["toShareholderId"],
   });
 
-export type ActionState = { error?: string } | undefined;
+export type ActionState = { error?: string; success?: boolean } | undefined;
 
 export async function createTransfer(
   _prevState: ActionState,
@@ -110,6 +109,9 @@ export async function createTransfer(
       : Promise.resolve(),
   ]);
 
-  revalidatePath("/accounting/activity");
-  redirect("/accounting/activity");
+  revalidatePath("/accounting/admin/transactions");
+  revalidatePath("/accounting/admin/activity");
+  revalidatePath("/accounting/dashboard");
+  revalidatePath("/accounting/contributions");
+  return { success: true };
 }

@@ -10,31 +10,25 @@ export function ShareholderForm() {
   );
 
   return (
-    <form action={formAction} className="mt-6 flex max-w-sm flex-col gap-4">
-      <label className="flex flex-col gap-1 text-sm">
-        Name
-        <input
-          name="name"
-          required
-          className="rounded border border-sand-300 px-3 py-2"
-        />
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        Email (optional)
-        <input
-          name="email"
-          type="email"
-          className="rounded border border-sand-300 px-3 py-2"
-        />
-      </label>
-      {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-full bg-lake-700 px-4 py-2 text-sm font-medium text-sand-50 disabled:opacity-50"
-      >
-        {pending ? "Adding…" : "Add shareholder"}
-      </button>
+    <form action={formAction} className="card elev-sm mt-5 flex max-w-sm flex-col gap-3.5 bg-white px-6 py-5">
+      <div className="field">
+        <label htmlFor="sh-name">Name</label>
+        <input id="sh-name" name="name" required className="input" />
+      </div>
+      <div className="field">
+        <label htmlFor="sh-email">Email (optional)</label>
+        <input id="sh-email" name="email" type="email" className="input" />
+      </div>
+      {state?.error && (
+        <p className="m-0 text-[13px] font-semibold" style={{ color: "var(--color-accent-800)" }}>
+          {state.error}
+        </p>
+      )}
+      <div>
+        <button type="submit" disabled={pending} className="btn btn-primary">
+          {pending ? "Adding…" : "Add shareholder"}
+        </button>
+      </div>
     </form>
   );
 }

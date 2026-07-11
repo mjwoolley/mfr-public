@@ -20,7 +20,7 @@ export async function confirmTransaction(approvalId: string) {
   });
 
   revalidatePath("/accounting/inbox");
-  revalidatePath("/accounting/activity");
+  revalidatePath("/accounting/admin/activity");
   revalidatePath("/accounting/dashboard");
 }
 
@@ -48,7 +48,7 @@ export async function disputeTransaction(approvalId: string, reason: string) {
   });
 
   revalidatePath("/accounting/inbox");
-  revalidatePath("/accounting/activity");
+  revalidatePath("/accounting/admin/activity");
   revalidatePath("/accounting/dashboard");
 }
 
@@ -73,5 +73,5 @@ export async function resolveDispute(approvalId: string, resolutionTransactionId
     },
   });
 
-  revalidatePath("/accounting/activity");
+  revalidatePath("/accounting/admin/activity");
 }

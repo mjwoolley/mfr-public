@@ -8,50 +8,66 @@ export default async function AdminShareholdersPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Shareholders</h1>
-        <Link
-          href="/accounting/admin/shareholders/new"
-          className="rounded-full bg-lake-700 px-4 py-2 text-sm font-medium text-sand-50"
-        >
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <p className="text-muted m-0 text-sm">
+          Shareholder records — link a login by matching the email they sign in with.
+        </p>
+        <Link href="/accounting/admin/shareholders/new" className="btn btn-primary flex-none no-underline">
           Add shareholder
         </Link>
       </div>
 
-      <div className="mt-6 overflow-x-auto">
-        <table className="w-full min-w-[560px] text-left text-sm">
-          <thead>
-            <tr className="border-b border-sand-200">
-              <th className="py-2">Name</th>
-              <th className="py-2">Email</th>
-              <th className="py-2">Login linked</th>
-              <th className="py-2">Status</th>
-              <th className="py-2"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {shareholders.map((s) => (
-              <tr key={s.id} className="border-b border-sand-100">
-                <td className="py-2">{s.name}</td>
-                <td className="py-2">{s.email ?? "—"}</td>
-                <td className="py-2">{s.userId ? "Yes" : "Not yet signed in"}</td>
-                <td className="py-2">{s.active ? "Active" : "Inactive"}</td>
-                <td className="py-2 text-right">
-                  <Link href={`/accounting/admin/shareholders/${s.id}/edit`} className="underline">
-                    Edit
-                  </Link>
-                </td>
-              </tr>
-            ))}
-            {shareholders.length === 0 && (
+      <div className="card elev-sm bg-white px-5 pt-2 pb-1">
+        <div className="overflow-x-auto">
+          <table className="table min-w-[560px]">
+            <thead>
               <tr>
-                <td colSpan={5} className="py-6 text-center text-stone-500">
-                  No shareholders yet.
-                </td>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Login linked</th>
+                <th>Status</th>
+                <th></th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {shareholders.map((s) => (
+                <tr key={s.id}>
+                  <td className="font-semibold">{s.name}</td>
+                  <td className="text-muted">{s.email ?? "—"}</td>
+                  <td>
+                    {s.userId ? (
+                      <span className="tag tag-accent-2">Linked</span>
+                    ) : (
+                      <span className="tag tag-neutral">Not yet signed in</span>
+                    )}
+                  </td>
+                  <td>
+                    {s.active ? (
+                      <span className="tag tag-accent-2">Active</span>
+                    ) : (
+                      <span className="tag tag-neutral">Inactive</span>
+                    )}
+                  </td>
+                  <td className="text-right">
+                    <Link
+                      href={`/accounting/admin/shareholders/${s.id}/edit`}
+                      className="font-semibold underline underline-offset-[3px]"
+                    >
+                      Edit
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+              {shareholders.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="text-muted py-6 text-center">
+                    No shareholders yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

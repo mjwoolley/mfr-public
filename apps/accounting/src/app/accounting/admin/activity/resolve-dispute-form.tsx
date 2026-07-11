@@ -13,7 +13,8 @@ export function ResolveDisputeForm({ approvalId }: { approvalId: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="underline"
+        className="cursor-pointer text-xs font-semibold underline underline-offset-[3px]"
+        style={{ color: "var(--color-accent)" }}
       >
         Mark resolved
       </button>
@@ -36,16 +37,13 @@ export function ResolveDisputeForm({ approvalId }: { approvalId: string }) {
         value={resolutionTransactionId}
         onChange={(e) => setResolutionTransactionId(e.target.value)}
         placeholder="Correction transaction id (optional)"
-        className="rounded border border-sand-300 px-2 py-1 text-xs"
+        className="input max-w-[280px] text-xs"
+        style={{ minHeight: 30 }}
       />
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-full bg-lake-700 px-3 py-1 text-xs font-medium text-sand-50 disabled:opacity-50"
-      >
+      <button type="submit" disabled={pending} className="btn btn-primary px-3 py-1 text-xs">
         {pending ? "Saving…" : "Confirm resolved"}
       </button>
-      <button type="button" onClick={() => setOpen(false)} className="text-xs underline">
+      <button type="button" onClick={() => setOpen(false)} className="btn btn-ghost px-2 py-1 text-xs" style={{ fontFamily: "var(--font-body)" }}>
         Cancel
       </button>
     </form>
