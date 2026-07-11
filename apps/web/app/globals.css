@@ -1,4 +1,39 @@
 @import "tailwindcss";
-@import "@mfr/ui/theme.css";
+@import "@mfr/ui/organic.css";
 
 @source "../../../packages/ui/src";
+
+/* Point Organic's font tokens at the next/font-generated variables (set on
+   <html> in layout.tsx) instead of the Google Fonts @import the design
+   package ships with. */
+:root {
+  --font-heading: var(--font-caprasimo), system-ui, sans-serif;
+  --font-body: var(--font-figtree), system-ui, sans-serif;
+}
+
+@keyframes fadeup {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.appcard {
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
+}
+.appcard:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+.appcard:hover .appcta {
+  gap: 12px;
+}
+.appcta {
+  transition: gap 0.16s ease;
+}

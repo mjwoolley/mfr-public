@@ -1,21 +1,17 @@
 import type { Metadata } from "next";
-import { Bitter, Geist, Geist_Mono } from "next/font/google";
+import { Caprasimo, Figtree } from "next/font/google";
 import { PortalHeader, AuthStatus } from "@mfr/ui";
 import { auth, signOut } from "@/lib/auth";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const caprasimo = Caprasimo({
+  variable: "--font-caprasimo",
+  weight: "400",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-const bitter = Bitter({
-  variable: "--font-bitter",
+const figtree = Figtree({
+  variable: "--font-figtree",
   subsets: ["latin"],
 });
 
@@ -34,21 +30,15 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${bitter.variable} h-full antialiased`}
+      className={`${caprasimo.variable} ${figtree.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <PortalHeader>
-          <nav className="flex gap-x-5 text-sm text-lake-100">
-            <a
-              href="https://reservations.millerfamilyreunions.org/reservations"
-              className="transition-colors hover:text-sand-50"
-            >
+          <nav className="flex gap-x-5 text-sm">
+            <a href="https://reservations.millerfamilyreunions.org/reservations">
               Reservations
             </a>
-            <a
-              href="https://accounting.millerfamilyreunions.org/accounting"
-              className="transition-colors hover:text-sand-50"
-            >
+            <a href="https://accounting.millerfamilyreunions.org/accounting">
               Accounting
             </a>
           </nav>
@@ -63,9 +53,12 @@ export default async function RootLayout({
           )}
         </PortalHeader>
         <main className="flex w-full flex-1 flex-col">{children}</main>
-        <footer className="border-t border-sand-200 bg-sand-50">
-          <div className="mx-auto max-w-5xl px-4 py-6 text-center text-sm text-stone-500">
-            The Miller family &middot; Lake Lure, North Carolina
+        <footer>
+          <div
+            className="mx-auto max-w-5xl px-4 pt-12 pb-10 text-center text-[13px]"
+            style={{ color: "var(--color-neutral-600)" }}
+          >
+            Lake Lure, North Carolina &middot; A Miller family corporation
           </div>
         </footer>
       </body>
