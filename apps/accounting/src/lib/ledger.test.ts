@@ -3,12 +3,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockAggregate = vi.fn();
 const mockGroupBy = vi.fn();
 const mockFindMany = vi.fn();
+const mockLedgerEntryFindMany = vi.fn();
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     ledgerEntry: {
       aggregate: (...args: unknown[]) => mockAggregate(...args),
       groupBy: (...args: unknown[]) => mockGroupBy(...args),
+      findMany: (...args: unknown[]) => mockLedgerEntryFindMany(...args),
     },
     shareholder: {
       findMany: (...args: unknown[]) => mockFindMany(...args),
@@ -16,8 +18,13 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-const { getShareholderBalance, getTotalSharesOutstanding, getAllShareholderBalances } =
-  await import("@/lib/ledger");
+const {
+  getShareholderBalance,
+  getTotalSharesOutstanding,
+  getAllShareholderBalances,
+  getContributionsByYear,
+  groupContributionsByYear,
+} = await import("@/lib/ledger");
 const { Prisma } = await import("@/generated/prisma/client");
 const { Decimal } = Prisma;
 
@@ -25,6 +32,7 @@ beforeEach(() => {
   mockAggregate.mockReset();
   mockGroupBy.mockReset();
   mockFindMany.mockReset();
+  mockLedgerEntryFindMany.mockReset();
 });
 
 describe("getShareholderBalance", () => {
@@ -99,5 +107,76 @@ describe("getAllShareholderBalances", () => {
     const dave = rows.find((r) => r.shareholder.id === "dave")!;
     expect(dave.shares.toString()).toBe("0");
     expect(dave.percent.toString()).toBe("0");
+  });
+});
+
+describe("groupContributionsByYear", () => {
+  it("groups entries by the calendar year of their transaction's createdAt", () => {
+    const entries = [
+      {
+        shareholderId: "alice",
+        shares: new Decimal(100),
+        shareholder: { name: "Alice Miller" },
+        transaction: { createdAt: new Date("2024-03-01") },
+      },
+      {
+        shareholderId: "bob",
+        shares: new Decimal(50),
+        shareholder: { name: "Bob Miller" },
+        transaction: { createdAt: new Date("2024-11-15") },
+      },
+      {
+        shareholderId: "alice",
+        shares: new Decimal(200),
+        shareholder: { name: "Alice Miller" },
+        transaction: { createdAt: new Date("2025-01-10") },
+      },
+    ];
+
+    const groups = groupContributionsByYear(entries);
+
+    expect(groups).toHaveLength(2);
+    // Sorted ascending by year.
+    expect(groups[0].year).toBe(2024);
+    expect(groups[1].year).toBe(2025);
+
+    const y2024 = groups[0];
+    expect(y2024.total.toString()).toBe("150");
+    expect(y2024.purchases).toHaveLength(2);
+
+    const y2025 = groups[1];
+    expect(y2025.total.toString()).toBe("200");
+    expect(y2025.purchases).toHaveLength(1);
+    expect(y2025.purchases[0].shareholderName).toBe("Alice Miller");
+    expect(y2025.purchases[0].shares.toString()).toBe("200");
+  });
+
+  it("returns an empty array when there are no contributions", () => {
+    expect(groupContributionsByYear([])).toEqual([]);
+  });
+});
+
+describe("getContributionsByYear", () => {
+  it("queries only CONTRIBUTION-type ledger entries, joined with transaction + shareholder", async () => {
+    mockLedgerEntryFindMany.mockResolvedValue([
+      {
+        shareholderId: "carl",
+        shares: new Decimal(75),
+        shareholder: { name: "Carl Miller" },
+        transaction: { createdAt: new Date("2023-06-01") },
+      },
+    ]);
+
+    const groups = await getContributionsByYear();
+
+    expect(mockLedgerEntryFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { transaction: { type: "CONTRIBUTION" } },
+        include: { transaction: true, shareholder: true },
+      }),
+    );
+    expect(groups).toHaveLength(1);
+    expect(groups[0].year).toBe(2023);
+    expect(groups[0].total.toString()).toBe("75");
   });
 });

@@ -18,7 +18,7 @@ export default async function setup() {
   // model names (no @@map in schema.prisma) so they must be double-quoted to
   // preserve case.
   const businessSql = postgres(businessConnectionString, { prepare: false });
-  await businessSql`TRUNCATE TABLE "Shareholder", "Transaction", "LedgerEntry", "TransactionApproval" RESTART IDENTITY CASCADE`;
+  await businessSql`TRUNCATE TABLE "Shareholder", "Transaction", "LedgerEntry", "TransactionApproval", "Expense" RESTART IDENTITY CASCADE`;
   await businessSql.end();
 
   // users/accounts/sessions/verification_tokens live in the shared @mfr/auth
