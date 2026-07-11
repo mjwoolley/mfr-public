@@ -19,16 +19,20 @@ const adminLink: NavLink = { href: '/reservations/admin', label: 'Admin' }
 
 const HOME_URL = 'https://millerfamilyreunions.org'
 
+const tabBase =
+  'whitespace-nowrap border-b-2 py-3.5 text-[15px] transition-colors'
+
 export function NavBar({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname()
   const links = isAdmin ? [...baseLinks, adminLink] : baseLinks
 
   return (
-    <nav className="border-b border-sand-200 bg-white">
-      <div className="mx-auto flex max-w-5xl items-center gap-1 overflow-x-auto px-2 py-1.5 sm:px-3">
+    <nav style={{ borderBottom: '1px solid var(--color-divider)' }}>
+      <div className="mx-auto flex max-w-5xl items-center gap-6 overflow-x-auto px-4 sm:px-7">
         <a
           href={HOME_URL}
-          className="rounded px-3 py-2 text-sm font-medium whitespace-nowrap text-stone-600 transition-colors hover:bg-sand-100"
+          className={`${tabBase} border-transparent font-semibold`}
+          style={{ color: 'color-mix(in srgb, var(--color-text) 60%, transparent)' }}
         >
           Home
         </a>
@@ -38,10 +42,16 @@ export function NavBar({ isAdmin }: { isAdmin: boolean }) {
             <Link
               key={link.href}
               href={link.href}
-              className={[
-                'rounded px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors',
-                active ? 'bg-lake-100 text-lake-800' : 'text-stone-600 hover:bg-sand-100',
-              ].join(' ')}
+              aria-current={active ? 'page' : undefined}
+              className={`${tabBase} ${active ? 'font-bold' : 'font-semibold'}`}
+              style={
+                active
+                  ? { color: 'var(--color-accent)', borderBottomColor: 'var(--color-accent)' }
+                  : {
+                      color: 'color-mix(in srgb, var(--color-text) 60%, transparent)',
+                      borderBottomColor: 'transparent',
+                    }
+              }
             >
               {link.label}
             </Link>
