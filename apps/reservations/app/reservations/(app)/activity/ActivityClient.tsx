@@ -24,30 +24,65 @@ export function ActivityClient() {
     getNextPageParam: (lastPage: ActivityPage) => lastPage.nextCursor,
   })
 
-  if (isLoading) return <p className="p-8 text-center text-stone-500">Loading...</p>
-  if (error) return <p className="p-8 text-center text-red-600">Failed to load activity.</p>
+  if (isLoading) return <p className="text-muted p-8 text-center">Loading...</p>
+  if (error) {
+    return (
+      <p className="p-8 text-center font-semibold" style={{ color: 'var(--color-accent-800)' }}>
+        Failed to load activity.
+      </p>
+    )
+  }
 
   const pages = data?.pages ?? []
   const users: UserNameMap = pages.reduce((acc, page) => ({ ...acc, ...page.users }), {} as UserNameMap)
   const events = pages.flatMap((page) => page.events)
 
   return (
-    <div className="mx-auto max-w-2xl p-4">
-      <h1 className="mb-4 text-xl font-semibold text-stone-900">Activity</h1>
-      {events.length === 0 && <p className="text-stone-500">No activity yet.</p>}
-      <ul className="space-y-2">
-        {events.map((event) => (
-          <li key={event.id} className="rounded border p-3">
-            <p className="text-stone-900">{formatActivityMessage(event, users)}</p>
-            <p className="mt-1 text-xs text-stone-500">{new Date(event.createdAt).toLocaleString()}</p>
-          </li>
-        ))}
-      </ul>
+    <div className="mx-auto w-full max-w-3xl px-4 pt-7 pb-16 sm:px-7">
+      <h1 className="mb-5 text-4xl">Recent activity</h1>
+      {events.length === 0 && (
+        <div
+          className="text-muted p-12 text-center text-[15px]"
+          style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)' }}
+        >
+          No activity yet.
+        </div>
+      )}
+      {events.length > 0 && (
+        <div className="card elev-sm bg-white px-1 py-2" style={{ gap: 0 }}>
+          {events.map((event) => {
+            const actorName = (event.actorUserId && users[event.actorUserId]) || 'S'
+            return (
+              <div
+                key={event.id}
+                className="flex items-center gap-3.5 px-4 py-3.5"
+                style={{ borderBottom: '1px solid var(--color-divider)' }}
+              >
+                <span
+                  className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full text-sm"
+                  style={{
+                    background: 'var(--color-accent-100)',
+                    color: 'var(--color-accent-700)',
+                    fontFamily: 'var(--font-heading)',
+                  }}
+                >
+                  {actorName.charAt(0)}
+                </span>
+                <div className="flex-1 text-sm">{formatActivityMessage(event, users)}</div>
+                <span className="text-muted flex-none text-xs">
+                  {new Date(event.createdAt).toLocaleString()}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      )}
       {hasNextPage && (
         <button
+          type="button"
           onClick={() => fetchNextPage()}
           disabled={isFetchingNextPage}
-          className="mt-4 w-full rounded border px-4 py-2 text-sm font-medium text-lake-700 hover:bg-lake-50 disabled:opacity-50"
+          className="btn btn-secondary btn-block mt-4"
         >
           {isFetchingNextPage ? 'Loading...' : 'Load more'}
         </button>

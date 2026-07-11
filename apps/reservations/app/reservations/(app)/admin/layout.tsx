@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth/config'
+import { AdminSubNav } from './AdminSubNav'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
@@ -18,5 +19,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect('/reservations/calendar')
   }
 
-  return <>{children}</>
+  return (
+    <div className="mx-auto w-full max-w-3xl px-4 pt-7 pb-16 sm:px-7">
+      <h1 className="mb-4 text-4xl">Admin</h1>
+      <AdminSubNav isReservationsAdmin={session.user.isReservationsAdmin} />
+      {children}
+    </div>
+  )
 }

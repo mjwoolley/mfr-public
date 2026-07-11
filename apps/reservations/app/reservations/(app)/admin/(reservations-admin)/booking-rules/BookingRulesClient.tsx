@@ -66,60 +66,69 @@ export function BookingRulesClient() {
     }
   }
 
-  if (isLoading) return <p className="p-8 text-center text-stone-500">Loading...</p>
-  if (error) return <p className="p-8 text-center text-red-600">Failed to load booking rules.</p>
+  if (isLoading) return <p className="text-muted p-8 text-center">Loading...</p>
+  if (error) {
+    return (
+      <p className="p-8 text-center font-semibold" style={{ color: 'var(--color-accent-800)' }}>
+        Failed to load booking rules.
+      </p>
+    )
+  }
 
   return (
-    <div className="mx-auto max-w-md p-4">
-      <h1 className="mb-4 text-xl font-semibold text-stone-900">Booking Rules</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="mb-1 block text-sm font-medium text-stone-700">
-            Booking horizon date (no reservations past this date)
-          </label>
+    <div>
+      <p className="text-muted mb-4 text-sm">Set the booking horizon and per-person limits.</p>
+      <form onSubmit={handleSubmit} className="card elev-sm max-w-[480px] bg-white px-6 py-5">
+        <div className="field">
+          <label htmlFor="rules-horizon">Booking horizon — no reservations past this date</label>
           <input
+            id="rules-horizon"
+            className="input"
             type="date"
             required
             value={horizonDate}
             onChange={(e) => setHorizonDate(e.target.value)}
-            className="w-full rounded border px-2 py-1 text-sm text-stone-900"
           />
         </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-stone-700">
-            Max consecutive nights per reservation
-          </label>
+        <div className="field mt-3.5">
+          <label htmlFor="rules-max-nights">Max consecutive nights per reservation</label>
           <input
+            id="rules-max-nights"
+            className="input"
             type="number"
             min={1}
             required
             value={maxConsecutive}
             onChange={(e) => setMaxConsecutive(e.target.value)}
-            className="w-full rounded border px-2 py-1 text-sm text-stone-900"
           />
         </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-stone-700">
-            Max nights per user per calendar year
-          </label>
+        <div className="field mt-3.5">
+          <label htmlFor="rules-max-yearly">Max nights per person per calendar year</label>
           <input
+            id="rules-max-yearly"
+            className="input"
             type="number"
             min={1}
             required
             value={maxYearly}
             onChange={(e) => setMaxYearly(e.target.value)}
-            className="w-full rounded border px-2 py-1 text-sm text-stone-900"
           />
         </div>
-        {formError && <p className="text-sm text-red-700">{formError}</p>}
-        {saved && <p className="text-sm text-green-700">Saved.</p>}
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded bg-lake-600 px-4 py-2 text-sm font-medium text-white hover:bg-lake-700 disabled:opacity-50"
-        >
-          {submitting ? 'Saving...' : 'Save changes'}
-        </button>
+        {formError && (
+          <p className="m-0 mt-3 text-[13px] font-semibold" style={{ color: 'var(--color-accent-800)' }}>
+            {formError}
+          </p>
+        )}
+        <div className="mt-5 flex items-center gap-3.5">
+          <button type="submit" className="btn btn-primary" disabled={submitting}>
+            {submitting ? 'Saving…' : 'Save changes'}
+          </button>
+          {saved && (
+            <span className="text-[13px] font-semibold" style={{ color: 'var(--color-accent-2-700)' }}>
+              Saved.
+            </span>
+          )}
+        </div>
       </form>
     </div>
   )

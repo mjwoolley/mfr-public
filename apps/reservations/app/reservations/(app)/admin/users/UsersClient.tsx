@@ -20,6 +20,12 @@ interface UsersClientProps {
   actorIsAccountingAdmin: boolean
 }
 
+function statusTag(status: AdminUser['status']): { className: string; label: string } {
+  if (status === 'approved') return { className: 'tag tag-accent-2', label: 'Approved' }
+  if (status === 'pending') return { className: 'tag tag-accent', label: 'Pending' }
+  return { className: 'tag tag-neutral', label: 'Blocked' }
+}
+
 function UserRow({
   user,
   actorIsReservationsAdmin,
@@ -35,58 +41,88 @@ function UserRow({
   rowError: string | null
   onUpdate: (id: string, patch: UserPatch) => void
 }) {
+  const tag = statusTag(user.status)
+  const displayName = user.name ?? user.email
+
   return (
-    <li className="rounded border p-3">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <p className="font-medium text-stone-900">{user.name ?? user.email}</p>
-          <p className="text-sm text-stone-500">
-            {user.email} &middot; {user.status}
-            {user.isReservationsAdmin ? ' · reservations admin' : ''}
-            {user.isAccountingAdmin ? ' · accounting admin' : ''}
+    <div
+      className="card elev-sm px-4 py-3.5"
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}
+    >
+      <span
+        className="flex h-9 w-9 flex-none items-center justify-center rounded-full text-[15px]"
+        style={{
+          background: 'var(--color-accent-100)',
+          color: 'var(--color-accent-700)',
+          fontFamily: 'var(--font-heading)',
+        }}
+      >
+        {displayName.charAt(0).toUpperCase()}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="font-semibold">
+          {displayName}
+          {user.isReservationsAdmin && (
+            <span className="tag tag-outline ml-2 px-2 py-0 text-[10px]">Reservations admin</span>
+          )}
+          {user.isAccountingAdmin && (
+            <span className="tag tag-outline ml-2 px-2 py-0 text-[10px]">Accounting admin</span>
+          )}
+        </div>
+        <div className="text-muted text-[13px]">{user.email}</div>
+        {rowError && (
+          <p className="m-0 mt-1 text-[13px] font-semibold" style={{ color: 'var(--color-accent-800)' }}>
+            {rowError}
           </p>
-        </div>
-        <div className="flex flex-wrap justify-end gap-2">
-          {user.status !== 'approved' && (
-            <button
-              onClick={() => onUpdate(user.id, { status: 'approved' })}
-              disabled={updating}
-              className="rounded bg-lake-600 px-3 py-1 text-sm text-white hover:bg-lake-700 disabled:opacity-50"
-            >
-              Approve
-            </button>
-          )}
-          {user.status !== 'blocked' && (
-            <button
-              onClick={() => onUpdate(user.id, { status: 'blocked' })}
-              disabled={updating}
-              className="rounded px-3 py-1 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
-            >
-              Block
-            </button>
-          )}
-          {actorIsReservationsAdmin && (
-            <button
-              onClick={() => onUpdate(user.id, { isReservationsAdmin: !user.isReservationsAdmin })}
-              disabled={updating}
-              className="rounded px-3 py-1 text-sm text-stone-600 hover:bg-stone-100 disabled:opacity-50"
-            >
-              {user.isReservationsAdmin ? 'Revoke reservations admin' : 'Make reservations admin'}
-            </button>
-          )}
-          {actorIsAccountingAdmin && (
-            <button
-              onClick={() => onUpdate(user.id, { isAccountingAdmin: !user.isAccountingAdmin })}
-              disabled={updating}
-              className="rounded px-3 py-1 text-sm text-stone-600 hover:bg-stone-100 disabled:opacity-50"
-            >
-              {user.isAccountingAdmin ? 'Revoke accounting admin' : 'Make accounting admin'}
-            </button>
-          )}
-        </div>
+        )}
       </div>
-      {rowError && <p className="mt-1 text-sm text-red-700">{rowError}</p>}
-    </li>
+      <span className={tag.className}>{tag.label}</span>
+      <div className="flex flex-none flex-wrap justify-end gap-2">
+        {user.status !== 'approved' && (
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => onUpdate(user.id, { status: 'approved' })}
+            disabled={updating}
+          >
+            Approve
+          </button>
+        )}
+        {user.status !== 'blocked' && (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{ color: 'var(--color-accent-800)' }}
+            onClick={() => onUpdate(user.id, { status: 'blocked' })}
+            disabled={updating}
+          >
+            Block
+          </button>
+        )}
+        {actorIsReservationsAdmin && (
+          <button
+            type="button"
+            className="btn btn-ghost text-xs"
+            style={{ fontFamily: 'var(--font-body)', fontWeight: 600 }}
+            onClick={() => onUpdate(user.id, { isReservationsAdmin: !user.isReservationsAdmin })}
+            disabled={updating}
+          >
+            {user.isReservationsAdmin ? 'Revoke reservations admin' : 'Make reservations admin'}
+          </button>
+        )}
+        {actorIsAccountingAdmin && (
+          <button
+            type="button"
+            className="btn btn-ghost text-xs"
+            style={{ fontFamily: 'var(--font-body)', fontWeight: 600 }}
+            onClick={() => onUpdate(user.id, { isAccountingAdmin: !user.isAccountingAdmin })}
+            disabled={updating}
+          >
+            {user.isAccountingAdmin ? 'Revoke accounting admin' : 'Make accounting admin'}
+          </button>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -127,19 +163,27 @@ export function UsersClient({ actorIsReservationsAdmin, actorIsAccountingAdmin }
     }
   }
 
-  if (isLoading) return <p className="p-8 text-center text-stone-500">Loading...</p>
-  if (error) return <p className="p-8 text-center text-red-600">Failed to load users.</p>
+  if (isLoading) return <p className="text-muted p-8 text-center">Loading...</p>
+  if (error) {
+    return (
+      <p className="p-8 text-center font-semibold" style={{ color: 'var(--color-accent-800)' }}>
+        Failed to load users.
+      </p>
+    )
+  }
 
   const pending = data?.filter((u) => u.status === 'pending') ?? []
   const others = data?.filter((u) => u.status !== 'pending') ?? []
 
   return (
-    <div className="mx-auto max-w-2xl p-4">
-      <h1 className="mb-4 text-xl font-semibold text-stone-900">Manage Users</h1>
+    <div>
+      <p className="text-muted mb-4 text-sm">Approve pending signups and manage access.</p>
       <section className="mb-6">
-        <h2 className="mb-2 text-sm font-semibold text-stone-500 uppercase">Pending approval</h2>
-        {pending.length === 0 && <p className="text-sm text-stone-500">No pending users.</p>}
-        <ul className="space-y-2">
+        <h2 className="text-muted mb-2 text-[11px] font-bold tracking-[0.08em] uppercase" style={{ fontFamily: 'var(--font-body)' }}>
+          Pending approval
+        </h2>
+        {pending.length === 0 && <p className="text-muted text-sm">No pending users.</p>}
+        <div className="flex flex-col gap-2.5">
           {pending.map((u) => (
             <UserRow
               key={u.id}
@@ -151,11 +195,13 @@ export function UsersClient({ actorIsReservationsAdmin, actorIsAccountingAdmin }
               onUpdate={updateUser}
             />
           ))}
-        </ul>
+        </div>
       </section>
       <section>
-        <h2 className="mb-2 text-sm font-semibold text-stone-500 uppercase">All users</h2>
-        <ul className="space-y-2">
+        <h2 className="text-muted mb-2 text-[11px] font-bold tracking-[0.08em] uppercase" style={{ fontFamily: 'var(--font-body)' }}>
+          All users
+        </h2>
+        <div className="flex flex-col gap-2.5">
           {others.map((u) => (
             <UserRow
               key={u.id}
@@ -167,7 +213,7 @@ export function UsersClient({ actorIsReservationsAdmin, actorIsAccountingAdmin }
               onUpdate={updateUser}
             />
           ))}
-        </ul>
+        </div>
       </section>
     </div>
   )
