@@ -29,6 +29,13 @@ export interface CreateAuthConfigOptions {
 }
 
 export function createAuthConfig(opts: CreateAuthConfigOptions): NextAuthConfig {
+  if (process.env.NODE_ENV === 'production' && !opts.cookieDomain) {
+    // Host-only session cookies silently break cross-subdomain SSO — every
+    // production app must set AUTH_COOKIE_DOMAIN (.millerfamilyreunions.org).
+    console.warn(
+      '[auth] cookieDomain is unset: the session cookie will be host-only and sign-in will NOT be shared across millerfamilyreunions.org subdomains.'
+    )
+  }
   return {
     basePath: opts.basePath,
     // Omit the key entirely rather than `pages: opts.pages` when unset:
