@@ -266,8 +266,16 @@ textarea.input { min-height: 90px; resize: vertical; }
    keyframes live here so every app gets them with the import. */
 dialog.dialog-host {
   background: transparent; border: none; padding: 0; outline: none;
+  /* Tailwind's preflight zeroes every element's margin, which also wipes the
+     UA stylesheet's margin:auto that centers a modal <dialog> — restore it. */
+  margin: auto;
   max-width: calc(100vw - 2 * var(--space-4));
 }
+/* organic.css is unlayered, so `.card`'s surface background outranks
+   Tailwind's layered bg-white utility. The apps mark white cards (the
+   prototypes' bg:#fff cards) with both classes; this two-class selector
+   gives the utility its intended weight. */
+.card.bg-white { background: #fff; }
 dialog.dialog-host::backdrop {
   background: color-mix(in srgb, #2e2b25 50%, transparent);
   animation: fadein 0.15s ease;
