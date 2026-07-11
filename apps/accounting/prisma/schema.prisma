@@ -113,16 +113,34 @@ model TransactionApproval {
   @@index([shareholderId])
 }
 
-// Create-only, immutable — same ledger philosophy as Transaction/LedgerEntry
-// (no edit/delete in v1). Admin-recorded operating expenses, tracked
-// separately from the share-ownership ledger (Transaction/LedgerEntry) since
-// an expense isn't a share transaction.
+enum ExpenseCategory {
+  TAXES
+  INSURANCE
+  UTILITIES
+  FURNISHINGS
+  REPAIRS
+  IMPROVEMENTS
+  OTHER
+}
+
+// Admin-recorded expenses, tracked separately from the share-ownership
+// ledger (Transaction/LedgerEntry) since an expense isn't a share
+// transaction. Unlike the ledger, expenses are editable by admins — but an
+// edit never changes `incurredAt`, so the year an expense lands in the
+// income/expense report is fixed at recording time.
+//
+// `capital` is deliberately its own flag, independent of `category`: a
+// Repairs expense can be either routine (operating) or a capital
+// investment. Do not model capital-vs-operating as a category.
 model Expense {
-  id          String   @id @default(cuid())
+  id          String          @id @default(cuid())
   description String
-  amount      Decimal  @db.Decimal(12, 2)
+  amount      Decimal         @db.Decimal(12, 2)
+  category    ExpenseCategory
+  capital     Boolean         @default(false)
   incurredAt  DateTime
-  createdAt   DateTime @default(now())
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 
   // Logical link to the identity DB's users.id (no cross-database FK), plus a
   // denormalized snapshot of the recording admin's name/email captured at
@@ -134,4 +152,25 @@ model Expense {
   createdByEmail  String?
 
   @@index([incurredAt])
+}
+
+// One row per calendar year: the family's contribution goal, shown as the
+// dashboard progress tracker. Admin-editable.
+model ContributionGoal {
+  year      Int      @id
+  amount    Decimal  @db.Decimal(12, 2)
+  updatedAt DateTime @updatedAt
+}
+
+// Single-row app configuration (id is always "singleton"). Typed columns
+// rather than key-value so the generated client keeps settings type-safe;
+// future settings are one migration each.
+model AppSettings {
+  id String @id @default("singleton")
+
+  // When false, the Contributions tab is admins-only: non-admin
+  // shareholders don't see it and its page redirects them away.
+  contributionsVisibleToAll Boolean @default(true)
+
+  updatedAt DateTime @updatedAt
 }
