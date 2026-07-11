@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { inArray } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { reservations } from '@/lib/db/schema'
 import { users } from '@mfr/auth'
@@ -19,6 +19,10 @@ export async function GET() {
       status: reservations.status,
     })
     .from(reservations)
+    // Reservation Summary (Phase 9) shows confirmed stays only — cancelled
+    // reservations are excluded here rather than client-side, since this is
+    // a purpose-built endpoint for the summary page.
+    .where(eq(reservations.status, 'confirmed'))
 
   // users lives in the separate shared identity database now — no SQL-level
   // JOIN is possible across databases, so resolve names with a second query

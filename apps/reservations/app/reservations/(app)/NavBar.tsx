@@ -11,7 +11,7 @@ interface NavLink {
 const baseLinks: NavLink[] = [
   { href: '/reservations/calendar', label: 'Calendar' },
   { href: '/reservations/my-reservations', label: 'My Reservations' },
-  { href: '/reservations/history', label: 'History' },
+  { href: '/reservations/summary', label: 'Reservation Summary' },
   { href: '/reservations/activity', label: 'Activity' },
 ]
 
