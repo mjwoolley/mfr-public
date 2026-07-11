@@ -14,12 +14,24 @@ export interface NavTab {
 
 const tabBase = "inline-flex items-center gap-1.5 whitespace-nowrap border-b-2 py-3.5 text-[15px] transition-colors";
 
+const HOME_URL = "https://millerfamilyreunions.org";
+
 export function NavTabs({ tabs }: { tabs: NavTab[] }) {
   const pathname = usePathname();
 
   return (
     <div style={{ borderBottom: "1px solid var(--color-divider)" }}>
       <div className="mx-auto flex max-w-4xl items-center gap-5 overflow-x-auto px-4 sm:px-7">
+        <a
+          href={HOME_URL}
+          className={`${tabBase} font-semibold`}
+          style={{
+            color: "color-mix(in srgb, var(--color-text) 60%, transparent)",
+            borderBottomColor: "transparent",
+          }}
+        >
+          Home
+        </a>
         {tabs.map((tab) => {
           const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
           return (

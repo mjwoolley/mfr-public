@@ -1,14 +1,23 @@
 import { NextResponse } from 'next/server'
-import { eq, inArray } from 'drizzle-orm'
+import { and, eq, gte, inArray, lt } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { reservations } from '@/lib/db/schema'
 import { users } from '@mfr/auth'
 import { identityDb } from '@/lib/auth/identityDb'
 import { requireApprovedUser } from '@/lib/auth/requireApprovedUser'
 
+function currentYearRange() {
+  const now = new Date()
+  const from = new Date(Date.UTC(now.getUTCFullYear(), 0, 1)).toISOString().slice(0, 10)
+  const to = new Date(Date.UTC(now.getUTCFullYear() + 1, 0, 1)).toISOString().slice(0, 10)
+  return { from, to }
+}
+
 export async function GET() {
   const auth = await requireApprovedUser()
   if (!auth.ok) return auth.response
+
+  const { from, to } = currentYearRange()
 
   const rows = await db
     .select({
@@ -21,8 +30,16 @@ export async function GET() {
     .from(reservations)
     // Reservation Summary (Phase 9) shows confirmed stays only — cancelled
     // reservations are excluded here rather than client-side, since this is
-    // a purpose-built endpoint for the summary page.
-    .where(eq(reservations.status, 'confirmed'))
+    // a purpose-built endpoint for the summary page. Also scoped to the
+    // current calendar year (by start date) so the summary doesn't grow
+    // unbounded with every past reunion.
+    .where(
+      and(
+        eq(reservations.status, 'confirmed'),
+        gte(reservations.startDate, from),
+        lt(reservations.startDate, to),
+      ),
+    )
 
   // users lives in the separate shared identity database now — no SQL-level
   // JOIN is possible across databases, so resolve names with a second query

@@ -44,6 +44,7 @@ export function useCalendarData() {
       return data.reservations
     },
     refetchOnWindowFocus: true,
+    refetchOnMount: 'always',
   })
 
   const blockedDatesQuery = useQuery({
@@ -55,6 +56,7 @@ export function useCalendarData() {
       return data.blockedDates
     },
     refetchOnWindowFocus: true,
+    refetchOnMount: 'always',
   })
 
   const bookingRulesQuery = useQuery({
@@ -66,6 +68,7 @@ export function useCalendarData() {
       return data.bookingRules
     },
     refetchOnWindowFocus: true,
+    refetchOnMount: 'always',
   })
 
   return {

@@ -27,7 +27,7 @@ function EntryLine({
   const tag = transactionTypeTag(entry.type as Parameters<typeof transactionTypeTag>[0]);
   return (
     <div
-      className="flex items-center gap-3 py-2 text-sm"
+      className={`flex items-center gap-3 py-2 text-sm ${entry.deleted ? "line-through opacity-60" : ""}`}
       style={{ borderTop: "1px solid var(--color-divider)" }}
     >
       <span className="text-muted w-[104px] flex-none text-[13px]">{fmtDate(entry.date)}</span>
@@ -37,6 +37,9 @@ function EntryLine({
         style={{ color: "color-mix(in srgb, var(--color-text) 80%, transparent)" }}
       >
         {showWho ? `${entry.shareholderName}${entry.description ? ` — ${entry.description}` : ""}` : (entry.description ?? "")}
+        {entry.deleted && (
+          <span className="no-underline text-muted"> (corrected)</span>
+        )}
       </span>
       <span
         className="font-semibold"

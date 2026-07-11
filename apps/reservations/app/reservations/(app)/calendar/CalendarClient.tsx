@@ -268,7 +268,10 @@ export function CalendarClient({ userId }: CalendarClientProps) {
           reservations={reservations}
           blockedDates={blockedDates}
           bookingRules={bookingRules}
-          onClose={() => setModal(null)}
+          onClose={() => {
+            setModal(null)
+            resetSelection()
+          }}
           onSubmitted={() => {
             setModal(null)
             resetSelection()

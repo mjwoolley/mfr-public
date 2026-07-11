@@ -8,12 +8,12 @@ import {
 } from "./contributionsGrouping";
 
 const rows: ContributionEntryRow[] = [
-  { shareholderId: "a", shareholderName: "Alice", type: "CONTRIBUTION", date: "2024-07-01T00:00:00.000Z", description: "Buy-in", amount: 12000 },
-  { shareholderId: "b", shareholderName: "Bob", type: "CONTRIBUTION", date: "2024-02-01T00:00:00.000Z", description: null, amount: 3000 },
-  { shareholderId: "a", shareholderName: "Alice", type: "ADJUSTMENT", date: "2025-04-02T00:00:00.000Z", description: "Reconcile", amount: 500 },
-  { shareholderId: "b", shareholderName: "Bob", type: "TRANSFER", date: "2025-05-15T00:00:00.000Z", description: "Gift", amount: -2000 },
-  { shareholderId: "a", shareholderName: "Alice", type: "TRANSFER", date: "2025-05-15T00:00:00.000Z", description: "Gift", amount: 2000 },
-  { shareholderId: "a", shareholderName: "Alice", type: "CONTRIBUTION", date: "2025-09-10T00:00:00.000Z", description: "Dock", amount: 6000 },
+  { shareholderId: "a", shareholderName: "Alice", type: "CONTRIBUTION", date: "2024-07-01T00:00:00.000Z", description: "Buy-in", amount: 12000, deleted: false },
+  { shareholderId: "b", shareholderName: "Bob", type: "CONTRIBUTION", date: "2024-02-01T00:00:00.000Z", description: null, amount: 3000, deleted: false },
+  { shareholderId: "a", shareholderName: "Alice", type: "ADJUSTMENT", date: "2025-04-02T00:00:00.000Z", description: "Reconcile", amount: 500, deleted: false },
+  { shareholderId: "b", shareholderName: "Bob", type: "TRANSFER", date: "2025-05-15T00:00:00.000Z", description: "Gift", amount: -2000, deleted: false },
+  { shareholderId: "a", shareholderName: "Alice", type: "TRANSFER", date: "2025-05-15T00:00:00.000Z", description: "Gift", amount: 2000, deleted: false },
+  { shareholderId: "a", shareholderName: "Alice", type: "CONTRIBUTION", date: "2025-09-10T00:00:00.000Z", description: "Dock", amount: 6000, deleted: false },
 ];
 
 const balances: ShareholderBalanceRow[] = [
@@ -26,6 +26,15 @@ describe("contributionTotalsByYear", () => {
     const totals = contributionTotalsByYear(rows);
     expect(totals.get(2024)).toBe(15000);
     expect(totals.get(2025)).toBe(6000); // adjustment + transfers excluded
+  });
+
+  it("excludes deleted (corrected) entries from the total", () => {
+    const withDeleted: ContributionEntryRow[] = [
+      ...rows,
+      { shareholderId: "a", shareholderName: "Alice", type: "CONTRIBUTION", date: "2025-11-01T00:00:00.000Z", description: "Corrected out", amount: 9000, deleted: true },
+    ];
+    const totals = contributionTotalsByYear(withDeleted);
+    expect(totals.get(2025)).toBe(6000);
   });
 });
 
@@ -45,6 +54,17 @@ describe("groupEntriesByShareholder", () => {
     expect(groups).toHaveLength(2);
     expect(groups[0].contributed).toBe(0);
     expect(groups[0].entries).toEqual([]);
+  });
+
+  it("keeps a deleted (corrected) entry visible in the list but excludes it from contributed", () => {
+    const withDeleted: ContributionEntryRow[] = [
+      ...rows,
+      { shareholderId: "a", shareholderName: "Alice", type: "CONTRIBUTION", date: "2025-11-01T00:00:00.000Z", description: "Corrected out", amount: 9000, deleted: true },
+    ];
+    const groups = groupEntriesByShareholder(withDeleted, balances);
+    const alice = groups[0];
+    expect(alice.contributed).toBe(18000); // unchanged — deleted entry excluded
+    expect(alice.entries).toHaveLength(5); // still visible in the list
   });
 });
 

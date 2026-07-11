@@ -60,6 +60,13 @@ model Transaction {
   correctsTransaction    Transaction?  @relation("Corrections", fields: [correctsTransactionId], references: [id])
   correctedBy            Transaction[] @relation("Corrections")
 
+  // Soft-delete: set when a correction fully replaces this transaction. The
+  // row stays on the ledger (shown struck-through in every list) but is
+  // excluded from all balance/total aggregates — "as if it never existed"
+  // except for the audit trail.
+  deleted   Boolean   @default(false)
+  deletedAt DateTime?
+
   entries    LedgerEntry[]
   approvals  TransactionApproval[]
 

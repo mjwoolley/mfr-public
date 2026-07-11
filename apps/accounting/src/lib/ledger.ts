@@ -6,7 +6,7 @@ type Decimal = Prisma.Decimal;
 
 export async function getShareholderBalance(shareholderId: string): Promise<Decimal> {
   const result = await prisma.ledgerEntry.aggregate({
-    where: { shareholderId },
+    where: { shareholderId, transaction: { deleted: false } },
     _sum: { shares: true },
   });
   return result._sum.shares ?? new Decimal(0);
@@ -14,6 +14,7 @@ export async function getShareholderBalance(shareholderId: string): Promise<Deci
 
 export async function getTotalSharesOutstanding(): Promise<Decimal> {
   const result = await prisma.ledgerEntry.aggregate({
+    where: { transaction: { deleted: false } },
     _sum: { shares: true },
   });
   return result._sum.shares ?? new Decimal(0);
@@ -22,7 +23,11 @@ export async function getTotalSharesOutstanding(): Promise<Decimal> {
 export async function getAllShareholderBalances() {
   const [shareholders, grouped, total] = await Promise.all([
     prisma.shareholder.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
-    prisma.ledgerEntry.groupBy({ by: ["shareholderId"], _sum: { shares: true } }),
+    prisma.ledgerEntry.groupBy({
+      by: ["shareholderId"],
+      where: { transaction: { deleted: false } },
+      _sum: { shares: true },
+    }),
     getTotalSharesOutstanding(),
   ]);
 
@@ -101,7 +106,7 @@ export function groupContributionsByYear(
 
 export async function getContributionsByYear(): Promise<ContributionYearGroup[]> {
   const entries = await prisma.ledgerEntry.findMany({
-    where: { transaction: { type: TransactionType.CONTRIBUTION } },
+    where: { transaction: { type: TransactionType.CONTRIBUTION, deleted: false } },
     include: { transaction: true, shareholder: true },
   });
   return groupContributionsByYear(entries);

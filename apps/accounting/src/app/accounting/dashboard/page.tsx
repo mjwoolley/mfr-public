@@ -8,6 +8,7 @@ import { formatUSD, formatDate } from "@/lib/format";
 import { transactionTypeTag } from "@/lib/tags";
 import { ApprovalStatus, TransactionType } from "@/generated/prisma/client";
 import { VenmoDialogButton } from "./venmo-dialog";
+import { DisputeEntryActions } from "./dispute-actions";
 
 const usd0 = (n: number) =>
   new Intl.NumberFormat("en-US", {
@@ -45,6 +46,7 @@ export default async function DashboardPage() {
         transaction: {
           type: TransactionType.CONTRIBUTION,
           createdAt: { gte: yearStart, lt: nextYearStart },
+          deleted: false,
         },
       },
       _sum: { shares: true },
@@ -151,8 +153,18 @@ export default async function DashboardPage() {
           const approval = e.transaction.approvals[0];
           const typeTag = transactionTypeTag(e.transaction.type);
           const shares = Number(e.shares);
+          const deleted = e.transaction.deleted;
           return (
-            <div key={e.id} className="card elev-sm px-5 py-4" style={{ gap: 8 }}>
+            <div
+              key={e.id}
+              className={`card elev-sm px-5 py-4 ${deleted ? "line-through opacity-60" : ""}`}
+              style={{ gap: 8 }}
+            >
+              {deleted && (
+                <div className="text-muted no-underline text-xs">
+                  Corrected — excluded from your totals.
+                </div>
+              )}
               <div className="flex items-center gap-2.5">
                 <span className={typeTag.className}>{typeTag.label}</span>
                 <span
@@ -193,6 +205,32 @@ export default async function DashboardPage() {
                         ? "Disputed"
                         : "Pending your approval"}
                   </span>
+                  {approval.status === ApprovalStatus.DISPUTED && (
+                    <div
+                      className="mt-1.5 rounded-2xl px-3.5 py-2.5 text-xs"
+                      style={{
+                        background: "var(--color-accent-100)",
+                        border: "1px solid var(--color-accent-300)",
+                        color: "var(--color-accent-900)",
+                      }}
+                    >
+                      <p className="m-0">
+                        <span className="font-semibold">Your dispute:</span> {approval.disputeReason}
+                      </p>
+                      {approval.resolvedAt ? (
+                        <p className="m-0 mt-1" style={{ color: "var(--color-accent-700)" }}>
+                          Resolved {formatDate(approval.resolvedAt)}
+                          {approval.resolutionTransactionId &&
+                            ` — correction #${approval.resolutionTransactionId.slice(-6)}`}
+                        </p>
+                      ) : (
+                        <DisputeEntryActions
+                          approvalId={approval.id}
+                          disputeReason={approval.disputeReason}
+                        />
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

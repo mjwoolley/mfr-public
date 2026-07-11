@@ -16,6 +16,8 @@ export interface ContributionEntryRow {
   description: string | null;
   /** Signed dollars (= shares). */
   amount: number;
+  /** Soft-deleted (superseded by a correction) — shown struck through, excluded from all totals. */
+  deleted: boolean;
 }
 
 export interface ShareholderBalanceRow {
@@ -45,7 +47,7 @@ const byDateDesc = (a: ContributionEntryRow, b: ContributionEntryRow) =>
 export function contributionTotalsByYear(rows: ContributionEntryRow[]): Map<number, number> {
   const totals = new Map<number, number>();
   for (const row of rows) {
-    if (row.type !== "CONTRIBUTION") continue;
+    if (row.type !== "CONTRIBUTION" || row.deleted) continue;
     const year = Number(row.date.slice(0, 4));
     totals.set(year, (totals.get(year) ?? 0) + row.amount);
   }
@@ -63,7 +65,7 @@ export function groupEntriesByShareholder(
     .map((b) => {
       const entries = rows.filter((r) => r.shareholderId === b.shareholderId).sort(byDateDesc);
       const contributed = entries
-        .filter((r) => r.type === "CONTRIBUTION")
+        .filter((r) => r.type === "CONTRIBUTION" && !r.deleted)
         .reduce((sum, r) => sum + r.amount, 0);
       return { ...b, contributed, entries };
     });

@@ -10,11 +10,15 @@ export async function confirmTransaction(approvalId: string) {
 
   // Scope the update to the current shareholder's own approval row so nobody
   // can confirm on another shareholder's behalf via a crafted request.
+  // Accepts PENDING (normal inbox confirm) or DISPUTED (a shareholder
+  // deciding, after the fact, that a transaction they'd disputed is fine
+  // after all) — this shareholder-initiated path is distinct from admin's
+  // resolveDispute below, which never reverts status away from DISPUTED.
   await prisma.transactionApproval.updateMany({
     where: {
       id: approvalId,
       shareholderId: session.user.shareholderId,
-      status: ApprovalStatus.PENDING,
+      status: { in: [ApprovalStatus.PENDING, ApprovalStatus.DISPUTED] },
     },
     data: { status: ApprovalStatus.CONFIRMED, confirmedAt: new Date() },
   });
@@ -48,6 +52,30 @@ export async function disputeTransaction(approvalId: string, reason: string) {
   });
 
   revalidatePath("/accounting/inbox");
+  revalidatePath("/accounting/admin/activity");
+  revalidatePath("/accounting/dashboard");
+}
+
+export async function updateDisputeReason(approvalId: string, reason: string) {
+  const session = await requireShareholder();
+
+  const trimmedReason = reason.trim();
+  if (!trimmedReason) {
+    throw new Error("A reason is required to dispute a transaction");
+  }
+
+  // Same self-scoping pattern as disputeTransaction — only the owning
+  // shareholder can edit their own dispute's reason, and only while it's
+  // still an open dispute.
+  await prisma.transactionApproval.updateMany({
+    where: {
+      id: approvalId,
+      shareholderId: session.user.shareholderId,
+      status: ApprovalStatus.DISPUTED,
+    },
+    data: { disputeReason: trimmedReason },
+  });
+
   revalidatePath("/accounting/admin/activity");
   revalidatePath("/accounting/dashboard");
 }

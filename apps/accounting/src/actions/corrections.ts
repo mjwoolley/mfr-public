@@ -52,18 +52,27 @@ export async function createCorrection(
     return { error: "The original transaction has nothing to correct" };
   }
 
-  const correction = await prisma.transaction.create({
-    data: {
-      type: TransactionType.CORRECTION,
-      description,
-      createdById: session.user.id,
-      createdByName: session.user.name ?? null,
-      createdByEmail: session.user.email ?? null,
-      correctsTransactionId: original.id,
-      entries: { create: entries },
-      approvals: { create: entries.map((e) => ({ shareholderId: e.shareholderId })) },
-    },
-  });
+  const [correction] = await prisma.$transaction([
+    prisma.transaction.create({
+      data: {
+        type: TransactionType.CORRECTION,
+        description,
+        createdById: session.user.id,
+        createdByName: session.user.name ?? null,
+        createdByEmail: session.user.email ?? null,
+        correctsTransactionId: original.id,
+        entries: { create: entries },
+        approvals: { create: entries.map((e) => ({ shareholderId: e.shareholderId })) },
+      },
+    }),
+    // The correction fully replaces the original on the ledger — the
+    // original is soft-deleted (stays visible, struck through, everywhere
+    // it's listed) but excluded from every balance/total.
+    prisma.transaction.update({
+      where: { id: original.id },
+      data: { deleted: true, deletedAt: new Date() },
+    }),
+  ]);
 
   const adminName = session.user.name ?? session.user.email ?? "The admin";
   const dateStr = formatDate(correction.createdAt);

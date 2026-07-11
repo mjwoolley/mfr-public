@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { BookingPanel } from '../calendar/BookingPanel'
 import { ReservationViewDialog } from '../calendar/ReservationViewDialog'
 import { useCalendarData, type ReservationRow } from '../calendar/useCalendarData'
+import { useReservationMutations } from '../calendar/useReservationMutations'
 import { niceRange, nightsLabel } from '../calendar/formatDates'
 import { reservationTone } from '../calendar/tones'
 import { addDays } from '@/lib/rules/dateHelpers'
@@ -20,7 +21,10 @@ function todayISO(): string {
 
 export function MyReservationsClient({ userId }: { userId: string }) {
   const [modal, setModal] = useState<Modal>(null)
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
+  const [cancelError, setCancelError] = useState<string | null>(null)
   const { reservations, blockedDates, bookingRules, isLoading, error } = useCalendarData()
+  const { cancelReservation } = useReservationMutations()
 
   if (isLoading) return <p className="text-muted p-8 text-center">Loading...</p>
   if (error || !bookingRules) {
@@ -42,6 +46,16 @@ export function MyReservationsClient({ userId }: { userId: string }) {
     modal && (modal.mode === 'view' || modal.mode === 'edit')
       ? (reservations.find((r) => r.id === modal.reservationId) ?? null)
       : null
+
+  async function handleCancel(id: string) {
+    setCancellingId(id)
+    setCancelError(null)
+    const result = await cancelReservation(id)
+    setCancellingId(null)
+    if (!result.ok) {
+      setCancelError(result.error ?? 'Something went wrong.')
+    }
+  }
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pt-7 pb-16 sm:px-7">
@@ -71,36 +85,60 @@ export function MyReservationsClient({ userId }: { userId: string }) {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
+          {cancelError && (
+            <div className="text-[13px] font-semibold" style={{ color: 'var(--color-accent-800)' }}>
+              {cancelError}
+            </div>
+          )}
           {mine.map((r) => (
-            <button
+            <div
               key={r.id}
-              type="button"
-              onClick={() => setModal({ mode: 'view', reservationId: r.id })}
-              className="rowcard card elev-sm cursor-pointer bg-white px-5 py-4 text-left"
+              className="rowcard card elev-sm bg-white px-5 py-4"
               style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}
             >
-              <span
-                className="w-1.5 flex-none self-stretch rounded-full"
-                style={{ background: tone.bar }}
-              />
-              <div className="flex-1">
-                <div
-                  className="text-[19px] leading-tight"
-                  style={{ fontFamily: 'var(--font-heading)' }}
+              <button
+                type="button"
+                onClick={() => setModal({ mode: 'view', reservationId: r.id })}
+                className="flex flex-1 cursor-pointer items-center gap-[18px] border-0 bg-transparent p-0 text-left"
+              >
+                <span
+                  className="w-1.5 flex-none self-stretch rounded-full"
+                  style={{ background: tone.bar }}
+                />
+                <div className="flex-1">
+                  <div
+                    className="text-[19px] leading-tight"
+                    style={{ fontFamily: 'var(--font-heading)' }}
+                  >
+                    {niceRange(r.startDate, r.endDate)}
+                  </div>
+                  <div className="text-muted mt-1 text-[13px]">
+                    {nightsLabel(r.startDate, r.endDate)}
+                  </div>
+                </div>
+                <span className={r.startDate <= today ? 'tag tag-accent' : 'tag tag-outline'}>
+                  {r.startDate <= today ? 'In progress' : 'Upcoming'}
+                </span>
+              </button>
+              <div className="flex flex-none items-center gap-2">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setModal({ mode: 'edit', reservationId: r.id })}
                 >
-                  {niceRange(r.startDate, r.endDate)}
-                </div>
-                <div className="text-muted mt-1 text-[13px]">
-                  {nightsLabel(r.startDate, r.endDate)}
-                </div>
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ color: 'var(--color-accent-800)' }}
+                  onClick={() => handleCancel(r.id)}
+                  disabled={cancellingId === r.id}
+                >
+                  {cancellingId === r.id ? 'Cancelling…' : 'Cancel'}
+                </button>
               </div>
-              <span className={r.startDate <= today ? 'tag tag-accent' : 'tag tag-outline'}>
-                {r.startDate <= today ? 'In progress' : 'Upcoming'}
-              </span>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-500)" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="m9 18 6-6-6-6" />
-              </svg>
-            </button>
+            </div>
           ))}
         </div>
       )}

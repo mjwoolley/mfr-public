@@ -57,6 +57,7 @@ export default async function AdminTransactionsPage({
       correctsNote: t.correctsTransaction
         ? `Corrects ${t.correctsTransaction.type} #${t.correctsTransaction.id.slice(-4)}`
         : "",
+      deleted: t.deleted,
       entryLine,
       entries: t.entries.map((e) => ({
         shareholderId: e.shareholderId,

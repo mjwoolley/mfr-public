@@ -171,7 +171,7 @@ describe("getContributionsByYear", () => {
 
     expect(mockLedgerEntryFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { transaction: { type: "CONTRIBUTION" } },
+        where: { transaction: { type: "CONTRIBUTION", deleted: false } },
         include: { transaction: true, shareholder: true },
       }),
     );

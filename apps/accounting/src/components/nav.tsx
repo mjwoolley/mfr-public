@@ -5,8 +5,6 @@ import { getAppSettings } from "@/lib/settings";
 import { ApprovalStatus } from "@/generated/prisma/client";
 import { NavTabs, type NavTab } from "./nav-tabs";
 
-const HOME_URL = "https://millerfamilyreunions.org";
-
 export async function Nav() {
   const session = await auth();
   const user = session?.user;
@@ -49,7 +47,6 @@ export async function Nav() {
       <PortalHeader appName="Accounting" appHref="/accounting/dashboard">
         {user && (
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-            <a href={HOME_URL}>Home</a>
             <AuthStatus
               email={user.email ?? ""}
               onSignOut={async () => {

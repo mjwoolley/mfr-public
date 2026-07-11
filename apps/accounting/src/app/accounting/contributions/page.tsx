@@ -46,6 +46,7 @@ export default async function ContributionsPage() {
     date: e.transaction.createdAt.toISOString(),
     description: e.transaction.description,
     amount: Number(e.shares),
+    deleted: e.transaction.deleted,
   }));
 
   const balances: ShareholderBalanceRow[] = balanceRows.map((r) => ({
@@ -65,10 +66,10 @@ export default async function ContributionsPage() {
   const maxYearTotal = Math.max(1, ...totalsByYear.values());
 
   const totalContrib = rows
-    .filter((r) => r.type === TransactionType.CONTRIBUTION)
+    .filter((r) => r.type === TransactionType.CONTRIBUTION && !r.deleted)
     .reduce((sum, r) => sum + r.amount, 0);
   const adjTotal = rows
-    .filter((r) => r.type === TransactionType.ADJUSTMENT)
+    .filter((r) => r.type === TransactionType.ADJUSTMENT && !r.deleted)
     .reduce((sum, r) => sum + r.amount, 0);
 
   const summary =

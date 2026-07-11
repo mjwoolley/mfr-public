@@ -72,14 +72,21 @@ export default async function ExpensesPage() {
       {data.length > 0 && (
         <div className="card elev-sm mb-8 bg-white px-5 pt-2 pb-1">
           <div className="overflow-x-auto">
-            <table className="table min-w-[560px]">
+            <table className="table table-fixed min-w-[560px]">
+              <colgroup>
+                <col style={{ width: "18%" }} />
+                <col style={{ width: "20.5%" }} />
+                <col style={{ width: "20.5%" }} />
+                <col style={{ width: "20.5%" }} />
+                <col style={{ width: "20.5%" }} />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Year</th>
-                  <th className="text-right">Contributions in</th>
-                  <th className="text-right">Operating out</th>
-                  <th className="text-right">Capital investment</th>
-                  <th className="text-right">Net</th>
+                  <th className="num">Contributions in</th>
+                  <th className="num">Operating out</th>
+                  <th className="num">Capital investment</th>
+                  <th className="num">Net</th>
                 </tr>
               </thead>
               <tbody>
@@ -88,28 +95,18 @@ export default async function ExpensesPage() {
                   return (
                     <tr key={y.year}>
                       <td className="font-semibold">{y.year}</td>
-                      <td
-                        className="text-right"
-                        style={{ fontVariantNumeric: "tabular-nums", color: "var(--color-accent-2-800)" }}
-                      >
+                      <td className="num" style={{ color: "var(--color-accent-2-800)" }}>
                         {usd0(y.contributions)}
                       </td>
-                      <td
-                        className="text-right"
-                        style={{ fontVariantNumeric: "tabular-nums", color: "var(--color-accent-800)" }}
-                      >
+                      <td className="num" style={{ color: "var(--color-accent-800)" }}>
                         {negUsd(y.operating)}
                       </td>
-                      <td
-                        className="text-right"
-                        style={{ fontVariantNumeric: "tabular-nums", color: "var(--color-accent-900)" }}
-                      >
+                      <td className="num" style={{ color: "var(--color-accent-900)" }}>
                         {negUsd(y.capital)}
                       </td>
                       <td
-                        className="text-right font-bold"
+                        className="num font-bold"
                         style={{
-                          fontVariantNumeric: "tabular-nums",
                           color: net >= 0 ? "var(--color-accent-2-800)" : "var(--color-accent-800)",
                         }}
                       >
@@ -122,11 +119,11 @@ export default async function ExpensesPage() {
               <tfoot>
                 <tr style={{ fontFamily: "var(--font-heading)" }}>
                   <td className="pt-3">All-time</td>
-                  <td className="pt-3 text-right">{usd0(totalIncome)}</td>
-                  <td className="pt-3 text-right">−{usd0(totalOperating)}</td>
-                  <td className="pt-3 text-right">−{usd0(totalCapital)}</td>
+                  <td className="num pt-3">{usd0(totalIncome)}</td>
+                  <td className="num pt-3">−{usd0(totalOperating)}</td>
+                  <td className="num pt-3">−{usd0(totalCapital)}</td>
                   <td
-                    className="pt-3 text-right"
+                    className="num pt-3"
                     style={{
                       color: totalNet >= 0 ? "var(--color-accent-2-800)" : "var(--color-accent-800)",
                     }}

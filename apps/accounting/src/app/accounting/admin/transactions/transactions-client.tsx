@@ -18,6 +18,7 @@ export interface TxRow {
   description: string | null;
   recordedBy: string;
   correctsNote: string;
+  deleted: boolean;
   entryLine: string;
   entries: { shareholderId: string; shareholderName: string; shares: number }[];
   approvals: { label: string; className: string }[];
@@ -173,7 +174,16 @@ export function TransactionsClient({
           <div key={t.id} className="txcard card elev-sm px-4 py-3" style={{ gap: 5 }}>
             <div className="flex items-center gap-2.5">
               <span className={`${t.typeClassName} flex-none`}>{t.typeLabel}</span>
-              <span className="min-w-0 text-sm font-semibold">{t.entryLine}</span>
+              <span
+                className={`min-w-0 text-sm font-semibold ${t.deleted ? "line-through opacity-60" : ""}`}
+              >
+                {t.entryLine}
+              </span>
+              {t.deleted && (
+                <span className="tag tag-outline flex-none px-[7px] py-0 text-[10px]">
+                  Corrected
+                </span>
+              )}
               <span className="text-muted ml-auto flex-none text-xs whitespace-nowrap">
                 {t.dateFmt}
               </span>
@@ -187,14 +197,16 @@ export function TransactionsClient({
                     {a.label}
                   </span>
                 ))}
-                <button
-                  type="button"
-                  className="btn btn-ghost px-1.5 py-0.5 text-xs font-semibold"
-                  style={{ fontFamily: "var(--font-body)" }}
-                  onClick={() => setModal({ mode: "correction", row: t })}
-                >
-                  Correct
-                </button>
+                {!t.deleted && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost px-1.5 py-0.5 text-xs font-semibold"
+                    style={{ fontFamily: "var(--font-body)" }}
+                    onClick={() => setModal({ mode: "correction", row: t })}
+                  >
+                    Correct
+                  </button>
+                )}
               </span>
             </div>
           </div>
@@ -253,7 +265,8 @@ export function TransactionsClient({
         >
           <p className="text-muted m-0 -mt-1.5 text-[13px]">
             Corrects {modal.row.typeLabel.toUpperCase()} #{modal.row.id.slice(-4)} — the original
-            stays on the ledger. Amounts default to a full reversal.
+            will be marked corrected (shown struck through, excluded from totals). Amounts
+            default to a full reversal.
           </p>
           <input type="hidden" name="originalTransactionId" value={modal.row.id} />
           {modal.row.entries.map((e) => (

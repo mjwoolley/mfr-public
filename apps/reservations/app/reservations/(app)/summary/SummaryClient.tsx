@@ -39,7 +39,7 @@ export function SummaryClient() {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pt-7 pb-16 sm:px-7">
-      <h1 className="mb-5 text-4xl">Reservation Summary</h1>
+      <h1 className="mb-5 text-4xl">Reservations Summary</h1>
       {groups.length === 0 && (
         <div
           className="text-muted p-12 text-center text-[15px]"

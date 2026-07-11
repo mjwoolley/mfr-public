@@ -224,6 +224,8 @@ textarea.input { min-height: 90px; resize: vertical; }
 
 /* — tables — */
 .table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table-fixed { table-layout: fixed; }
+.table .num { text-align: right; font-variant-numeric: tabular-nums; }
 .table th {
   text-align: left; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
   color: color-mix(in srgb, var(--color-text) 60%, transparent);
