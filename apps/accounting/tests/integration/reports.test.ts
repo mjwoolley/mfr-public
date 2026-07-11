@@ -8,7 +8,7 @@ vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { auth } from "@/lib/auth";
-import { createExpense } from "@/actions/expenses";
+import { createExpense, updateExpense } from "@/actions/expenses";
 import { getContributionsByYear } from "@/lib/ledger";
 import { getIncomeExpensesByYear } from "@/lib/expenses";
 
@@ -76,7 +76,7 @@ describe("createExpense — admin-only", () => {
     await expect(
       createExpense(
         undefined,
-        fd({ description, amount: "50", incurredAt: "2024-01-15" }),
+        fd({ description, amount: "50", category: "REPAIRS", incurredAt: "2024-01-15" }),
       ),
     ).rejects.toThrow();
 
@@ -90,7 +90,7 @@ describe("createExpense — admin-only", () => {
 
     const result = await createExpense(
       undefined,
-      fd({ description, amount: "123.45", incurredAt: "2024-02-20" }),
+      fd({ description, amount: "123.45", category: "UTILITIES", capital: "true", incurredAt: "2024-02-20" }),
     );
     expect(result?.error).toBeUndefined();
 
@@ -99,6 +99,8 @@ describe("createExpense — admin-only", () => {
     createdExpenseIds.push(created!.id);
     expect(created?.amount.toString()).toBe("123.45");
     expect(created?.incurredAt.toISOString().slice(0, 10)).toBe("2024-02-20");
+    expect(created?.category).toBe("UTILITIES");
+    expect(created?.capital).toBe(true);
     expect(created?.createdByUserId).toBe("admin-1");
     expect(created?.createdByName).toBe("Admin");
     expect(created?.createdByEmail).toBe("admin@example.com");
@@ -110,7 +112,7 @@ describe("createExpense — admin-only", () => {
 
     const result = await createExpense(
       undefined,
-      fd({ description, amount: "0", incurredAt: "2024-02-20" }),
+      fd({ description, amount: "0", category: "REPAIRS", incurredAt: "2024-02-20" }),
     );
     expect(result?.error).toMatch(/greater than zero/i);
 
@@ -123,9 +125,80 @@ describe("createExpense — admin-only", () => {
 
     const result = await createExpense(
       undefined,
-      fd({ description: "   ", amount: "10", incurredAt: "2024-02-20" }),
+      fd({ description: "   ", amount: "10", category: "REPAIRS", incurredAt: "2024-02-20" }),
     );
     expect(result?.error).toMatch(/description/i);
+  });
+});
+
+describe("updateExpense — admin-only, date-preserving", () => {
+  async function seedExpense() {
+    const expense = await testDb.expense.create({
+      data: {
+        description: `Editable Expense ${Date.now()}`,
+        amount: 100,
+        category: "REPAIRS",
+        capital: false,
+        incurredAt: new Date("2023-05-05T00:00:00Z"),
+        createdByUserId: "seed-admin",
+      },
+    });
+    createdExpenseIds.push(expense.id);
+    return expense;
+  }
+
+  it("rejects a non-admin caller and leaves the row untouched", async () => {
+    const expense = await seedExpense();
+    vi.mocked(auth).mockResolvedValue(NON_ADMIN_SESSION);
+
+    await expect(
+      updateExpense(
+        expense.id,
+        undefined,
+        fd({ description: "Hacked", amount: "1", category: "OTHER", capital: "true" }),
+      ),
+    ).rejects.toThrow();
+
+    const after = await testDb.expense.findUnique({ where: { id: expense.id } });
+    expect(after?.description).toBe(expense.description);
+    expect(after?.amount.toString()).toBe("100");
+  });
+
+  it("updates description/amount/category/capital but never incurredAt", async () => {
+    const expense = await seedExpense();
+    vi.mocked(auth).mockResolvedValue(ADMIN_SESSION);
+
+    const result = await updateExpense(
+      expense.id,
+      undefined,
+      fd({
+        description: "Roof repair (corrected)",
+        amount: "250.50",
+        category: "IMPROVEMENTS",
+        capital: "true",
+      }),
+    );
+    expect(result?.error).toBeUndefined();
+    expect(result?.success).toBe(true);
+
+    const after = await testDb.expense.findUnique({ where: { id: expense.id } });
+    expect(after?.description).toBe("Roof repair (corrected)");
+    expect(after?.amount.toString()).toBe("250.5");
+    expect(after?.category).toBe("IMPROVEMENTS");
+    expect(after?.capital).toBe(true);
+    // The original date is fixed at recording time — edits never move the
+    // expense between report years.
+    expect(after?.incurredAt.toISOString()).toBe(expense.incurredAt.toISOString());
+  });
+
+  it("returns an error for an unknown expense id", async () => {
+    vi.mocked(auth).mockResolvedValue(ADMIN_SESSION);
+    const result = await updateExpense(
+      "nonexistent-id",
+      undefined,
+      fd({ description: "X", amount: "5", category: "OTHER", capital: "false" }),
+    );
+    expect(result?.error).toMatch(/not found/i);
   });
 });
 

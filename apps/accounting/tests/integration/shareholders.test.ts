@@ -279,10 +279,11 @@ describe("the `active` flag's pre-existing effect, now under real integration te
     });
     createdShareholderIds.push(active.id);
 
-    // Success path ends in redirect(), which throws — expected.
-    await expect(
-      createContribution(undefined, fd({ shareholderId: active.id, amount: "100" })),
-    ).rejects.toThrow();
+    const result = await createContribution(
+      undefined,
+      fd({ shareholderId: active.id, amount: "100" }),
+    );
+    expect(result?.success).toBe(true);
 
     const entries = await testDb.ledgerEntry.findMany({ where: { shareholderId: active.id } });
     expect(entries).toHaveLength(1);

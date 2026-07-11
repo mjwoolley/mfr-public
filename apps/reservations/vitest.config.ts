@@ -22,6 +22,13 @@ export default defineConfig({
           environment: 'node',
           include: ['tests/integration/**/*.test.ts'],
           globalSetup: ['tests/integration/setup.ts'],
+          // All integration files share one test-branch database, and
+          // booking_rules is a singleton row that admin.test.ts rewrites
+          // (e.g. its bootstrap case sets a 2026 horizon) — with parallel
+          // files that mutation lands mid-flight in reservations.test.ts's
+          // 2027-date edits and 400s them. Serialize the files; each file
+          // already manages its own fixtures.
+          fileParallelism: false,
           // Route handlers under test import a module-load-time `db`
           // singleton (lib/db/client.ts) that reads process.env.DATABASE_URL
           // exactly once, at import time. A plain top-of-test-file

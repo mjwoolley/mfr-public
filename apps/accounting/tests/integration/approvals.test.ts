@@ -203,16 +203,15 @@ describe("full dispute -> correction -> resolved lifecycle", () => {
 
     // 2. Admin issues a correction referencing the original transaction.
     vi.mocked(auth).mockResolvedValue(ADMIN_SESSION);
-    await expect(
-      createCorrection(
-        undefined,
-        fd({
-          originalTransactionId: transaction.id,
-          description: "Fixing the disputed amount",
-          [`amount_${shareholder.id}`]: "-50",
-        }),
-      ),
-    ).rejects.toThrow(); // redirect() on success — expected control-flow signal.
+    const correctionResult = await createCorrection(
+      undefined,
+      fd({
+        originalTransactionId: transaction.id,
+        description: "Fixing the disputed amount",
+        [`amount_${shareholder.id}`]: "-50",
+      }),
+    );
+    expect(correctionResult?.success).toBe(true);
 
     const correction = await testDb.transaction.findFirstOrThrow({
       where: { correctsTransactionId: transaction.id },
