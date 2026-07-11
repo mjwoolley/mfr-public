@@ -121,6 +121,31 @@ describe('POST /api/reservations', () => {
     const response = await POST(request as never)
     expect(response.status).toBe(401)
   })
+
+  it('stores a 2-night [N, N+2) reservation for a UI-equivalent click on day N then day N+1', async () => {
+    // These are the exact startDate/endDate values CalendarClient's fixed
+    // click handler (computeSelectionAfterClick) now produces when a user
+    // clicks day 2027-09-10 and then day 2027-09-11: the later clicked date
+    // is converted to an exclusive checkout date (+1 day) before being sent
+    // to the API, matching the half-open [startDate, endDate) convention.
+    const user = await makeUser('l')
+    mockSessionFor(user)
+    const request = new Request('http://localhost/api/reservations', {
+      method: 'POST',
+      body: JSON.stringify({ startDate: '2027-09-10', endDate: '2027-09-12' }),
+    })
+    const response = await POST(request as never)
+    expect(response.status).toBe(201)
+    const body = await response.json()
+
+    const [rowViaTestDb] = await testDb
+      .select()
+      .from(reservations)
+      .where(eq(reservations.id, body.reservation.id))
+    expect(rowViaTestDb).toBeDefined()
+    expect(rowViaTestDb.startDate).toBe('2027-09-10')
+    expect(rowViaTestDb.endDate).toBe('2027-09-12')
+  })
 })
 
 describe('GET /api/reservations', () => {

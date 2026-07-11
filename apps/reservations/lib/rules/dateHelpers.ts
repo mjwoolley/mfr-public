@@ -1,3 +1,9 @@
+export function addDays(dateStr: string, days: number): string {
+  const date = new Date(`${dateStr}T00:00:00Z`)
+  date.setUTCDate(date.getUTCDate() + days)
+  return date.toISOString().slice(0, 10)
+}
+
 export function nightsBetween(startDate: string, endDate: string): number {
   const start = new Date(`${startDate}T00:00:00Z`)
   const end = new Date(`${endDate}T00:00:00Z`)

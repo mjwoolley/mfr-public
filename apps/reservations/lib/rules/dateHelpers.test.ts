@@ -1,5 +1,19 @@
 import { describe, it, expect } from 'vitest'
-import { nightsBetween, rangesOverlap, calendarYearOf } from './dateHelpers'
+import { addDays, nightsBetween, rangesOverlap, calendarYearOf } from './dateHelpers'
+
+describe('addDays', () => {
+  it('adds a single day within a month', () => {
+    expect(addDays('2027-07-01', 1)).toBe('2027-07-02')
+  })
+
+  it('rolls over a month boundary', () => {
+    expect(addDays('2027-07-31', 1)).toBe('2027-08-01')
+  })
+
+  it('rolls over a year boundary', () => {
+    expect(addDays('2027-12-31', 1)).toBe('2028-01-01')
+  })
+})
 
 describe('nightsBetween', () => {
   it('counts nights for a multi-day range', () => {

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { CalendarGrid } from './CalendarGrid'
 import { BookingPanel } from './BookingPanel'
 import { useCalendarData } from './useCalendarData'
+import { computeSelectionAfterClick } from './calendarSelection'
 
 interface CalendarClientProps {
   userId: string
@@ -38,19 +39,9 @@ export function CalendarClient({ userId }: CalendarClientProps) {
   }
 
   function handleDayClick(date: string) {
-    if (!selectionStart) {
-      setSelectionStart(date)
-      return
-    }
-    if (!selectionEnd) {
-      const start = selectionStart < date ? selectionStart : date
-      const end = selectionStart < date ? date : selectionStart
-      setSelectionStart(start)
-      setSelectionEnd(end)
-      return
-    }
-    setSelectionStart(date)
-    setSelectionEnd(null)
+    const next = computeSelectionAfterClick({ selectionStart, selectionEnd }, date)
+    setSelectionStart(next.selectionStart)
+    setSelectionEnd(next.selectionEnd)
   }
 
   function resetSelection() {
