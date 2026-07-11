@@ -1,6 +1,7 @@
 import { requireShareholder } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { formatUSD, formatDate } from "@/lib/format";
+import { transactionTypeTag } from "@/lib/tags";
 import { ApprovalStatus } from "@/generated/prisma/client";
 import { InboxApprovalActions } from "./inbox-approval-actions";
 
@@ -21,48 +22,68 @@ export default async function InboxPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-semibold">Inbox</h1>
-      <p className="mt-2 text-stone-600">
+      <h1 className="mb-2 text-4xl">Inbox</h1>
+      <p className="text-muted mb-6 max-w-[60ch] text-[15px]">
         These are already reflected in your balance. Confirming just acknowledges you&apos;ve seen
         them — it doesn&apos;t change anything. If something looks wrong, dispute it instead.
       </p>
 
-      <ul className="mt-6 flex flex-col gap-4">
-        {pending.map((approval) => {
-          const entry = approval.transaction.entries[0];
-          const recordedBy =
-            approval.transaction.createdByName ?? approval.transaction.createdByEmail ?? "an admin";
-          return (
-            <li
-              key={approval.id}
-              className="rounded border border-sand-200 p-4 text-sm"
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-medium">{approval.transaction.type}</span>
-                <span className="text-stone-500">
-                  {formatDate(approval.transaction.createdAt)}
-                </span>
+      {pending.length === 0 ? (
+        <div
+          className="p-11 text-center"
+          style={{ background: "var(--color-accent-2-100)", borderRadius: "var(--radius-lg)" }}
+        >
+          <div
+            className="text-[22px]"
+            style={{ fontFamily: "var(--font-heading)", color: "var(--color-accent-2-800)" }}
+          >
+            You&apos;re all caught up
+          </div>
+          <div className="mt-1.5 text-sm" style={{ color: "var(--color-accent-2-800)" }}>
+            Nothing pending your approval.
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3.5">
+          {pending.map((approval) => {
+            const entry = approval.transaction.entries[0];
+            const recordedBy =
+              approval.transaction.createdByName ??
+              approval.transaction.createdByEmail ??
+              "an admin";
+            const typeTag = transactionTypeTag(approval.transaction.type);
+            const shares = entry ? Number(entry.shares) : 0;
+            return (
+              <div key={approval.id} className="card elev-sm px-5 py-4" style={{ gap: 8 }}>
+                <div className="flex items-center gap-2.5">
+                  <span className={typeTag.className}>{typeTag.label}</span>
+                  {entry && (
+                    <span
+                      className="ml-0.5 text-[19px]"
+                      style={{
+                        fontFamily: "var(--font-heading)",
+                        color:
+                          shares >= 0 ? "var(--color-accent-2-800)" : "var(--color-accent-800)",
+                      }}
+                    >
+                      {shares >= 0 ? "+" : ""}
+                      {formatUSD(entry.shares.toString())}
+                    </span>
+                  )}
+                  <span className="text-muted ml-auto text-[13px]">
+                    {formatDate(approval.transaction.createdAt)}
+                  </span>
+                </div>
+                {approval.transaction.description && (
+                  <div className="text-sm">{approval.transaction.description}</div>
+                )}
+                <div className="text-muted text-xs">Recorded by {recordedBy}</div>
+                <InboxApprovalActions approvalId={approval.id} />
               </div>
-              {entry && (
-                <p className="mt-1">
-                  {Number(entry.shares) >= 0 ? "+" : ""}
-                  {formatUSD(entry.shares.toString())} shares
-                </p>
-              )}
-              {approval.transaction.description && (
-                <p className="mt-1">{approval.transaction.description}</p>
-              )}
-              <p className="mt-1 text-stone-400">
-                Recorded by {recordedBy}
-              </p>
-              <InboxApprovalActions approvalId={approval.id} />
-            </li>
-          );
-        })}
-        {pending.length === 0 && (
-          <li className="text-stone-500">Nothing pending.</li>
-        )}
-      </ul>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

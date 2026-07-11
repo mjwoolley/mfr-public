@@ -1,4 +1,35 @@
 @import "tailwindcss";
-@import "@mfr/ui/theme.css";
+@import "@mfr/ui/organic.css";
 
 @source "../../../../packages/ui/src";
+
+/* Point Organic's font tokens at the next/font-generated variables (set on
+   <html> in layout.tsx) instead of the Google Fonts @import the design
+   package ships with. */
+:root {
+  --font-heading: var(--font-caprasimo), system-ui, sans-serif;
+  --font-body: var(--font-figtree), system-ui, sans-serif;
+}
+
+/* Prototype helmet styles (Accounting.dc.html) */
+.txcard {
+  transition: box-shadow 0.12s ease;
+}
+.txcard:hover {
+  box-shadow: var(--shadow-md);
+}
+.iebar {
+  transition: opacity 0.12s ease;
+  cursor: default;
+}
+.iebar:hover {
+  opacity: 0.8;
+}
+select.input {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23201e1d' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 38px;
+}
