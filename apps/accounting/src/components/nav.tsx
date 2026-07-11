@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { PortalHeader } from "@mfr/ui";
+import { PortalHeader, AuthStatus } from "@mfr/ui";
 import { auth, signOut } from "@/lib/auth";
+
+const HOME_URL = "https://millerfamilyreunions.org";
 
 export async function Nav() {
   const session = await auth();
@@ -10,6 +12,9 @@ export async function Nav() {
     <PortalHeader appName="Accounting" appHref="/accounting/dashboard">
       {user && (
         <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+          <a href={HOME_URL} className="text-lake-100 transition-colors hover:text-sand-50">
+            Home
+          </a>
           <Link href="/accounting/dashboard" className="text-lake-100 transition-colors hover:text-sand-50">
             Dashboard
           </Link>
@@ -30,20 +35,13 @@ export async function Nav() {
               Manage Shareholders
             </Link>
           )}
-          <span className="hidden text-lake-200 sm:inline">{user.email}</span>
-          <form
-            action={async () => {
+          <AuthStatus
+            email={user.email ?? ""}
+            onSignOut={async () => {
               "use server";
               await signOut({ redirectTo: "/accounting/sign-in" });
             }}
-          >
-            <button
-              type="submit"
-              className="text-lake-100 underline transition-colors hover:text-sand-50"
-            >
-              Sign out
-            </button>
-          </form>
+          />
         </nav>
       )}
     </PortalHeader>

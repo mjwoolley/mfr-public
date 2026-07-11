@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bitter, Geist, Geist_Mono } from "next/font/google";
-import { PortalHeader } from "@mfr/ui";
+import { PortalHeader, AuthStatus } from "@mfr/ui";
+import { auth, signOut } from "@/lib/auth";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -23,11 +24,13 @@ export const metadata: Metadata = {
   description: "The Miller family's lake house tools: reservations and accounting.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
+
   return (
     <html
       lang="en"
@@ -49,6 +52,15 @@ export default function RootLayout({
               Accounting
             </a>
           </nav>
+          {session?.user && (
+            <AuthStatus
+              email={session.user.email ?? ""}
+              onSignOut={async () => {
+                "use server";
+                await signOut({ redirectTo: "/" });
+              }}
+            />
+          )}
         </PortalHeader>
         <main className="flex w-full flex-1 flex-col">{children}</main>
         <footer className="border-t border-sand-200 bg-sand-50">

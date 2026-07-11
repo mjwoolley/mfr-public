@@ -17,6 +17,8 @@ const baseLinks: NavLink[] = [
 
 const adminLink: NavLink = { href: '/reservations/admin', label: 'Admin' }
 
+const HOME_URL = 'https://millerfamilyreunions.org'
+
 export function NavBar({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname()
   const links = isAdmin ? [...baseLinks, adminLink] : baseLinks
@@ -24,6 +26,12 @@ export function NavBar({ isAdmin }: { isAdmin: boolean }) {
   return (
     <nav className="border-b border-sand-200 bg-white">
       <div className="mx-auto flex max-w-5xl items-center gap-1 overflow-x-auto px-2 py-1.5 sm:px-3">
+        <a
+          href={HOME_URL}
+          className="rounded px-3 py-2 text-sm font-medium whitespace-nowrap text-stone-600 transition-colors hover:bg-sand-100"
+        >
+          Home
+        </a>
         {links.map((link) => {
           const active = pathname === link.href || pathname.startsWith(`${link.href}/`)
           return (

@@ -7,11 +7,18 @@
     ".": "./src/index.ts",
     "./theme.css": "./src/theme.css"
   },
+  "scripts": {
+    "test": "vitest run"
+  },
   "peerDependencies": {
     "react": "^19.0.0"
   },
   "devDependencies": {
     "@types/react": "^19",
-    "typescript": "^5"
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.0.3",
+    "react-dom": "^19.2.4",
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }
