@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { ModalDialog } from "@mfr/ui";
-import { createExpense, updateExpense, type ActionState } from "@/actions/expenses";
+import { createExpense, deleteExpense, updateExpense, type ActionState } from "@/actions/expenses";
 import { EXPENSE_CATEGORY_LABELS } from "@/lib/tags";
 import { ExpenseCategory } from "@/generated/prisma/enums";
 
@@ -18,7 +18,11 @@ export interface ExpenseRow {
   dateFmt: string;
 }
 
-type Modal = { mode: "create" } | { mode: "edit"; row: ExpenseRow } | null;
+type Modal =
+  | { mode: "create" }
+  | { mode: "edit"; row: ExpenseRow }
+  | { mode: "delete"; row: ExpenseRow }
+  | null;
 
 /**
  * The Record/Edit expense dialog. Editing keeps the original date — the date
@@ -133,6 +137,44 @@ function ExpenseDialog({ row, onClose }: { row: ExpenseRow | null; onClose: () =
   );
 }
 
+function DeleteExpenseDialog({ row, onClose }: { row: ExpenseRow; onClose: () => void }) {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(
+    deleteExpense.bind(null, row.id),
+    undefined,
+  );
+
+  useEffect(() => {
+    if (state?.success) onClose();
+  }, [state, onClose]);
+
+  return (
+    <ModalDialog title="Delete expense" onClose={onClose}>
+      <form action={formAction} className="flex flex-col gap-3">
+        <p className="m-0 text-sm">
+          Delete <span className="font-semibold">{row.description}</span> — {row.amountFmt} on{" "}
+          {row.dateFmt}?
+        </p>
+        <p className="text-muted m-0 text-xs">
+          This permanently removes it from the expense log and the income/expense report.
+        </p>
+        {state?.error && (
+          <p className="m-0 text-[13px] font-semibold" style={{ color: "var(--color-accent-800)" }}>
+            {state.error}
+          </p>
+        )}
+        <div className="dialog-actions">
+          <button type="button" className="btn btn-secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="submit" className="btn btn-primary" disabled={pending}>
+            {pending ? "Deleting…" : "Delete expense"}
+          </button>
+        </div>
+      </form>
+    </ModalDialog>
+  );
+}
+
 export function ExpensesAdminClient({ rows }: { rows: ExpenseRow[] }) {
   const [modal, setModal] = useState<Modal>(null);
 
@@ -173,13 +215,24 @@ export function ExpensesAdminClient({ rows }: { rows: ExpenseRow[] }) {
             >
               Edit
             </button>
+            <button
+              type="button"
+              className="btn btn-ghost flex-none px-2 py-1.5 text-xs font-semibold"
+              style={{ color: "var(--color-accent-800)", fontFamily: "var(--font-body)" }}
+              onClick={() => setModal({ mode: "delete", row: x })}
+            >
+              Delete
+            </button>
           </div>
         ))}
         {rows.length === 0 && <p className="text-muted">No expenses recorded yet.</p>}
       </div>
 
-      {modal && (
+      {modal && modal.mode !== "delete" && (
         <ExpenseDialog row={modal.mode === "edit" ? modal.row : null} onClose={() => setModal(null)} />
+      )}
+      {modal?.mode === "delete" && (
+        <DeleteExpenseDialog row={modal.row} onClose={() => setModal(null)} />
       )}
     </div>
   );

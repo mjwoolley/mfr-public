@@ -96,3 +96,24 @@ export async function updateExpense(
   revalidateExpenseViews();
   return { success: true };
 }
+
+// Hard delete: expenses carry no share/balance implications (unlike ledger
+// transactions, which are soft-deleted via corrections), so a removed
+// expense simply disappears from the log and the reports.
+export async function deleteExpense(
+  expenseId: string,
+  _prevState: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  await requireAdmin();
+
+  const existing = await prisma.expense.findUnique({ where: { id: expenseId } });
+  if (!existing) {
+    return { error: "Expense not found" };
+  }
+
+  await prisma.expense.delete({ where: { id: expenseId } });
+
+  revalidateExpenseViews();
+  return { success: true };
+}
