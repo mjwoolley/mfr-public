@@ -62,7 +62,10 @@ export default async function ExpensesPage() {
       <h1 className="mb-2 text-4xl">Corporation expenses</h1>
       <p className="text-muted mb-6 max-w-[70ch] text-[15px]">{summary}</p>
 
-      {data.length > 0 && (
+      {/* Without any expense years the chart degenerates to an empty plot and
+          a founding note listing every contribution year — skip it until
+          expenses exist. */}
+      {expenseYears.length > 0 && (
         <div className="card elev-sm mb-6 bg-white px-6 py-6">
           <h2 className="mb-1 text-xl">Income vs. expenses by year</h2>
           <IncomeExpenseChart data={data} />
