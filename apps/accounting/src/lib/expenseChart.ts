@@ -47,10 +47,8 @@ export interface GridTick {
 }
 
 export interface IncomeExpenseChart {
-  /** Years drawn as bars: only years with any expense activity. */
+  /** Years drawn as bars: every year with any activity. */
   chartYears: YearFinancials[];
-  /** Contribution-only years excluded from the bars (the founding raise). */
-  foundingYears: YearFinancials[];
   axisMax: number;
   /** Symmetric right-axis bound: the cumulative axis runs [-hiC, +hiC]. */
   cumulativeMax: number;
@@ -59,6 +57,8 @@ export interface IncomeExpenseChart {
   yearLabels: { x: number; label: number }[];
   linePoints: string;
   dots: ChartDot[];
+  /** Visible line-dot radius — smaller when year slots are narrow. */
+  dotR: number;
 }
 
 const usd0 = (n: number) =>
@@ -77,18 +77,14 @@ function expensesOf(y: YearFinancials): number {
   return y.operating + y.capital;
 }
 
-/** Bars only show years with expense activity; contribution-only years
- * (the founding raise) are called out in a caption instead so operating
- * years stay legible. */
-export function splitChartYears(data: YearFinancials[]): {
-  chartYears: YearFinancials[];
-  foundingYears: YearFinancials[];
-} {
-  const sorted = [...data].sort((a, b) => a.year - b.year);
-  const chartYears = sorted.filter((y) => expensesOf(y) > 0);
-  const charted = new Set(chartYears.map((y) => y.year));
-  const foundingYears = sorted.filter((y) => y.contributions > 0 && !charted.has(y.year));
-  return { chartYears, foundingYears };
+/** Every year with any activity gets a bar slot — contributions included,
+ * since the family's history has contribution-only years going back decades
+ * and hiding them made the chart look broken. Zero-activity years are
+ * skipped. */
+export function activeYears(data: YearFinancials[]): YearFinancials[] {
+  return [...data]
+    .filter((y) => y.contributions > 0 || expensesOf(y) > 0)
+    .sort((a, b) => a.year - b.year);
 }
 
 /** Left axis rounds up to the next $5k so the top gridline clears every bar. */
@@ -99,9 +95,7 @@ export function computeAxisMax(chartYears: YearFinancials[]): number {
 
 /**
  * Cumulative net change (contributions − operating − capital), accumulated
- * over ALL years but re-based to 0 just before the first charted year — the
- * founding balance is excluded, so the first charted year shows its own net
- * and each later year adds on.
+ * over all years from the first active one.
  */
 export function computeCumulativeValues(
   data: YearFinancials[],
@@ -115,16 +109,11 @@ export function computeCumulativeValues(
     cum.set(y.year, run);
   }
 
-  const first = chartYears[0];
-  const base0 = first
-    ? (cum.get(first.year) ?? 0) - (first.contributions - expensesOf(first))
-    : 0;
-
-  const rebased = new Map<number, number>();
+  const charted = new Map<number, number>();
   for (const y of chartYears) {
-    rebased.set(y.year, (cum.get(y.year) ?? 0) - base0);
+    charted.set(y.year, cum.get(y.year) ?? 0);
   }
-  return rebased;
+  return charted;
 }
 
 /** Right axis is symmetric about $0 (so $0 sits on the center gridline),
@@ -140,44 +129,58 @@ export function computeIncomeExpenseChart(
 ): IncomeExpenseChart {
   const { top, plotH, left, right } = geometry;
   const base = top + plotH;
-  const { chartYears, foundingYears } = splitChartYears(data);
+  const chartYears = activeYears(data);
   const axisMax = computeAxisMax(chartYears);
 
   const plotW = right - left;
   const slotW = plotW / (chartYears.length || 1);
 
+  // The income bar and the expense stack sit side by side within each
+  // year's slot; widths shrink with the slot so decades of history fit.
+  const pairGap = slotW >= 40 ? 6 : 2;
+  const barW = Math.max(3, Math.min(28, Math.floor((slotW - pairGap) / 2) - 1));
+  // Nonzero values always get a visible bar; zero values get no bar at all.
+  const barH = (v: number) => (v <= 0 ? 0 : Math.max(2, Math.round((v / axisMax) * plotH)));
+  // Thin the x-axis labels so ~44px of room stays between them, anchored to
+  // the most recent year so the current year is always labeled.
+  const labelStep = Math.max(1, Math.ceil(chartYears.length / Math.floor(plotW / 44)));
+  const isLabeled = (i: number) => (chartYears.length - 1 - i) % labelStep === 0;
+
   const bars: ChartBar[] = [];
   const yearLabels: { x: number; label: number }[] = [];
   chartYears.forEach((y, i) => {
     const cx = left + slotW * (i + 0.5);
-    const inH = Math.max(0, Math.round((y.contributions / axisMax) * plotH));
-    const opH = Math.max(0, Math.round((y.operating / axisMax) * plotH));
-    const capH = Math.max(0, Math.round((y.capital / axisMax) * plotH));
-    bars.push({
-      x: Math.round(cx - 31),
-      y: Math.round(base - inH),
-      w: 28,
-      h: inH,
-      kind: "contributions",
-      title: `${y.year} · Contributions in: ${usd0(y.contributions)}`,
-    });
-    bars.push({
-      x: Math.round(cx + 3),
-      y: Math.round(base - opH),
-      w: 28,
-      h: opH,
-      kind: "operating",
-      title: `${y.year} · Operating expenses: ${usd0(y.operating)}`,
-    });
-    bars.push({
-      x: Math.round(cx + 3),
-      y: Math.round(base - opH - capH),
-      w: 28,
-      h: capH,
-      kind: "capital",
-      title: `${y.year} · Capital investment: ${usd0(y.capital)}`,
-    });
-    yearLabels.push({ x: Math.round(cx), label: y.year });
+    const inH = barH(y.contributions);
+    const opH = barH(y.operating);
+    const capH = barH(y.capital);
+    if (inH > 0)
+      bars.push({
+        x: Math.round(cx - pairGap / 2 - barW),
+        y: Math.round(base - inH),
+        w: barW,
+        h: inH,
+        kind: "contributions",
+        title: `${y.year} · Contributions in: ${usd0(y.contributions)}`,
+      });
+    if (opH > 0)
+      bars.push({
+        x: Math.round(cx + pairGap / 2),
+        y: Math.round(base - opH),
+        w: barW,
+        h: opH,
+        kind: "operating",
+        title: `${y.year} · Operating expenses: ${usd0(y.operating)}`,
+      });
+    if (capH > 0)
+      bars.push({
+        x: Math.round(cx + pairGap / 2),
+        y: Math.round(base - opH - capH),
+        w: barW,
+        h: capH,
+        kind: "capital",
+        title: `${y.year} · Capital investment: ${usd0(y.capital)}`,
+      });
+    if (isLabeled(i)) yearLabels.push({ x: Math.round(cx), label: y.year });
   });
 
   const cumulativeValues = computeCumulativeValues(data, chartYears);
@@ -210,7 +213,6 @@ export function computeIncomeExpenseChart(
 
   return {
     chartYears,
-    foundingYears,
     axisMax,
     cumulativeMax,
     gridTicks,
@@ -218,13 +220,6 @@ export function computeIncomeExpenseChart(
     yearLabels,
     linePoints,
     dots,
+    dotR: slotW < 24 ? 3 : 4.5,
   };
-}
-
-/** Caption for the excluded founding year(s), e.g.
- * "2019: $69,500 raised (founding contribution for the down payment)". */
-export function foundingNote(foundingYears: YearFinancials[]): string {
-  return foundingYears
-    .map((y) => `${y.year}: ${usd0(y.contributions)} raised (founding contribution for the down payment)`)
-    .join(" · ");
 }

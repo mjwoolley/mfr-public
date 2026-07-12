@@ -1,8 +1,4 @@
-import {
-  computeIncomeExpenseChart,
-  foundingNote,
-  type YearFinancials,
-} from "@/lib/expenseChart";
+import { computeIncomeExpenseChart, type YearFinancials } from "@/lib/expenseChart";
 
 const SERIES_COLORS = {
   contributions: "#aebf92",
@@ -21,7 +17,6 @@ const TICK_COLOR = "#82796a";
  */
 export function IncomeExpenseChart({ data }: { data: YearFinancials[] }) {
   const chart = computeIncomeExpenseChart(data);
-  const note = foundingNote(chart.foundingYears);
 
   return (
     <>
@@ -64,7 +59,7 @@ export function IncomeExpenseChart({ data }: { data: YearFinancials[] }) {
             y={bar.y}
             width={bar.w}
             height={bar.h}
-            rx={5}
+            rx={Math.min(5, bar.w / 2, bar.h / 2)}
             fill={SERIES_COLORS[bar.kind]}
           >
             <title>{bar.title}</title>
@@ -84,7 +79,7 @@ export function IncomeExpenseChart({ data }: { data: YearFinancials[] }) {
             <circle cx={dot.cx} cy={dot.cy} r={11} fill="transparent" style={{ cursor: "default" }}>
               <title>{dot.title}</title>
             </circle>
-            <circle cx={dot.cx} cy={dot.cy} r={4.5} fill={LINE_COLOR} style={{ pointerEvents: "none" }} />
+            <circle cx={dot.cx} cy={dot.cy} r={chart.dotR} fill={LINE_COLOR} style={{ pointerEvents: "none" }} />
           </g>
         ))}
         {chart.yearLabels.map((label) => (
@@ -103,10 +98,9 @@ export function IncomeExpenseChart({ data }: { data: YearFinancials[] }) {
       </svg>
 
       <p className="text-muted mt-2.5 mb-0 text-[11px]">
-        Left axis: annual dollars (bars). Right axis: cumulative net change over the years shown,
-        excluding the starting balance (line). Hover any bar or point for the exact figure.
+        Left axis: annual dollars (bars). Right axis: cumulative net change across the years shown
+        (line). Hover any bar or point for the exact figure.
       </p>
-      {note && <p className="text-muted mt-4 mb-0 text-xs">{note}</p>}
     </>
   );
 }
