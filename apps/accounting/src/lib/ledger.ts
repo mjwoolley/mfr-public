@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma, TransactionType } from "@/generated/prisma/client";
+import { fiscalYear } from "@/lib/fiscalYear";
 
 const { Decimal } = Prisma;
 type Decimal = Prisma.Decimal;
@@ -69,12 +70,13 @@ type ContributionEntryForGrouping = {
 };
 
 /**
- * Groups CONTRIBUTION ledger entries by the calendar year of their
- * transaction's `createdAt`. Pure/synchronous so it can be unit tested
- * against fixture data without touching Prisma — mirrors the fetch-then-
- * group-in-JS pattern used throughout this app for aggregations Prisma's
- * `groupBy` can't express directly (grouping by a year extracted from a
- * joined table's DateTime column).
+ * Groups CONTRIBUTION ledger entries by the fiscal year of their
+ * transaction's `createdAt` (see @/lib/fiscalYear). Pure/synchronous so it
+ * can be unit tested against fixture data without touching Prisma — mirrors
+ * the fetch-then-group-in-JS pattern used throughout this app for
+ * aggregations Prisma's `groupBy` can't express directly (grouping by a year
+ * extracted from a joined table's DateTime column). The `year` field holds
+ * the fiscal year.
  */
 export function groupContributionsByYear(
   entries: ContributionEntryForGrouping[],
@@ -82,11 +84,7 @@ export function groupContributionsByYear(
   const byYear = new Map<number, ContributionYearGroup>();
 
   for (const entry of entries) {
-    // getUTCFullYear (not getFullYear) so grouping is deterministic
-    // regardless of the host machine's local timezone — dev boxes, CI, and
-    // Vercel's UTC runtime shouldn't disagree on which year a timestamp near
-    // midnight falls in.
-    const year = entry.transaction.createdAt.getUTCFullYear();
+    const year = fiscalYear(entry.transaction.createdAt);
     let group = byYear.get(year);
     if (!group) {
       group = { year, total: new Decimal(0), purchases: [] };

@@ -84,14 +84,14 @@ describe("computeIncomeExpenseChart", () => {
   });
 
   it("draws a contribution bar for a contribution-only year", () => {
-    const bar2019 = chart.bars.find((b) => b.title.startsWith("2019"));
+    const bar2019 = chart.bars.find((b) => b.title.startsWith("FY2019"));
     expect(bar2019).toBeDefined();
     expect(bar2019!.kind).toBe("contributions");
     expect(bar2019!.h).toBeGreaterThan(0);
   });
 
   it("stacks the capital bar directly on top of the operating bar", () => {
-    const bars2025 = chart.bars.filter((b) => b.title.startsWith("2025"));
+    const bars2025 = chart.bars.filter((b) => b.title.startsWith("FY2025"));
     const operating = bars2025.find((b) => b.kind === "operating")!;
     const capital = bars2025.find((b) => b.kind === "capital")!;
     expect(capital.x).toBe(operating.x);
@@ -102,14 +102,14 @@ describe("computeIncomeExpenseChart", () => {
     // 2019 has no expenses and 2026 has no capital — no bars for those.
     expect(chart.bars.filter((b) => b.h === 0)).toEqual([]);
     expect(
-      chart.bars.some((b) => b.title.startsWith("2026") && b.kind === "capital"),
+      chart.bars.some((b) => b.title.startsWith("FY2026") && b.kind === "capital"),
     ).toBe(false);
   });
 
   it("gives every bar and dot an exact-figure tooltip title", () => {
-    expect(chart.bars.map((b) => b.title)).toContain("2025 · Capital investment: $5,000");
-    expect(chart.dots.map((d) => d.title)).toContain("2025 · Cumulative change: +$49,000");
-    expect(chart.dots.map((d) => d.title)).toContain("2026 · Cumulative change: +$55,000");
+    expect(chart.bars.map((b) => b.title)).toContain("FY2025 · Capital investment: $5,000");
+    expect(chart.dots.map((d) => d.title)).toContain("FY2025 · Cumulative change: +$49,000");
+    expect(chart.dots.map((d) => d.title)).toContain("FY2026 · Cumulative change: +$55,000");
   });
 
   it("aligns each dot with its year's slot center", () => {
@@ -139,7 +139,7 @@ describe("computeIncomeExpenseChart with a long history", () => {
 
   it("keeps each year's bars inside its own slot", () => {
     for (const bar of chart.bars) {
-      const i = chart.chartYears.findIndex((y) => bar.title.startsWith(String(y.year)));
+      const i = chart.chartYears.findIndex((y) => bar.title.startsWith(`FY${y.year}`));
       expect(bar.x).toBeGreaterThanOrEqual(Math.floor(left + slotW * i));
       expect(bar.x + bar.w).toBeLessThanOrEqual(Math.ceil(left + slotW * (i + 1)));
     }

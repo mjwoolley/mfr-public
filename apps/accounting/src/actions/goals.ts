@@ -12,7 +12,8 @@ const schema = z.object({
 
 export type ActionState = { error?: string; saved?: boolean } | undefined;
 
-/** Sets (or replaces) the contribution goal for a calendar year. */
+/** Sets (or replaces) the contribution goal for a fiscal year (the `year`
+ * field holds the fiscal year — see @/lib/fiscalYear). */
 export async function setContributionGoal(
   _prevState: ActionState,
   formData: FormData,

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { transactionTypeTag } from "@/lib/tags";
+import { fiscalYearLabel } from "@/lib/fiscalYear";
 import type { ShareholderGroup, YearGroup } from "./contributionsGrouping";
 
 const usd0 = (n: number) =>
@@ -130,7 +131,7 @@ export function ContributionsClient({
             <div key={y.year} className="card elev-sm bg-white px-5 py-4" style={{ gap: 12 }}>
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-[19px]" style={{ fontFamily: "var(--font-heading)" }}>
-                  {y.year}
+                  {fiscalYearLabel(y.year)}
                 </span>
                 <span className="text-muted ml-auto text-[13px]">
                   {usd0(y.newShares)} in new shares

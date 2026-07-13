@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getContributionsByYear } from "@/lib/ledger";
 import { splitExpensesByYear } from "@/lib/expenses";
 import type { YearFinancials } from "@/lib/expenseChart";
+import { currentFiscalYear, fiscalYearLabel } from "@/lib/fiscalYear";
 import { formatDate } from "@/lib/format";
 import { expenseCategoryTag } from "@/lib/tags";
 import { IncomeExpenseChart } from "./income-expense-chart";
@@ -46,16 +47,16 @@ export default async function ExpensesPage() {
   const totalExpense = totalOperating + totalCapital;
   const totalNet = totalIncome - totalExpense;
 
-  const thisYear = new Date().getUTCFullYear();
+  const thisFY = currentFiscalYear();
   const expenseYears = expenseSplit.map((g) => g.year);
-  const thisYearSplit = splitByYear.get(thisYear);
+  const thisYearSplit = splitByYear.get(thisFY);
   const thisYearExpenses = thisYearSplit
     ? Number(thisYearSplit.operating) + Number(thisYearSplit.capital)
     : 0;
   const summary =
     expenseYears.length === 0
       ? "No expenses recorded yet."
-      : `${usd0(totalExpense)} spent on the house since ${Math.min(...expenseYears)} · ${usd0(thisYearExpenses)} so far in ${thisYear}.`;
+      : `${usd0(totalExpense)} spent on the house since ${fiscalYearLabel(Math.min(...expenseYears))} · ${usd0(thisYearExpenses)} so far in ${fiscalYearLabel(thisFY)}.`;
 
   return (
     <div>
@@ -82,7 +83,7 @@ export default async function ExpensesPage() {
               </colgroup>
               <thead>
                 <tr>
-                  <th>Year</th>
+                  <th>Fiscal year</th>
                   <th className="num">Contributions in</th>
                   <th className="num">Operating out</th>
                   <th className="num">Capital investment</th>
@@ -94,7 +95,7 @@ export default async function ExpensesPage() {
                   const net = y.contributions - y.operating - y.capital;
                   return (
                     <tr key={y.year}>
-                      <td className="font-semibold">{y.year}</td>
+                      <td className="font-semibold">{fiscalYearLabel(y.year)}</td>
                       <td className="num" style={{ color: "var(--color-accent-2-800)" }}>
                         {usd0(y.contributions)}
                       </td>

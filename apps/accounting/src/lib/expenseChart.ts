@@ -4,8 +4,11 @@
  * (Accounting.dc.html, renderVals). Everything here is plain numbers in,
  * plain SVG coordinates out, so the chart itself can be a dumb renderer and
  * the math is unit-testable — the same fetch-then-compute split as
- * groupContributionsByYear in @/lib/ledger.
+ * groupContributionsByYear in @/lib/ledger. Every `year` here is a fiscal
+ * year (see @/lib/fiscalYear); labels render as `FY####`.
  */
+
+import { fiscalYearLabel } from "@/lib/fiscalYear";
 
 export interface YearFinancials {
   year: number;
@@ -160,7 +163,7 @@ export function computeIncomeExpenseChart(
         w: barW,
         h: inH,
         kind: "contributions",
-        title: `${y.year} · Contributions in: ${usd0(y.contributions)}`,
+        title: `${fiscalYearLabel(y.year)} · Contributions in: ${usd0(y.contributions)}`,
       });
     if (opH > 0)
       bars.push({
@@ -169,7 +172,7 @@ export function computeIncomeExpenseChart(
         w: barW,
         h: opH,
         kind: "operating",
-        title: `${y.year} · Operating expenses: ${usd0(y.operating)}`,
+        title: `${fiscalYearLabel(y.year)} · Operating expenses: ${usd0(y.operating)}`,
       });
     if (capH > 0)
       bars.push({
@@ -178,7 +181,7 @@ export function computeIncomeExpenseChart(
         w: barW,
         h: capH,
         kind: "capital",
-        title: `${y.year} · Capital investment: ${usd0(y.capital)}`,
+        title: `${fiscalYearLabel(y.year)} · Capital investment: ${usd0(y.capital)}`,
       });
     if (isLabeled(i)) yearLabels.push({ x: Math.round(cx), label: y.year });
   });
@@ -195,7 +198,7 @@ export function computeIncomeExpenseChart(
       cx: Math.round(left + slotW * (i + 0.5)),
       cy: lineY(v),
       value: v,
-      title: `${y.year} · Cumulative change: ${signed(v)}`,
+      title: `${fiscalYearLabel(y.year)} · Cumulative change: ${signed(v)}`,
     };
   });
   const linePoints = dots.map((d) => `${d.cx},${d.cy}`).join(" ");

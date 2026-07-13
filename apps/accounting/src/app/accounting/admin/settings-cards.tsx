@@ -6,18 +6,19 @@ import { setContributionGoal, type ActionState } from "@/actions/goals";
 
 interface AdminSettingsCardsProps {
   contributionsVisibleToAll: boolean;
-  currentYear: number;
-  /** Current goal amount for currentYear, if one is set. */
+  /** Current fiscal year (see @/lib/fiscalYear) — the goal is keyed by it. */
+  currentFiscalYear: number;
+  /** Current goal amount for the current fiscal year, if one is set. */
   goalAmount: number | null;
 }
 
 /**
  * The two always-visible admin controls: Contributions-tab visibility
- * (Everyone vs Admins only) and the annual contribution goal.
+ * (Everyone vs Admins only) and the fiscal-year contribution goal.
  */
 export function AdminSettingsCards({
   contributionsVisibleToAll,
-  currentYear,
+  currentFiscalYear,
   goalAmount,
 }: AdminSettingsCardsProps) {
   const [visibilityPending, startVisibility] = useTransition();
@@ -77,20 +78,21 @@ export function AdminSettingsCards({
       >
         <div className="min-w-[200px] flex-1">
           <div className="text-base" style={{ fontFamily: "var(--font-heading)" }}>
-            Annual contribution goal
+            Fiscal-year contribution goal
           </div>
           <div className="text-muted mt-0.5 text-[13px]">
-            Shown as the dashboard progress tracker.
+            Shown as the dashboard progress tracker. Fiscal year runs Mar–Feb (FY
+            {currentFiscalYear} = Mar {currentFiscalYear}–Feb {currentFiscalYear + 1}).
           </div>
         </div>
-        <div className="field w-24">
-          <label htmlFor="goal-year">Year</label>
+        <div className="field w-28">
+          <label htmlFor="goal-year">Fiscal year</label>
           <input
             id="goal-year"
             name="year"
             className="input"
             type="number"
-            defaultValue={currentYear}
+            defaultValue={currentFiscalYear}
             min={2000}
             max={2100}
             required

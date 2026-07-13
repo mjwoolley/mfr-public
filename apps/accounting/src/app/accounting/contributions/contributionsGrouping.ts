@@ -3,8 +3,13 @@
  * entries shaped two ways (per shareholder / per year), plus the
  * contributions-only per-year totals behind the "Shares sold by year" bars.
  * Plain-number rows so the groupings are unit-testable and serializable to
- * the client toggle component.
+ * the client toggle component. Years are fiscal years (see @/lib/fiscalYear).
  */
+
+import { fiscalYear } from "@/lib/fiscalYear";
+
+/** Fiscal year of an entry's ISO date string. */
+const rowFiscalYear = (row: ContributionEntryRow): number => fiscalYear(new Date(row.date));
 
 export interface ContributionEntryRow {
   shareholderId: string;
@@ -48,7 +53,7 @@ export function contributionTotalsByYear(rows: ContributionEntryRow[]): Map<numb
   const totals = new Map<number, number>();
   for (const row of rows) {
     if (row.type !== "CONTRIBUTION" || row.deleted) continue;
-    const year = Number(row.date.slice(0, 4));
+    const year = rowFiscalYear(row);
     totals.set(year, (totals.get(year) ?? 0) + row.amount);
   }
   return totals;
@@ -71,15 +76,13 @@ export function groupEntriesByShareholder(
     });
 }
 
-/** One group per calendar year (newest year first), entries newest first. */
+/** One group per fiscal year (newest year first), entries newest first. */
 export function groupEntriesByYear(rows: ContributionEntryRow[]): YearGroup[] {
   const contributionTotals = contributionTotalsByYear(rows);
-  const years = Array.from(new Set(rows.map((r) => Number(r.date.slice(0, 4))))).sort(
-    (a, b) => b - a,
-  );
+  const years = Array.from(new Set(rows.map(rowFiscalYear))).sort((a, b) => b - a);
   return years.map((year) => ({
     year,
     newShares: contributionTotals.get(year) ?? 0,
-    entries: rows.filter((r) => Number(r.date.slice(0, 4)) === year).sort(byDateDesc),
+    entries: rows.filter((r) => rowFiscalYear(r) === year).sort(byDateDesc),
   }));
 }

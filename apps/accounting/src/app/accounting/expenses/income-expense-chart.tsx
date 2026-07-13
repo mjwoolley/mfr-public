@@ -1,4 +1,5 @@
 import { computeIncomeExpenseChart, type YearFinancials } from "@/lib/expenseChart";
+import { fiscalYearLabel } from "@/lib/fiscalYear";
 
 const SERIES_COLORS = {
   contributions: "#aebf92",
@@ -92,7 +93,7 @@ export function IncomeExpenseChart({ data }: { data: YearFinancials[] }) {
             fill={TICK_COLOR}
             textAnchor="middle"
           >
-            {label.label}
+            {fiscalYearLabel(label.label)}
           </text>
         ))}
       </svg>

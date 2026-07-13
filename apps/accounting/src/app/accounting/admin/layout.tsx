@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/lib/authz";
 import { getAppSettings } from "@/lib/settings";
 import { getContributionGoal } from "@/lib/goals";
+import { currentFiscalYear } from "@/lib/fiscalYear";
 import { AdminSubNav } from "./AdminSubNav";
 import { AdminSettingsCards } from "./settings-cards";
 
@@ -13,8 +14,8 @@ import { AdminSettingsCards } from "./settings-cards";
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   await requireAdmin();
 
-  const currentYear = new Date().getUTCFullYear();
-  const [settings, goal] = await Promise.all([getAppSettings(), getContributionGoal(currentYear)]);
+  const currentFY = currentFiscalYear();
+  const [settings, goal] = await Promise.all([getAppSettings(), getContributionGoal(currentFY)]);
 
   return (
     <div>
@@ -22,7 +23,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <AdminSubNav />
       <AdminSettingsCards
         contributionsVisibleToAll={settings.contributionsVisibleToAll}
-        currentYear={currentYear}
+        currentFiscalYear={currentFY}
         goalAmount={goal ? Number(goal.amount) : null}
       />
       {children}

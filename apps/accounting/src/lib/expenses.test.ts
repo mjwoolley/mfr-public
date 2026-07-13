@@ -20,18 +20,18 @@ beforeEach(() => {
 });
 
 describe("groupExpensesByYear", () => {
-  it("groups expenses by the calendar year of incurredAt", () => {
+  it("groups expenses by the fiscal year of incurredAt", () => {
     const expenses = [
-      { amount: new Decimal(40), incurredAt: new Date("2024-02-01") },
-      { amount: new Decimal(10), incurredAt: new Date("2024-09-01") },
-      { amount: new Decimal(300), incurredAt: new Date("2025-04-01") },
+      { amount: new Decimal(40), incurredAt: new Date("2024-09-01") }, // FY2024
+      { amount: new Decimal(10), incurredAt: new Date("2025-02-01") }, // Feb rolls back → FY2024
+      { amount: new Decimal(300), incurredAt: new Date("2025-04-01") }, // FY2025
     ];
 
     const groups = groupExpensesByYear(expenses);
 
     expect(groups).toHaveLength(2);
     expect(groups[0]).toMatchObject({ year: 2024 });
-    expect(groups[0].total.toString()).toBe("50");
+    expect(groups[0].total.toString()).toBe("50"); // 40 + the Feb-2025 entry
     expect(groups[1]).toMatchObject({ year: 2025 });
     expect(groups[1].total.toString()).toBe("300");
   });
@@ -44,10 +44,10 @@ describe("groupExpensesByYear", () => {
 describe("splitExpensesByYear", () => {
   it("splits each year's total into operating vs capital by the capital flag", () => {
     const expenses = [
-      { amount: new Decimal(40), incurredAt: new Date("2024-02-01"), capital: false },
-      { amount: new Decimal(10), incurredAt: new Date("2024-09-01"), capital: true },
-      { amount: new Decimal(5), incurredAt: new Date("2024-11-01"), capital: true },
-      { amount: new Decimal(300), incurredAt: new Date("2025-04-01"), capital: false },
+      { amount: new Decimal(40), incurredAt: new Date("2024-09-01"), capital: false }, // FY2024 op
+      { amount: new Decimal(10), incurredAt: new Date("2024-11-01"), capital: true }, // FY2024 cap
+      { amount: new Decimal(5), incurredAt: new Date("2025-02-01"), capital: true }, // Feb → FY2024 cap
+      { amount: new Decimal(300), incurredAt: new Date("2025-04-01"), capital: false }, // FY2025 op
     ];
 
     const groups = splitExpensesByYear(expenses);
@@ -55,7 +55,7 @@ describe("splitExpensesByYear", () => {
     expect(groups).toHaveLength(2);
     expect(groups[0].year).toBe(2024);
     expect(groups[0].operating.toString()).toBe("40");
-    expect(groups[0].capital.toString()).toBe("15");
+    expect(groups[0].capital.toString()).toBe("15"); // 10 + the Feb-2025 entry
     expect(groups[1].year).toBe(2025);
     expect(groups[1].operating.toString()).toBe("300");
     expect(groups[1].capital.toString()).toBe("0");
@@ -67,9 +67,9 @@ describe("splitExpensesByYear", () => {
 });
 
 describe("getExpensesByYear", () => {
-  it("fetches all expenses and groups them by year", async () => {
+  it("fetches all expenses and groups them by fiscal year", async () => {
     mockExpenseFindMany.mockResolvedValue([
-      { amount: new Decimal(500), incurredAt: new Date("2022-01-01") },
+      { amount: new Decimal(500), incurredAt: new Date("2022-06-01") }, // FY2022
     ]);
 
     const groups = await getExpensesByYear();

@@ -3,6 +3,7 @@ import { requireShareholder } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { getShareholderBalance, getTotalSharesOutstanding } from "@/lib/ledger";
 import { getContributionGoal, computeGoalProgress } from "@/lib/goals";
+import { currentFiscalYear, fiscalYearRange, fiscalYearLabel } from "@/lib/fiscalYear";
 import { getVenmoConfig } from "@/lib/venmo";
 import { formatUSD, formatDate } from "@/lib/format";
 import { transactionTypeTag } from "@/lib/tags";
@@ -20,9 +21,8 @@ const usd0 = (n: number) =>
 export default async function DashboardPage() {
   const session = await requireShareholder();
   const shareholderId = session.user.shareholderId;
-  const currentYear = new Date().getUTCFullYear();
-  const yearStart = new Date(Date.UTC(currentYear, 0, 1));
-  const nextYearStart = new Date(Date.UTC(currentYear + 1, 0, 1));
+  const currentFY = currentFiscalYear();
+  const { start: yearStart, end: nextYearStart } = fiscalYearRange(currentFY);
 
   const [shareholder, balance, total, entries, goal, raisedAggregate] = await Promise.all([
     prisma.shareholder.findUniqueOrThrow({ where: { id: shareholderId } }),
@@ -40,7 +40,7 @@ export default async function DashboardPage() {
         },
       },
     }),
-    getContributionGoal(currentYear),
+    getContributionGoal(currentFY),
     prisma.ledgerEntry.aggregate({
       where: {
         transaction: {
@@ -108,7 +108,7 @@ export default async function DashboardPage() {
             {goalAmount !== null ? (
               <div>
                 <div className="text-muted text-xs tracking-[0.06em] uppercase">
-                  {currentYear} contribution goal
+                  {fiscalYearLabel(currentFY)} contribution goal
                 </div>
                 <div className="mt-1 text-[26px]" style={{ fontFamily: "var(--font-heading)" }}>
                   {usd0(raisedThisYear)}{" "}
@@ -119,7 +119,7 @@ export default async function DashboardPage() {
               </div>
             ) : (
               <div className="text-muted text-sm">
-                No contribution goal set for {currentYear} yet.
+                No contribution goal set for {fiscalYearLabel(currentFY)} yet.
               </div>
             )}
             {venmo && qrDataUrl && (
