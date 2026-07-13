@@ -18,6 +18,10 @@ const usd0 = (n: number) =>
 const negUsd = (n: number) => (n ? `−${usd0(n)}` : "—");
 const signed = (n: number) => (n >= 0 ? "+" : "") + usd0(n);
 
+// The chart starts at FY2020 so the recent operating picture stays legible;
+// decades of founding-era contributions live in the table below instead.
+const CHART_START_FISCAL_YEAR = 2020;
+
 export default async function ExpensesPage() {
   await requireAuthorized();
 
@@ -41,6 +45,11 @@ export default async function ExpensesPage() {
     capital: Number(splitByYear.get(year)?.capital ?? 0),
   }));
 
+  // The chart shows recent fiscal years only; the cumulative line re-bases
+  // there too (it accumulates over the years shown). The table keeps the
+  // full history.
+  const chartData = data.filter((y) => y.year >= CHART_START_FISCAL_YEAR);
+
   const totalIncome = data.reduce((sum, y) => sum + y.contributions, 0);
   const totalOperating = data.reduce((sum, y) => sum + y.operating, 0);
   const totalCapital = data.reduce((sum, y) => sum + y.capital, 0);
@@ -63,10 +72,10 @@ export default async function ExpensesPage() {
       <h1 className="mb-2 text-4xl">Corporation expenses</h1>
       <p className="text-muted mb-6 max-w-[70ch] text-[15px]">{summary}</p>
 
-      {data.length > 0 && (
+      {chartData.length > 0 && (
         <div className="card elev-sm mb-6 bg-white px-6 py-6">
           <h2 className="mb-1 text-xl">Income vs. expenses by year</h2>
-          <IncomeExpenseChart data={data} />
+          <IncomeExpenseChart data={chartData} />
         </div>
       )}
 
