@@ -1,10 +1,23 @@
-import { Resend } from 'resend'
+import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2'
+import { render } from '@react-email/render'
 import { logger } from '@/lib/logger'
 
-let client: Resend | null = null
+let client: SESv2Client | null = null
 
 function getClient() {
-  if (!client) client = new Resend(process.env.RESEND_API_KEY)
+  if (!client) {
+    client = new SESv2Client({
+      region: process.env.SES_REGION ?? 'us-east-1',
+      // Vercel reserves the AWS_* env names for its own runtime, so the
+      // credentials use SES_-prefixed names and are passed explicitly.
+      credentials: process.env.SES_ACCESS_KEY_ID
+        ? {
+            accessKeyId: process.env.SES_ACCESS_KEY_ID,
+            secretAccessKey: process.env.SES_SECRET_ACCESS_KEY ?? '',
+          }
+        : undefined,
+    })
+  }
   return client
 }
 
@@ -23,16 +36,25 @@ export async function sendEmail(opts: {
   react: React.ReactElement
   replyTo?: string
 }) {
-  const resend = getClient()
-  const { error } = await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev',
-    to: opts.to,
-    cc: opts.cc && opts.cc.length > 0 ? opts.cc : undefined,
-    subject: opts.subject,
-    react: opts.react,
-    replyTo: opts.replyTo,
-  })
-  if (error) {
+  try {
+    const html = await render(opts.react)
+    await getClient().send(
+      new SendEmailCommand({
+        FromEmailAddress: process.env.EMAIL_FROM ?? 'reservations@millerfamilyreunions.org',
+        Destination: {
+          ToAddresses: [opts.to],
+          CcAddresses: opts.cc && opts.cc.length > 0 ? opts.cc : undefined,
+        },
+        ReplyToAddresses: opts.replyTo ? [opts.replyTo] : undefined,
+        Content: {
+          Simple: {
+            Subject: { Data: opts.subject },
+            Body: { Html: { Data: html } },
+          },
+        },
+      })
+    )
+  } catch (error) {
     logger.error({ error, to: opts.to, subject: opts.subject }, 'failed to send email')
   }
 }
