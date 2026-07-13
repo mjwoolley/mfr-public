@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 interface BookingRules {
@@ -11,14 +11,6 @@ interface BookingRules {
 }
 
 export function BookingRulesClient() {
-  const queryClient = useQueryClient()
-  const [horizonDate, setHorizonDate] = useState('')
-  const [maxConsecutive, setMaxConsecutive] = useState('')
-  const [maxYearly, setMaxYearly] = useState('')
-  const [formError, setFormError] = useState<string | null>(null)
-  const [saved, setSaved] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-
   const { data, isLoading, error } = useQuery({
     queryKey: ['bookingRules'],
     queryFn: async (): Promise<BookingRules> => {
@@ -29,13 +21,26 @@ export function BookingRulesClient() {
     },
   })
 
-  useEffect(() => {
-    if (data) {
-      setHorizonDate(data.bookingHorizonDate)
-      setMaxConsecutive(String(data.maxConsecutiveNights))
-      setMaxYearly(String(data.maxNightsPerUserPerYear))
-    }
-  }, [data])
+  if (isLoading) return <p className="text-muted p-8 text-center">Loading...</p>
+  if (error || !data) {
+    return (
+      <p className="p-8 text-center font-semibold" style={{ color: 'var(--color-accent-800)' }}>
+        Failed to load booking rules.
+      </p>
+    )
+  }
+
+  return <BookingRulesForm initialRules={data} />
+}
+
+function BookingRulesForm({ initialRules }: { initialRules: BookingRules }) {
+  const queryClient = useQueryClient()
+  const [horizonDate, setHorizonDate] = useState(initialRules.bookingHorizonDate)
+  const [maxConsecutive, setMaxConsecutive] = useState(String(initialRules.maxConsecutiveNights))
+  const [maxYearly, setMaxYearly] = useState(String(initialRules.maxNightsPerUserPerYear))
+  const [formError, setFormError] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -64,15 +69,6 @@ export function BookingRulesClient() {
     } finally {
       setSubmitting(false)
     }
-  }
-
-  if (isLoading) return <p className="text-muted p-8 text-center">Loading...</p>
-  if (error) {
-    return (
-      <p className="p-8 text-center font-semibold" style={{ color: 'var(--color-accent-800)' }}>
-        Failed to load booking rules.
-      </p>
-    )
   }
 
   return (
