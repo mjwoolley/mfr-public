@@ -73,3 +73,23 @@ Rules that keep it unconfusing:
 ## Defects
 
 *(nothing tracked yet — add items here as they're found)*
+
+## Chores
+
+### Delete stale Neon backup branches (mfr-accounting)
+
+Copy-on-write snapshots taken right before each production write on 2026-07-12/13.
+Safe to delete once the imported shareholder data is confirmed correct in the live app.
+Project `nameless-fog-46521987`.
+
+**Do NOT delete — live/working branches:** `production` (`br-proud-wind-a642mkzo`),
+`test` (`br-soft-river-a6nrmqkb`), `dev` (`br-wild-surf-a6w3iro4`, the default branch).
+
+Backup branches to delete:
+- `backup-2026-07-12-pre-2025-contribs` — `br-sweet-dream-a6ainqpt`
+- `backup-pre-fy2026-import` — `br-divine-sea-a66xi8l9`
+- `backup-pre-fy2022-import` — `br-cool-smoke-a6o2w81s`
+- `backup-2026-07-12-pre-fy2026-contribs` — `br-morning-credit-a6rn27ju`
+- `backup-pre-fy2025-import` — `br-nameless-lab-a63u9jh0`
+- `backup-2026-07-12-pre-fy2024-detail` — `br-weathered-lake-a6oezehk`
+- `backup-pre-fy2021-import` — `br-muddy-cake-a69zz297`
