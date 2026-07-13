@@ -13,6 +13,10 @@ import { GET } from '../../app/reservations/api/history/route'
 
 const createdUserIds: string[] = []
 
+// GET /api/history scopes results to the current calendar year by startDate,
+// so seed dates must be derived from today's date to stay in range.
+const currentYear = new Date().getUTCFullYear()
+
 function mockSessionFor(user: { id: string; email?: string | null }) {
   vi.mocked(auth).mockResolvedValue({
     user: {
@@ -52,11 +56,11 @@ describe('GET /api/history', () => {
 
     const [confirmed] = await testDb
       .insert(reservations)
-      .values({ userId: user.id, startDate: '2032-07-01', endDate: '2032-07-05', status: 'confirmed' })
+      .values({ userId: user.id, startDate: `${currentYear}-07-01`, endDate: `${currentYear}-07-05`, status: 'confirmed' })
       .returning()
     const [cancelled] = await testDb
       .insert(reservations)
-      .values({ userId: user.id, startDate: '2032-08-01', endDate: '2032-08-05', status: 'cancelled' })
+      .values({ userId: user.id, startDate: `${currentYear}-08-01`, endDate: `${currentYear}-08-05`, status: 'cancelled' })
       .returning()
 
     const response = await GET()
@@ -74,11 +78,11 @@ describe('GET /api/history', () => {
 
     const [mine] = await testDb
       .insert(reservations)
-      .values({ userId: me.id, startDate: '2032-09-01', endDate: '2032-09-05', status: 'confirmed' })
+      .values({ userId: me.id, startDate: `${currentYear}-09-01`, endDate: `${currentYear}-09-05`, status: 'confirmed' })
       .returning()
     const [theirs] = await testDb
       .insert(reservations)
-      .values({ userId: other.id, startDate: '2032-09-10', endDate: '2032-09-12', status: 'confirmed' })
+      .values({ userId: other.id, startDate: `${currentYear}-09-10`, endDate: `${currentYear}-09-12`, status: 'confirmed' })
       .returning()
 
     const response = await GET()
@@ -87,6 +91,32 @@ describe('GET /api/history', () => {
     const ids = body.reservations.map((r: { id: string }) => r.id)
     expect(ids).toContain(mine.id)
     expect(ids).toContain(theirs.id)
+  })
+
+  it('excludes reservations whose start date falls outside the current calendar year', async () => {
+    const user = await makeUser('d')
+    mockSessionFor(user)
+
+    const [thisYear] = await testDb
+      .insert(reservations)
+      .values({ userId: user.id, startDate: `${currentYear}-06-01`, endDate: `${currentYear}-06-05`, status: 'confirmed' })
+      .returning()
+    const [lastYear] = await testDb
+      .insert(reservations)
+      .values({ userId: user.id, startDate: `${currentYear - 1}-06-01`, endDate: `${currentYear - 1}-06-05`, status: 'confirmed' })
+      .returning()
+    const [nextYear] = await testDb
+      .insert(reservations)
+      .values({ userId: user.id, startDate: `${currentYear + 1}-06-01`, endDate: `${currentYear + 1}-06-05`, status: 'confirmed' })
+      .returning()
+
+    const response = await GET()
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    const ids = body.reservations.map((r: { id: string }) => r.id)
+    expect(ids).toContain(thisYear.id)
+    expect(ids).not.toContain(lastYear.id)
+    expect(ids).not.toContain(nextYear.id)
   })
 
   it('rejects with 401 when there is no session', async () => {
