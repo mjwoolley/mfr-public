@@ -12,6 +12,7 @@ import {
   type ShareholderBalanceRow,
 } from "./contributionsGrouping";
 import { ContributionsClient } from "./contributions-client";
+import { FiscalYearNote } from "@/components/FiscalYearNote";
 
 const usd0 = (n: number) =>
   new Intl.NumberFormat("en-US", {
@@ -78,7 +79,8 @@ export default async function ContributionsPage() {
   return (
     <div>
       <h1 className="mb-2 text-4xl">Contributions</h1>
-      <p className="text-muted mb-6 max-w-[70ch] text-[15px]">{summary}</p>
+      <p className="text-muted mb-1.5 max-w-[70ch] text-[15px]">{summary}</p>
+      <FiscalYearNote />
 
       {years.length > 0 && (
         <div className="card elev-sm mb-8 bg-white px-6 py-5">

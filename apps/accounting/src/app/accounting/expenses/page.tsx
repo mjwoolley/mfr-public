@@ -7,6 +7,7 @@ import { currentFiscalYear, fiscalYearLabel } from "@/lib/fiscalYear";
 import { formatDate } from "@/lib/format";
 import { expenseCategoryTag } from "@/lib/tags";
 import { IncomeExpenseChart } from "./income-expense-chart";
+import { FiscalYearNote } from "@/components/FiscalYearNote";
 
 const usd0 = (n: number) =>
   new Intl.NumberFormat("en-US", {
@@ -70,7 +71,8 @@ export default async function ExpensesPage() {
   return (
     <div>
       <h1 className="mb-2 text-4xl">Corporation expenses</h1>
-      <p className="text-muted mb-6 max-w-[70ch] text-[15px]">{summary}</p>
+      <p className="text-muted mb-1.5 max-w-[70ch] text-[15px]">{summary}</p>
+      <FiscalYearNote />
 
       {chartData.length > 0 && (
         <div className="card elev-sm mb-6 bg-white px-6 py-6">
