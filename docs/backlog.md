@@ -95,6 +95,55 @@ list they can read and mark handled/dismissed.
 whether non-shareholder portal users can submit too; whether to allow optional
 categories/tags or keep it a single free-text field to start.
 
+### 3. Google Chat integration (or a link to it)
+
+**Problem.** The family coordinates in a Google Chat space, but there's no path
+to it from the portal — members have to know it exists and find it themselves.
+
+**Desired behavior.** Bring the conversation into reach from the site. Start
+with the cheap version and only go deeper if it's worth it:
+
+- **Minimum:** a clearly-placed link (nav/footer/dashboard) that opens the
+  family Google Chat space in a new tab. Config-driven (space URL in an env
+  var / admin setting), no API.
+- **Nicer, later:** show unread/activity hints or post portal events
+  (new contribution recorded, reservation booked) into the space via a Chat
+  webhook or the Google Chat API.
+
+**Open questions:** one shared space vs per-topic; whether deep integration is
+worth the OAuth/API scope cost versus just a link; who administers the space.
+
+### 4. Google Photos integration + member photo gallery
+
+**Problem.** Reunion and lake-house photos live scattered across people's
+phones and a shared Google Photos album; there's no gallery on the site and no
+easy way for members to contribute pictures.
+
+**Desired behavior.** A photos area in the portal:
+
+- **Minimum:** a link to the shared Google Photos album (config-driven), so the
+  album is always one click away.
+- **Full feature:** an in-site **photo gallery members can upload to**. Signed-in
+  members upload photos; everyone can browse them in a gallery/grid with
+  lightbox view. Consider a captions field and sort-by-date.
+
+**Sketch (for the full gallery):**
+
+- Storage: use a blob store (e.g. Vercel Blob) for the image files; keep a
+  `Photo` model (id, uploader link to identity user, blob URL, caption,
+  takenAt/uploadedAt) in the DB for metadata and ordering. Generate/store a
+  thumbnail size to keep the grid fast.
+- Upload flow behind the shareholder auth gate; validate type/size; strip or
+  respect EXIF orientation. Append-only to start (no edits); uploader or admin
+  can delete.
+- Optionally sync with a shared Google Photos album via its API instead of (or
+  in addition to) self-hosting — decide based on how much control vs.
+  convenience the family wants.
+
+**Open questions:** self-host uploads vs. lean entirely on a Google Photos
+album; moderation (any review before a photo appears?); storage cost/limits;
+whether albums/tags are needed or one flat gallery is enough to start.
+
 ## Defects
 
 *(nothing tracked yet — add items here as they're found)*
