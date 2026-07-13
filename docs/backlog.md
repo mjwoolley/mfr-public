@@ -70,6 +70,31 @@ Rules that keep it unconfusing:
 - The existing `extendSession` email-match auto-link stays as a fallback but
   should probably record/log when it fires so links are never mysterious.
 
+### 2. Member suggestions / feedback
+
+**Problem.** Members have no in-app way to send an idea, request, or gripe to
+the admins. Feedback happens over text/email and gets lost.
+
+**Desired behavior.** A lightweight "Suggest something" box any signed-in member
+can reach (e.g. a link in the footer or dashboard). Submitting records the
+suggestion with the author and timestamp and notifies the admins; admins see a
+list they can read and mark handled/dismissed.
+
+**Sketch (keep it small):**
+
+- New `Suggestion` model (id, author link to identity user, body, createdAt,
+  status: `OPEN` / `HANDLED` / `DISMISSED`, optional admin note). Lives in the
+  accounting DB alongside the rest of the domain data.
+- Member side: a short form (textarea + submit) behind the normal shareholder
+  auth gate; confirmation toast on submit. No editing after send — keep it
+  append-only.
+- Admin side: a simple list under Admin with status controls, newest first.
+  Reuse the existing email helper to notify admins on new submissions.
+
+**Open questions:** where the entry point lives (footer vs dashboard card);
+whether non-shareholder portal users can submit too; whether to allow optional
+categories/tags or keep it a single free-text field to start.
+
 ## Defects
 
 *(nothing tracked yet — add items here as they're found)*
