@@ -9,6 +9,7 @@ import { requireApprovedUser } from '@/lib/auth/requireApprovedUser'
 import { isOverlapError } from '@/lib/db/isOverlapError'
 import { logActivity } from '@/lib/db/logActivity'
 import { logger } from '@/lib/logger'
+import { sendReservationCreatedEmail } from '@/lib/notifications'
 
 export async function GET(request: NextRequest) {
   const auth = await requireApprovedUser()
@@ -111,6 +112,16 @@ export async function POST(request: NextRequest) {
       })
 
       return reservation
+    })
+
+    // After the transaction commits so no email fires on rollback; awaited
+    // because Vercel may freeze the function once the response returns.
+    // Never throws — failures are logged inside.
+    await sendReservationCreatedEmail({
+      reservationId: created.id,
+      ownerUserId: userId,
+      startDate,
+      endDate,
     })
 
     return NextResponse.json({ reservation: created }, { status: 201 })

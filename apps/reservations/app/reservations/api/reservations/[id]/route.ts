@@ -7,6 +7,7 @@ import { requireApprovedUser } from '@/lib/auth/requireApprovedUser'
 import { isOverlapError } from '@/lib/db/isOverlapError'
 import { logActivity } from '@/lib/db/logActivity'
 import { logger } from '@/lib/logger'
+import { sendReservationCancelledEmail, sendReservationUpdatedEmail } from '@/lib/notifications'
 
 async function loadOwnedReservation(id: string, userId: string, isReservationsAdmin: boolean) {
   const [reservation] = await db.select().from(reservations).where(eq(reservations.id, id))
@@ -88,6 +89,22 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return row
     })
 
+    // After the transaction commits so no email fires on rollback; skipped
+    // when nothing actually changed. Awaited (Vercel may freeze the function
+    // after the response); never throws — failures are logged inside.
+    const datesChanged = startDate !== reservation.startDate || endDate !== reservation.endDate
+    if (datesChanged) {
+      await sendReservationUpdatedEmail({
+        reservationId: id,
+        ownerUserId: reservation.userId,
+        actorUserId: auth.session.user.id,
+        startDate,
+        endDate,
+        previousStartDate: reservation.startDate,
+        previousEndDate: reservation.endDate,
+      })
+    }
+
     return NextResponse.json({ reservation: updated })
   } catch (err) {
     if (isOverlapError(err)) {
@@ -110,6 +127,12 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   if (!reservation) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
+  // Idempotent: cancelling an already-cancelled reservation is a no-op and
+  // must not re-send the cancellation email.
+  if (reservation.status === 'cancelled') {
+    return NextResponse.json({ reservation })
+  }
+
   const cancelled = await db.transaction(async (tx) => {
     const [row] = await tx
       .update(reservations)
@@ -129,6 +152,16 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     })
 
     return row
+  })
+
+  // After the transaction commits; awaited (Vercel may freeze the function
+  // after the response); never throws — failures are logged inside.
+  await sendReservationCancelledEmail({
+    reservationId: id,
+    ownerUserId: reservation.userId,
+    actorUserId: auth.session.user.id,
+    startDate: reservation.startDate,
+    endDate: reservation.endDate,
   })
 
   return NextResponse.json({ reservation: cancelled })
