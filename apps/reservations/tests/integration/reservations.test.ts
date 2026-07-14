@@ -19,7 +19,7 @@ vi.mock('../../lib/auth/config', () => ({ auth: vi.fn() }))
 
 // The write routes send notification emails after each commit; mock the
 // notifications module so these tests neither query the identity DB for
-// recipients nor call Resend. Email behavior is covered in
+// recipients nor call SES. Email behavior is covered in
 // notifications.test.ts.
 vi.mock('../../lib/notifications', () => ({
   sendReservationCreatedEmail: vi.fn(),

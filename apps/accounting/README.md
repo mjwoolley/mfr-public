@@ -8,7 +8,7 @@ approval inbox.
 ## Stack
 
 Next.js (App Router) on Vercel · Neon Postgres via Prisma (driver adapters, no Rust engine) ·
-Auth.js v5 with Google OAuth only · Resend + react-email for notifications.
+Auth.js v5 with Google OAuth only · Amazon SES + react-email for notifications.
 
 ## Local development
 
@@ -46,8 +46,11 @@ See `.env.example`. Summary:
 | `AUTH_URL` | Base URL of the deployment (e.g. `https://your-app.vercel.app`) |
 | `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google OAuth Web Client credentials |
 | `ADMIN_EMAILS` | Comma-separated emails that get the `ADMIN` role on first sign-in |
-| `RESEND_API_KEY` | Resend API key |
-| `EMAIL_FROM` | Sender address for notification emails |
+| `SES_REGION` | AWS region for SES (default `us-east-1`) |
+| `SES_ACCESS_KEY_ID` / `SES_SECRET_ACCESS_KEY` | IAM credentials with `ses:SendEmail` (SES_-prefixed because Vercel reserves `AWS_*`) |
+| `EMAIL_FROM` | Verified SES sender address for notification emails |
+| `EMAIL_ENABLED` | Set to `true` in production only — lets email reach real recipients |
+| `EMAIL_OVERRIDE_TO` | Non-prod inbox that all mail is redirected to (blank in prod) |
 | `APP_BASE_URL` | Used to build links inside emails |
 
 ## Setting up Google OAuth
@@ -80,9 +83,11 @@ Anyone not in **Test users** (or, once verified, anyone at all) can sign in but 
    `DIRECT_URL`.
 5. Add the production redirect URI to the Google OAuth client (step 3 above) before the first
    real sign-in.
-6. In [Resend](https://resend.com), verify a sending domain and point `EMAIL_FROM` at it once
-   you're past initial testing (`onboarding@resend.dev` only works for sending to your own
-   verified Resend account email).
+6. In [Amazon SES](https://console.aws.amazon.com/ses), verify the sending domain
+   (`millerfamilyreunions.org`) and create a send-only IAM user with `ses:SendEmail`; put its
+   keys in `SES_ACCESS_KEY_ID` / `SES_SECRET_ACCESS_KEY` and point `EMAIL_FROM` at a verified
+   sender (e.g. `accounting@millerfamilyreunions.org`). While SES is in the sandbox, it only
+   delivers to verified recipient addresses.
 
 ## Data model notes
 

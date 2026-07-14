@@ -13,7 +13,7 @@ import { users } from '@mfr/auth'
 vi.mock('../../lib/auth/config', () => ({ auth: vi.fn() }))
 
 // POST sends a notification email after commit; mock the notifications
-// module so this file neither queries the identity DB nor calls Resend.
+// module so this file neither queries the identity DB nor calls SES.
 vi.mock('../../lib/notifications', () => ({
   sendReservationCreatedEmail: vi.fn(),
   sendReservationUpdatedEmail: vi.fn(),

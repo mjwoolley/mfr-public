@@ -9,7 +9,7 @@ import { users } from '@mfr/auth'
 // top-level NextAuth() from opening a second real postgres client).
 vi.mock('../../lib/auth/config', () => ({ auth: vi.fn() }))
 
-// Mock ONLY the Resend boundary — lib/notifications runs for real here, so
+// Mock ONLY the SES boundary — lib/notifications runs for real here, so
 // these tests exercise the actual recipient query against testIdentityDb.
 vi.mock('../../lib/email', () => ({
   sendEmail: vi.fn(),

@@ -15,7 +15,7 @@ vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 // the actions' own logic is under test.
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
-// Avoid making real network calls to Resend during tests; the notification
+// Avoid making real network calls to SES during tests; the notification
 // emails themselves aren't what this phase is testing.
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn(), appUrl: (p: string) => p }));
 
