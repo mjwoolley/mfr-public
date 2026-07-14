@@ -324,6 +324,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # Static security analysis. CodeQL would be preferred but requires GitHub
+  # Code Security (unavailable on this private repo's plan), so run semgrep's
+  # open-source default ruleset instead. Advisory-only: findings appear in the
+  # job log/summary without blocking merges.
+  semgrep:
+    name: Semgrep scan (advisory)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+      - run: semgrep scan --config p/default --metrics=off --error
+
   audit:
     name: npm audit (advisory)
     runs-on: ubuntu-latest
