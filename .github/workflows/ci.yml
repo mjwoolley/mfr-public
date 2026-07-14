@@ -124,16 +124,10 @@ jobs:
         env:
           DIRECT_URL: ${{ steps.db.outputs.db_url }}
         run: npx prisma generate && npx prisma migrate deploy
-      - name: Sync identity schema
-        working-directory: packages/auth
-        env:
-          IDENTITY_DIRECT_DATABASE_URL: ${{ steps.iddb.outputs.db_url }}
-        # push, not migrate: the identity/reservations schemas were set up with
-        # `drizzle-kit push`, so production carries no usable migration journal
-        # and `migrate` would replay every file and collide. push diffs
-        # schema.ts against the branch — a no-op when it already matches (as a
-        # production-derived branch does), applying only genuine PR changes.
-        run: npx drizzle-kit push --verbose
+      # No identity schema step: the CI branch is a full clone of the identity
+      # production branch and already carries the exact live schema. (Drizzle
+      # migrate collides on production's non-matching journal, and push rebuilds
+      # from schema.ts and drops migration-only constraints — neither is safe.)
       - name: Run integration tests
         env:
           TEST_DATABASE_URL: ${{ steps.db.outputs.db_url_pooled }}
@@ -183,22 +177,12 @@ jobs:
           parent_branch: production
           branch_name: ci-${{ github.run_id }}-${{ github.run_attempt }}-res-id
           api_key: ${{ secrets.NEON_API_KEY }}
-      - name: Sync reservations schema
-        working-directory: apps/reservations
-        env:
-          DIRECT_DATABASE_URL: ${{ steps.db.outputs.db_url }}
-        # push, not migrate — see the identity schema step for why.
-        run: npx drizzle-kit push --verbose
-      - name: Sync identity schema
-        working-directory: packages/auth
-        env:
-          IDENTITY_DIRECT_DATABASE_URL: ${{ steps.iddb.outputs.db_url }}
-        # push, not migrate: the identity/reservations schemas were set up with
-        # `drizzle-kit push`, so production carries no usable migration journal
-        # and `migrate` would replay every file and collide. push diffs
-        # schema.ts against the branch — a no-op when it already matches (as a
-        # production-derived branch does), applying only genuine PR changes.
-        run: npx drizzle-kit push --verbose
+      # No reservations schema step — the production-clone branch already has the
+      # full schema incl. migration-only constraints (see identity note above).
+      # No identity schema step: the CI branch is a full clone of the identity
+      # production branch and already carries the exact live schema. (Drizzle
+      # migrate collides on production's non-matching journal, and push rebuilds
+      # from schema.ts and drops migration-only constraints — neither is safe.)
       - name: Run integration tests
         env:
           TEST_DATABASE_URL: ${{ steps.db.outputs.db_url_pooled }}
@@ -261,21 +245,12 @@ jobs:
         env:
           DIRECT_URL: ${{ steps.acc.outputs.db_url }}
         run: npx prisma generate && npx prisma migrate deploy
-      - name: Apply reservations migrations
-        working-directory: apps/reservations
-        env:
-          DIRECT_DATABASE_URL: ${{ steps.res.outputs.db_url }}
-        run: npx drizzle-kit migrate
-      - name: Sync identity schema
-        working-directory: packages/auth
-        env:
-          IDENTITY_DIRECT_DATABASE_URL: ${{ steps.iddb.outputs.db_url }}
-        # push, not migrate: the identity/reservations schemas were set up with
-        # `drizzle-kit push`, so production carries no usable migration journal
-        # and `migrate` would replay every file and collide. push diffs
-        # schema.ts against the branch — a no-op when it already matches (as a
-        # production-derived branch does), applying only genuine PR changes.
-        run: npx drizzle-kit push --verbose
+      # No reservations schema step — the production-clone branch already has the
+      # full schema incl. migration-only constraints (see identity note below).
+      # No identity schema step: the CI branch is a full clone of the identity
+      # production branch and already carries the exact live schema. (Drizzle
+      # migrate collides on production's non-matching journal, and push rebuilds
+      # from schema.ts and drops migration-only constraints — neither is safe.)
       - name: Build apps
         env:
           # Dummy build-time env; the real branch URLs are injected at runtime
