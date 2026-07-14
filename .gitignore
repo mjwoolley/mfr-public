@@ -8,3 +8,5 @@ node_modules/
 .vercel
 .superpowers/
 .husky/_/
+test-results/
+playwright-report/

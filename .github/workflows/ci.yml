@@ -210,6 +210,108 @@ jobs:
           branch: ci-${{ github.run_id }}-${{ github.run_attempt }}-res-id
           api_key: ${{ secrets.NEON_API_KEY }}
 
+  e2e:
+    name: E2E tests (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Create accounting DB branch
+        id: acc
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_ACCOUNTING }}
+          parent_branch: production
+          branch_name: ci-${{ github.run_id }}-${{ github.run_attempt }}-e2e-acc
+          api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Create reservations DB branch
+        id: res
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_RESERVATIONS }}
+          parent_branch: production
+          branch_name: ci-${{ github.run_id }}-${{ github.run_attempt }}-e2e-res
+          api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Create identity DB branch
+        id: iddb
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_IDENTITY }}
+          parent_branch: production
+          branch_name: ci-${{ github.run_id }}-${{ github.run_attempt }}-e2e-id
+          api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Apply accounting migrations
+        working-directory: apps/accounting
+        env:
+          DIRECT_URL: ${{ steps.acc.outputs.db_url }}
+        run: npx prisma generate && npx prisma migrate deploy
+      - name: Apply reservations migrations
+        working-directory: apps/reservations
+        env:
+          DIRECT_DATABASE_URL: ${{ steps.res.outputs.db_url }}
+        run: npx drizzle-kit migrate
+      - name: Apply identity migrations
+        working-directory: packages/auth
+        env:
+          IDENTITY_DIRECT_DATABASE_URL: ${{ steps.iddb.outputs.db_url }}
+        run: npx drizzle-kit migrate
+      - name: Build apps
+        env:
+          # Dummy build-time env; the real branch URLs are injected at runtime
+          # by playwright.config.ts webServer entries.
+          DATABASE_URL: postgres://ci:ci@localhost:5432/ci
+          DIRECT_URL: postgres://ci:ci@localhost:5432/ci
+          IDENTITY_DATABASE_URL: postgres://ci:ci@localhost:5432/ci
+          AUTH_SECRET: ci-dummy-secret-not-used
+        run: npm run build
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - run: npx playwright install --with-deps chromium
+      - name: Run Playwright tests
+        env:
+          E2E_IDENTITY_DATABASE_URL: ${{ steps.iddb.outputs.db_url_pooled }}
+          E2E_IDENTITY_DIRECT_URL: ${{ steps.iddb.outputs.db_url }}
+          E2E_ACCOUNTING_DATABASE_URL: ${{ steps.acc.outputs.db_url_pooled }}
+          E2E_ACCOUNTING_DIRECT_URL: ${{ steps.acc.outputs.db_url }}
+          E2E_RESERVATIONS_DATABASE_URL: ${{ steps.res.outputs.db_url_pooled }}
+          E2E_RESERVATIONS_DIRECT_URL: ${{ steps.res.outputs.db_url }}
+        run: npx playwright test
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+      - name: Delete accounting DB branch
+        if: always()
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_ACCOUNTING }}
+          branch: ci-${{ github.run_id }}-${{ github.run_attempt }}-e2e-acc
+          api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Delete reservations DB branch
+        if: always()
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_RESERVATIONS }}
+          branch: ci-${{ github.run_id }}-${{ github.run_attempt }}-e2e-res
+          api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Delete identity DB branch
+        if: always()
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_IDENTITY }}
+          branch: ci-${{ github.run_id }}-${{ github.run_attempt }}-e2e-id
+          api_key: ${{ secrets.NEON_API_KEY }}
+
   gitleaks:
     name: Secret scan
     runs-on: ubuntu-latest
@@ -246,7 +348,7 @@ jobs:
   ci-ok:
     name: CI OK
     runs-on: ubuntu-latest
-    needs: [static, unit, build, integration-accounting, integration-reservations, gitleaks]
+    needs: [static, unit, build, integration-accounting, integration-reservations, e2e, gitleaks]
     if: always()
     steps:
       - name: Check all required jobs succeeded
