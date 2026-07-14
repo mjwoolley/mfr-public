@@ -1,4 +1,14 @@
-import { Body, Container, Head, Heading, Html, Link, Preview, Section, Text } from "@react-email/components";
+import {
+  Body,
+  Container,
+  Head,
+  Heading,
+  Html,
+  Link,
+  Preview,
+  Section,
+  Text,
+} from "@react-email/components";
 
 export function CorrectionNotification(props: {
   shareholderName: string;
@@ -16,7 +26,12 @@ export function CorrectionNotification(props: {
       <Preview>A correction of {amount} was recorded for you</Preview>
       <Body style={{ fontFamily: "sans-serif", backgroundColor: "#f6f6f6" }}>
         <Container
-          style={{ backgroundColor: "#ffffff", padding: "24px", borderRadius: "8px", maxWidth: "480px" }}
+          style={{
+            backgroundColor: "#ffffff",
+            padding: "24px",
+            borderRadius: "8px",
+            maxWidth: "480px",
+          }}
         >
           <Heading as="h2">Correction recorded</Heading>
           <Text>Hi {shareholderName},</Text>

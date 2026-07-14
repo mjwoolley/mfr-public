@@ -1,6 +1,7 @@
-// Shared base flat-config array. Each app's own eslint.config.mjs imports and
-// spreads this, then adds its own app-specific ignores/overrides on top —
-// see apps/*/eslint.config.mjs for the actual per-app config in use.
-const baseConfig = [];
+// Root placeholder config. Every workspace has its own eslint.config.mjs
+// (apps use eslint-config-next; packages use typescript-eslint) and lints
+// via its own `lint` script — nothing imports this file. It exists only so
+// an ESLint invocation from the repo root has a config to resolve.
+const baseConfig = []
 
-export default baseConfig;
+export default baseConfig

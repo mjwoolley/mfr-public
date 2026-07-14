@@ -75,21 +75,28 @@ describe('sendEmail', () => {
       Destination: { ToAddresses: ['owner@example.com'], CcAddresses: ['admin@example.com'] },
       ReplyToAddresses: ['actor@example.com'],
     })
-    const content = input.Content as { Simple: { Subject: { Data: string }; Body: { Html: { Data: string } } } }
+    const content = input.Content as {
+      Simple: { Subject: { Data: string }; Body: { Html: { Data: string } } }
+    }
     expect(content.Simple.Subject.Data).toBe('Test subject')
     expect(content.Simple.Body.Html.Data).toContain('hello')
   })
 
   it('omits cc and replyTo when not provided', async () => {
     await sendEmail({ to: 'owner@example.com', cc: [], subject: 'Test', react })
-    const input = sentInput() as { Destination: Record<string, unknown>; ReplyToAddresses?: unknown }
+    const input = sentInput() as {
+      Destination: Record<string, unknown>
+      ReplyToAddresses?: unknown
+    }
     expect(input.Destination.CcAddresses).toBeUndefined()
     expect(input.ReplyToAddresses).toBeUndefined()
   })
 
   it('logs and does not throw when the SES send fails', async () => {
     sendMock.mockRejectedValue(new Error('credentials missing'))
-    await expect(sendEmail({ to: 'owner@example.com', subject: 'Test', react })).resolves.toBeUndefined()
+    await expect(
+      sendEmail({ to: 'owner@example.com', subject: 'Test', react }),
+    ).resolves.toBeUndefined()
     expect(logger.error).toHaveBeenCalled()
   })
 })
@@ -97,7 +104,7 @@ describe('sendEmail', () => {
 describe('email guard (non-prod)', () => {
   it('plusAddress folds the full original address into the inbox', () => {
     expect(plusAddress('mwoolley2@gmail.com', 'dbrown@gmail.com')).toBe(
-      'mwoolley2+dbrown=gmail.com@gmail.com'
+      'mwoolley2+dbrown=gmail.com@gmail.com',
     )
   })
 

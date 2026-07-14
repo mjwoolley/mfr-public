@@ -13,10 +13,16 @@ import { auth } from './config'
 function mockSession(
   status: 'pending' | 'approved' | 'blocked',
   isReservationsAdmin: boolean,
-  isAccountingAdmin = false
+  isAccountingAdmin = false,
 ) {
   return {
-    user: { id: 'user-1', status, isReservationsAdmin, isAccountingAdmin, email: 'test@example.com' },
+    user: {
+      id: 'user-1',
+      status,
+      isReservationsAdmin,
+      isAccountingAdmin,
+      email: 'test@example.com',
+    },
     expires: '2099-01-01',
   }
 }

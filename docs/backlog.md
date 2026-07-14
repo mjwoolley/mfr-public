@@ -36,8 +36,9 @@ button:
 > **Approve Jane Miller** (jane.miller@gmail.com)
 >
 > Shareholder profile — pick one:
-> - (•) Link to **Jane Miller** — *email matches* ← preselected when exact
-> - ( ) Link to **Janie Miller** — *name looks similar, confirm*
+>
+> - (•) Link to **Jane Miller** — _email matches_ ← preselected when exact
+> - ( ) Link to **Janie Miller** — _name looks similar, confirm_
 > - ( ) Link to another… [dropdown of unlinked shareholders]
 > - ( ) Create new shareholder "Jane Miller" (jane.miller@gmail.com)
 > - ( ) No shareholder — reservations-only user
@@ -48,7 +49,7 @@ Rules that keep it unconfusing:
 
 - Email match preselects and needs no extra thought; name-only match is shown
   as a suggestion but never preselected (admin must actively pick it).
-- Only *unlinked* shareholders appear as link targets — can't double-link.
+- Only _unlinked_ shareholders appear as link targets — can't double-link.
 - Linking fills in the Shareholder's missing email from the Google account,
   so the next person's match is better than the last.
 - Safety net: accounting Admin → Shareholders shows a banner for approved
@@ -146,7 +147,7 @@ whether albums/tags are needed or one flat gallery is enough to start.
 
 ## Defects
 
-*(nothing tracked yet — add items here as they're found)*
+_(nothing tracked yet — add items here as they're found)_
 
 ## Chores
 
@@ -160,6 +161,7 @@ Project `nameless-fog-46521987`.
 `test` (`br-soft-river-a6nrmqkb`), `dev` (`br-wild-surf-a6w3iro4`, the default branch).
 
 Backup branches to delete:
+
 - `backup-2026-07-12-pre-2025-contribs` — `br-sweet-dream-a6ainqpt`
 - `backup-pre-fy2026-import` — `br-divine-sea-a66xi8l9`
 - `backup-pre-fy2022-import` — `br-cool-smoke-a6o2w81s`

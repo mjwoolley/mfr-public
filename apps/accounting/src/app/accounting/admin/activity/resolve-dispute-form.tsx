@@ -43,7 +43,12 @@ export function ResolveDisputeForm({ approvalId }: { approvalId: string }) {
       <button type="submit" disabled={pending} className="btn btn-primary px-3 py-1 text-xs">
         {pending ? "Saving…" : "Confirm resolved"}
       </button>
-      <button type="button" onClick={() => setOpen(false)} className="btn btn-ghost px-2 py-1 text-xs" style={{ fontFamily: "var(--font-body)" }}>
+      <button
+        type="button"
+        onClick={() => setOpen(false)}
+        className="btn btn-ghost px-2 py-1 text-xs"
+        style={{ fontFamily: "var(--font-body)" }}
+      >
         Cancel
       </button>
     </form>

@@ -14,7 +14,7 @@ describe('reservation email templates', () => {
         endDate: 'Aug 5, 2026',
         nights: 4,
         calendarUrl: 'https://resv.example/calendar',
-      })
+      }),
     )
     expect(html).toContain('Dana Brown')
     expect(html).toContain('Aug 1, 2026')
@@ -34,7 +34,7 @@ describe('reservation email templates', () => {
         nights: 4,
         changedByName: 'Sam Admin',
         calendarUrl: 'https://resv.example/calendar',
-      })
+      }),
     )
     expect(html).toContain('Aug 1, 2026')
     expect(html).toContain('Aug 8, 2026')
@@ -54,7 +54,7 @@ describe('reservation email templates', () => {
         endDate: 'Aug 12, 2026',
         nights: 4,
         calendarUrl: 'https://resv.example/calendar',
-      })
+      }),
     )
     expect(html).not.toContain('Changed by')
   })
@@ -67,7 +67,7 @@ describe('reservation email templates', () => {
         endDate: 'Aug 5, 2026',
         cancelledByName: 'Sam Admin',
         calendarUrl: 'https://resv.example/calendar',
-      })
+      }),
     )
     expect(html).toContain('Aug 1, 2026')
     expect(html).toContain('Aug 5, 2026')
@@ -82,7 +82,7 @@ describe('reservation email templates', () => {
         startDate: 'Aug 1, 2026',
         endDate: 'Aug 5, 2026',
         calendarUrl: 'https://resv.example/calendar',
-      })
+      }),
     )
     expect(html).not.toContain('Cancelled by')
   })

@@ -137,7 +137,17 @@ export function CalendarClient({ userId }: CalendarClientProps) {
               onClick={handlePrevMonth}
               aria-label="Previous month"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
                 <path d="m15 18-6-6 6-6" />
               </svg>
             </button>
@@ -150,7 +160,17 @@ export function CalendarClient({ userId }: CalendarClientProps) {
               onClick={handleNextMonth}
               aria-label="Next month"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
                 <path d="m9 18 6-6-6-6" />
               </svg>
             </button>
@@ -178,7 +198,17 @@ export function CalendarClient({ userId }: CalendarClientProps) {
             </label>
           </div>
           <button type="button" className="btn btn-primary" onClick={openNewReservation}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
               <path d="M12 5v14M5 12h14" />
             </svg>
             New reservation
@@ -199,11 +229,17 @@ export function CalendarClient({ userId }: CalendarClientProps) {
           Available
         </span>
         <span className="text-muted flex items-center gap-2 text-[13px]">
-          <span className="h-[15px] w-[15px] rounded-[5px]" style={{ background: 'var(--color-accent)' }} />
+          <span
+            className="h-[15px] w-[15px] rounded-[5px]"
+            style={{ background: 'var(--color-accent)' }}
+          />
           Your stay
         </span>
         <span className="text-muted flex items-center gap-2 text-[13px]">
-          <span className="h-[15px] w-[15px] rounded-[5px]" style={{ background: 'var(--color-accent-2)' }} />
+          <span
+            className="h-[15px] w-[15px] rounded-[5px]"
+            style={{ background: 'var(--color-accent-2)' }}
+          />
           Booked by family
         </span>
       </div>
@@ -218,7 +254,17 @@ export function CalendarClient({ userId }: CalendarClientProps) {
             borderRadius: 'var(--radius-lg)',
           }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-700)" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="var(--color-accent-700)"
+            strokeWidth="2.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
             <rect x="3" y="4" width="18" height="18" rx="2" />
             <path d="M16 2v4M8 2v4M3 10h18" />
           </svg>

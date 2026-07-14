@@ -114,7 +114,13 @@ function AmountField({ label, allowNegative }: { label: string; allowNegative?: 
   );
 }
 
-function DescriptionField({ required, label = "Description" }: { required: boolean; label?: string }) {
+function DescriptionField({
+  required,
+  label = "Description",
+}: {
+  required: boolean;
+  label?: string;
+}) {
   return (
     <div className="field">
       <label htmlFor="tx-description">{label}</label>
@@ -157,13 +163,25 @@ export function TransactionsClient({
   return (
     <div>
       <div className="mb-5 flex flex-wrap gap-2.5">
-        <button type="button" className="btn btn-primary" onClick={() => setModal({ mode: "contribution" })}>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => setModal({ mode: "contribution" })}
+        >
           Record contribution
         </button>
-        <button type="button" className="btn btn-secondary" onClick={() => setModal({ mode: "transfer" })}>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => setModal({ mode: "transfer" })}
+        >
           Record transfer
         </button>
-        <button type="button" className="btn btn-secondary" onClick={() => setModal({ mode: "adjustment" })}>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => setModal({ mode: "adjustment" })}
+        >
           Record adjustment
         </button>
       </div>
@@ -265,15 +283,14 @@ export function TransactionsClient({
         >
           <p className="text-muted m-0 -mt-1.5 text-[13px]">
             Corrects {modal.row.typeLabel.toUpperCase()} #{modal.row.id.slice(-4)} — the original
-            will be marked corrected (shown struck through, excluded from totals). Amounts
-            default to a full reversal.
+            will be marked corrected (shown struck through, excluded from totals). Amounts default
+            to a full reversal.
           </p>
           <input type="hidden" name="originalTransactionId" value={modal.row.id} />
           {modal.row.entries.map((e) => (
             <div className="field" key={e.shareholderId}>
               <label htmlFor={`amount_${e.shareholderId}`}>
-                Correction ($) for {e.shareholderName} — originally{" "}
-                {e.shares >= 0 ? "+" : ""}
+                Correction ($) for {e.shareholderName} — originally {e.shares >= 0 ? "+" : ""}
                 {e.shares}
               </label>
               <input

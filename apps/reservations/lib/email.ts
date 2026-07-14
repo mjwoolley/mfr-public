@@ -62,10 +62,8 @@ export function plusAddress(inbox: string, original: string): string {
  * a non-prod environment.
  */
 export function resolveRecipient(
-  to: string
-):
-  | { deliver: true; to: string; redirectedFrom?: string }
-  | { deliver: false; reason: string } {
+  to: string,
+): { deliver: true; to: string; redirectedFrom?: string } | { deliver: false; reason: string } {
   if (process.env.EMAIL_ENABLED === 'true') {
     return { deliver: true, to }
   }
@@ -122,7 +120,7 @@ export async function sendEmail(opts: {
             Body: { Html: { Data: html } },
           },
         },
-      })
+      }),
     )
   } catch (error) {
     logger.error({ error, to: routing.to, subject }, 'failed to send email')

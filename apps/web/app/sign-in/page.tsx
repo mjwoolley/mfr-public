@@ -1,9 +1,9 @@
-import { redirect } from "next/navigation";
-import { auth, signIn } from "@/lib/auth";
+import { redirect } from 'next/navigation'
+import { auth, signIn } from '@/lib/auth'
 
 export default async function SignInPage() {
-  const session = await auth();
-  if (session?.user) redirect("/");
+  const session = await auth()
+  if (session?.user) redirect('/')
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
@@ -13,8 +13,8 @@ export default async function SignInPage() {
       </div>
       <form
         action={async () => {
-          "use server";
-          await signIn("google", { redirectTo: "/" });
+          'use server'
+          await signIn('google', { redirectTo: '/' })
         }}
       >
         <button type="submit" className="btn btn-primary px-6 py-3">
@@ -22,5 +22,5 @@ export default async function SignInPage() {
         </button>
       </form>
     </div>
-  );
+  )
 }

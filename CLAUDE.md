@@ -2,9 +2,14 @@
 
 **Always follow the change workflow in [docs/workflow.md](docs/workflow.md) for
 any change to this repo** — branch first, verify locally against the `dev`
-database branch, then merge to `main` (which auto-deploys to production) and
-smoke-test the live site. It also covers the special rules for schema
-migrations, shared packages, and environment variables.
+database branch, then open a PR; `main` is protected and merges only with green
+CI (the "CI OK" check), and merging auto-deploys to production — smoke-test the
+live site afterward. The workflow doc also covers schema migrations, shared
+packages, environment variables, and how to run the e2e suite.
+
+Useful root commands: `npm run lint` / `typecheck` / `test` / `test:coverage` /
+`test:integration` / `format` / `e2e` / `build`. Pre-commit hooks auto-format
+staged files (husky + lint-staged).
 
 Future features and known defects are tracked in
 [docs/backlog.md](docs/backlog.md) — add new ideas/bugs there, delete items

@@ -34,7 +34,10 @@ function mockSessionFor(user: { id: string; email?: string | null }) {
 async function makeUser(suffix: string) {
   const [user] = await testIdentityDb
     .insert(users)
-    .values({ email: `history-test-${suffix}-${Date.now()}-${Math.random()}@example.com`, status: 'approved' })
+    .values({
+      email: `history-test-${suffix}-${Date.now()}-${Math.random()}@example.com`,
+      status: 'approved',
+    })
     .returning()
   createdUserIds.push(user.id)
   return user
@@ -56,11 +59,21 @@ describe('GET /api/history', () => {
 
     const [confirmed] = await testDb
       .insert(reservations)
-      .values({ userId: user.id, startDate: `${currentYear}-07-01`, endDate: `${currentYear}-07-05`, status: 'confirmed' })
+      .values({
+        userId: user.id,
+        startDate: `${currentYear}-07-01`,
+        endDate: `${currentYear}-07-05`,
+        status: 'confirmed',
+      })
       .returning()
     const [cancelled] = await testDb
       .insert(reservations)
-      .values({ userId: user.id, startDate: `${currentYear}-08-01`, endDate: `${currentYear}-08-05`, status: 'cancelled' })
+      .values({
+        userId: user.id,
+        startDate: `${currentYear}-08-01`,
+        endDate: `${currentYear}-08-05`,
+        status: 'cancelled',
+      })
       .returning()
 
     const response = await GET()
@@ -78,11 +91,21 @@ describe('GET /api/history', () => {
 
     const [mine] = await testDb
       .insert(reservations)
-      .values({ userId: me.id, startDate: `${currentYear}-09-01`, endDate: `${currentYear}-09-05`, status: 'confirmed' })
+      .values({
+        userId: me.id,
+        startDate: `${currentYear}-09-01`,
+        endDate: `${currentYear}-09-05`,
+        status: 'confirmed',
+      })
       .returning()
     const [theirs] = await testDb
       .insert(reservations)
-      .values({ userId: other.id, startDate: `${currentYear}-09-10`, endDate: `${currentYear}-09-12`, status: 'confirmed' })
+      .values({
+        userId: other.id,
+        startDate: `${currentYear}-09-10`,
+        endDate: `${currentYear}-09-12`,
+        status: 'confirmed',
+      })
       .returning()
 
     const response = await GET()
@@ -99,15 +122,30 @@ describe('GET /api/history', () => {
 
     const [thisYear] = await testDb
       .insert(reservations)
-      .values({ userId: user.id, startDate: `${currentYear}-06-01`, endDate: `${currentYear}-06-05`, status: 'confirmed' })
+      .values({
+        userId: user.id,
+        startDate: `${currentYear}-06-01`,
+        endDate: `${currentYear}-06-05`,
+        status: 'confirmed',
+      })
       .returning()
     const [lastYear] = await testDb
       .insert(reservations)
-      .values({ userId: user.id, startDate: `${currentYear - 1}-06-01`, endDate: `${currentYear - 1}-06-05`, status: 'confirmed' })
+      .values({
+        userId: user.id,
+        startDate: `${currentYear - 1}-06-01`,
+        endDate: `${currentYear - 1}-06-05`,
+        status: 'confirmed',
+      })
       .returning()
     const [nextYear] = await testDb
       .insert(reservations)
-      .values({ userId: user.id, startDate: `${currentYear + 1}-06-01`, endDate: `${currentYear + 1}-06-05`, status: 'confirmed' })
+      .values({
+        userId: user.id,
+        startDate: `${currentYear + 1}-06-01`,
+        endDate: `${currentYear + 1}-06-05`,
+        status: 'confirmed',
+      })
       .returning()
 
     const response = await GET()

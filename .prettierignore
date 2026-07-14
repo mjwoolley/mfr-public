@@ -1,0 +1,18 @@
+# Dependencies and build output
+node_modules
+.next
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+
+# Generated code
+apps/accounting/src/generated
+apps/accounting/prisma/migrations
+apps/reservations/drizzle
+packages/auth/drizzle
+package-lock.json
+
+# Test output
+coverage
+playwright-report
+test-results

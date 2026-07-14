@@ -1,4 +1,14 @@
-import { Body, Container, Head, Heading, Html, Link, Preview, Section, Text } from "@react-email/components";
+import {
+  Body,
+  Container,
+  Head,
+  Heading,
+  Html,
+  Link,
+  Preview,
+  Section,
+  Text,
+} from "@react-email/components";
 
 export function AdjustmentNotification(props: {
   shareholderName: string;
@@ -15,7 +25,12 @@ export function AdjustmentNotification(props: {
       <Preview>A share balance adjustment of {amount} was recorded for you</Preview>
       <Body style={{ fontFamily: "sans-serif", backgroundColor: "#f6f6f6" }}>
         <Container
-          style={{ backgroundColor: "#ffffff", padding: "24px", borderRadius: "8px", maxWidth: "480px" }}
+          style={{
+            backgroundColor: "#ffffff",
+            padding: "24px",
+            borderRadius: "8px",
+            maxWidth: "480px",
+          }}
         >
           <Heading as="h2">Share balance adjustment</Heading>
           <Text>Hi {shareholderName},</Text>

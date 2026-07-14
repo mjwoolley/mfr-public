@@ -46,9 +46,7 @@ describe("plusAddress", () => {
   });
 
   it("drops an existing +tag on the inbox before adding its own", () => {
-    expect(plusAddress("me+ignored@gmail.com", "a@b.com")).toBe(
-      "me+a=b.com@gmail.com",
-    );
+    expect(plusAddress("me+ignored@gmail.com", "a@b.com")).toBe("me+a=b.com@gmail.com");
   });
 });
 
@@ -157,9 +155,7 @@ describe("sendEmail (SES transport)", () => {
       Destination: { ToAddresses: string[] };
       Content: { Simple: { Subject: { Data: string } } };
     };
-    expect(input.Destination.ToAddresses).toEqual([
-      "test+dbrown=gmail.com@example.com",
-    ]);
+    expect(input.Destination.ToAddresses).toEqual(["test+dbrown=gmail.com@example.com"]);
     expect(input.Content.Simple.Subject.Data).toBe("[dev→dbrown@gmail.com] Hi");
   });
 

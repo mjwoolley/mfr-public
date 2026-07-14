@@ -33,7 +33,11 @@ import { PATCH, DELETE } from '../../app/reservations/api/reservations/[id]/rout
 
 const createdUserIds: string[] = []
 
-function mockSessionFor(user: { id: string; isReservationsAdmin?: boolean; email?: string | null }) {
+function mockSessionFor(user: {
+  id: string
+  isReservationsAdmin?: boolean
+  email?: string | null
+}) {
   vi.mocked(auth).mockResolvedValue({
     user: {
       id: user.id,
@@ -50,7 +54,11 @@ function mockSessionFor(user: { id: string; isReservationsAdmin?: boolean; email
 async function makeUser(suffix: string, overrides: Partial<typeof users.$inferInsert> = {}) {
   const [user] = await testIdentityDb
     .insert(users)
-    .values({ email: `res-test-${suffix}-${Date.now()}-${Math.random()}@example.com`, status: 'approved', ...overrides })
+    .values({
+      email: `res-test-${suffix}-${Date.now()}-${Math.random()}@example.com`,
+      status: 'approved',
+      ...overrides,
+    })
     .returning()
   createdUserIds.push(user.id)
   return user
@@ -59,10 +67,19 @@ async function makeUser(suffix: string, overrides: Partial<typeof users.$inferIn
 beforeAll(async () => {
   await testDb
     .insert(bookingRules)
-    .values({ id: 1, bookingHorizonDate: '2028-12-31', maxConsecutiveNights: 7, maxNightsPerUserPerYear: 14 })
+    .values({
+      id: 1,
+      bookingHorizonDate: '2028-12-31',
+      maxConsecutiveNights: 7,
+      maxNightsPerUserPerYear: 14,
+    })
     .onConflictDoUpdate({
       target: bookingRules.id,
-      set: { bookingHorizonDate: '2028-12-31', maxConsecutiveNights: 7, maxNightsPerUserPerYear: 14 },
+      set: {
+        bookingHorizonDate: '2028-12-31',
+        maxConsecutiveNights: 7,
+        maxNightsPerUserPerYear: 14,
+      },
     })
 })
 
@@ -201,31 +218,49 @@ describe('PATCH /api/reservations/[id]', () => {
     mockSessionFor(user)
     const [reservation] = await testDb
       .insert(reservations)
-      .values({ userId: user.id, startDate: '2027-06-01', endDate: '2027-06-05', status: 'confirmed' })
+      .values({
+        userId: user.id,
+        startDate: '2027-06-01',
+        endDate: '2027-06-05',
+        status: 'confirmed',
+      })
       .returning()
 
     const request = new Request(`http://localhost/api/reservations/${reservation.id}`, {
       method: 'PATCH',
       body: JSON.stringify({ startDate: '2027-06-02', endDate: '2027-06-06' }),
     })
-    const response = await PATCH(request as never, { params: Promise.resolve({ id: reservation.id }) })
+    const response = await PATCH(request as never, {
+      params: Promise.resolve({ id: reservation.id }),
+    })
     expect(response.status).toBe(200)
     const body = await response.json()
     expect(body.reservation.startDate).toBe('2027-06-02')
 
-    const [rowViaTestDb] = await testDb.select().from(reservations).where(eq(reservations.id, reservation.id))
+    const [rowViaTestDb] = await testDb
+      .select()
+      .from(reservations)
+      .where(eq(reservations.id, reservation.id))
     expect(rowViaTestDb.endDate).toBe('2027-06-06')
 
-    const activityRows = await testDb.select().from(activityLog).where(eq(activityLog.actorUserId, user.id))
+    const activityRows = await testDb
+      .select()
+      .from(activityLog)
+      .where(eq(activityLog.actorUserId, user.id))
     expect(activityRows.some((a) => a.eventType === 'reservation_edited')).toBe(true)
   })
 
-  it('forbids editing another user\'s reservation', async () => {
+  it("forbids editing another user's reservation", async () => {
     const owner = await makeUser('f')
     const stranger = await makeUser('g')
     const [reservation] = await testDb
       .insert(reservations)
-      .values({ userId: owner.id, startDate: '2027-05-01', endDate: '2027-05-05', status: 'confirmed' })
+      .values({
+        userId: owner.id,
+        startDate: '2027-05-01',
+        endDate: '2027-05-05',
+        status: 'confirmed',
+      })
       .returning()
 
     mockSessionFor(stranger)
@@ -233,17 +268,22 @@ describe('PATCH /api/reservations/[id]', () => {
       method: 'PATCH',
       body: JSON.stringify({ startDate: '2027-05-02', endDate: '2027-05-06' }),
     })
-    const response = await PATCH(request as never, { params: Promise.resolve({ id: reservation.id }) })
+    const response = await PATCH(request as never, {
+      params: Promise.resolve({ id: reservation.id }),
+    })
     expect(response.status).toBe(403)
   })
 
   it('returns 404 for a nonexistent reservation', async () => {
     const user = await makeUser('h')
     mockSessionFor(user)
-    const request = new Request('http://localhost/api/reservations/00000000-0000-0000-0000-000000000000', {
-      method: 'PATCH',
-      body: JSON.stringify({ startDate: '2027-05-02', endDate: '2027-05-06' }),
-    })
+    const request = new Request(
+      'http://localhost/api/reservations/00000000-0000-0000-0000-000000000000',
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ startDate: '2027-05-02', endDate: '2027-05-06' }),
+      },
+    )
     const response = await PATCH(request as never, {
       params: Promise.resolve({ id: '00000000-0000-0000-0000-000000000000' }),
     })
@@ -257,34 +297,58 @@ describe('DELETE /api/reservations/[id]', () => {
     mockSessionFor(user)
     const [reservation] = await testDb
       .insert(reservations)
-      .values({ userId: user.id, startDate: '2027-04-01', endDate: '2027-04-05', status: 'confirmed' })
+      .values({
+        userId: user.id,
+        startDate: '2027-04-01',
+        endDate: '2027-04-05',
+        status: 'confirmed',
+      })
       .returning()
 
-    const request = new Request(`http://localhost/api/reservations/${reservation.id}`, { method: 'DELETE' })
-    const response = await DELETE(request as never, { params: Promise.resolve({ id: reservation.id }) })
+    const request = new Request(`http://localhost/api/reservations/${reservation.id}`, {
+      method: 'DELETE',
+    })
+    const response = await DELETE(request as never, {
+      params: Promise.resolve({ id: reservation.id }),
+    })
     expect(response.status).toBe(200)
     const body = await response.json()
     expect(body.reservation.status).toBe('cancelled')
 
-    const [rowViaTestDb] = await testDb.select().from(reservations).where(eq(reservations.id, reservation.id))
+    const [rowViaTestDb] = await testDb
+      .select()
+      .from(reservations)
+      .where(eq(reservations.id, reservation.id))
     expect(rowViaTestDb.status).toBe('cancelled')
     expect(rowViaTestDb.cancelledAt).not.toBeNull()
 
-    const activityRows = await testDb.select().from(activityLog).where(eq(activityLog.actorUserId, user.id))
+    const activityRows = await testDb
+      .select()
+      .from(activityLog)
+      .where(eq(activityLog.actorUserId, user.id))
     expect(activityRows.some((a) => a.eventType === 'reservation_cancelled')).toBe(true)
   })
 
-  it('forbids cancelling another user\'s reservation', async () => {
+  it("forbids cancelling another user's reservation", async () => {
     const owner = await makeUser('j')
     const stranger = await makeUser('k')
     const [reservation] = await testDb
       .insert(reservations)
-      .values({ userId: owner.id, startDate: '2027-03-01', endDate: '2027-03-05', status: 'confirmed' })
+      .values({
+        userId: owner.id,
+        startDate: '2027-03-01',
+        endDate: '2027-03-05',
+        status: 'confirmed',
+      })
       .returning()
 
     mockSessionFor(stranger)
-    const request = new Request(`http://localhost/api/reservations/${reservation.id}`, { method: 'DELETE' })
-    const response = await DELETE(request as never, { params: Promise.resolve({ id: reservation.id }) })
+    const request = new Request(`http://localhost/api/reservations/${reservation.id}`, {
+      method: 'DELETE',
+    })
+    const response = await DELETE(request as never, {
+      params: Promise.resolve({ id: reservation.id }),
+    })
     expect(response.status).toBe(403)
   })
 })

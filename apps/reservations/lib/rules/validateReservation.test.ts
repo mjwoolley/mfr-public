@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { validateReservation, type ExistingReservation, type BookingRules } from './validateReservation'
+import {
+  validateReservation,
+  type ExistingReservation,
+  type BookingRules,
+} from './validateReservation'
 
 const defaultRules: BookingRules = {
   bookingHorizonDate: '2027-12-31',
@@ -26,7 +30,9 @@ describe('validateReservation — basic validity', () => {
   })
 
   it('rejects when endDate is not after startDate', () => {
-    const result = validateReservation(baseInput({ startDate: '2027-06-05', endDate: '2027-06-05' }))
+    const result = validateReservation(
+      baseInput({ startDate: '2027-06-05', endDate: '2027-06-05' }),
+    )
     expect(result.valid).toBe(false)
     if (!result.valid) expect(result.code).toBe('INVALID_RANGE')
   })
@@ -35,14 +41,14 @@ describe('validateReservation — basic validity', () => {
 describe('validateReservation — booking horizon', () => {
   it('accepts a reservation starting exactly on the horizon date', () => {
     const result = validateReservation(
-      baseInput({ startDate: '2027-12-31', endDate: '2028-01-02', bookingRules: defaultRules })
+      baseInput({ startDate: '2027-12-31', endDate: '2028-01-02', bookingRules: defaultRules }),
     )
     expect(result.valid).toBe(true)
   })
 
   it('rejects a reservation starting one day after the horizon date', () => {
     const result = validateReservation(
-      baseInput({ startDate: '2028-01-01', endDate: '2028-01-03', bookingRules: defaultRules })
+      baseInput({ startDate: '2028-01-01', endDate: '2028-01-03', bookingRules: defaultRules }),
     )
     expect(result.valid).toBe(false)
     if (!result.valid) expect(result.code).toBe('HORIZON')
@@ -52,13 +58,17 @@ describe('validateReservation — booking horizon', () => {
 describe('validateReservation — max consecutive nights', () => {
   it('accepts a reservation exactly at the max consecutive nights', () => {
     // 7 nights: 2027-06-01 to 2027-06-08
-    const result = validateReservation(baseInput({ startDate: '2027-06-01', endDate: '2027-06-08' }))
+    const result = validateReservation(
+      baseInput({ startDate: '2027-06-01', endDate: '2027-06-08' }),
+    )
     expect(result.valid).toBe(true)
   })
 
   it('rejects a reservation one night over the max', () => {
     // 8 nights: 2027-06-01 to 2027-06-09
-    const result = validateReservation(baseInput({ startDate: '2027-06-01', endDate: '2027-06-09' }))
+    const result = validateReservation(
+      baseInput({ startDate: '2027-06-01', endDate: '2027-06-09' }),
+    )
     expect(result.valid).toBe(false)
     if (!result.valid) expect(result.code).toBe('MAX_CONSECUTIVE')
   })
@@ -68,7 +78,13 @@ describe('validateReservation — yearly cap', () => {
   it('accepts when existing + new nights exactly equal the cap', () => {
     // existing: 10 nights in 2027 (Jan 1-11), new: 4 nights (Jun 1-5) = 14 total, cap is 14
     const existing: ExistingReservation[] = [
-      { id: 'r1', userId: 'user-1', startDate: '2027-01-01', endDate: '2027-01-11', status: 'confirmed' },
+      {
+        id: 'r1',
+        userId: 'user-1',
+        startDate: '2027-01-01',
+        endDate: '2027-01-11',
+        status: 'confirmed',
+      },
     ]
     const result = validateReservation(baseInput({ existingReservations: existing }))
     expect(result.valid).toBe(true)
@@ -77,7 +93,13 @@ describe('validateReservation — yearly cap', () => {
   it('rejects when existing + new nights exceed the cap by one', () => {
     // existing: 11 nights in 2027, new: 4 nights = 15 total, cap is 14
     const existing: ExistingReservation[] = [
-      { id: 'r1', userId: 'user-1', startDate: '2027-01-01', endDate: '2027-01-12', status: 'confirmed' },
+      {
+        id: 'r1',
+        userId: 'user-1',
+        startDate: '2027-01-01',
+        endDate: '2027-01-12',
+        status: 'confirmed',
+      },
     ]
     const result = validateReservation(baseInput({ existingReservations: existing }))
     expect(result.valid).toBe(false)
@@ -88,7 +110,13 @@ describe('validateReservation — yearly cap', () => {
     // existing reservation itself spans two years but should count fully
     // against 2027 (its start year), not split across years.
     const existing: ExistingReservation[] = [
-      { id: 'r1', userId: 'user-1', startDate: '2027-12-30', endDate: '2028-01-03', status: 'confirmed' },
+      {
+        id: 'r1',
+        userId: 'user-1',
+        startDate: '2027-12-30',
+        endDate: '2028-01-03',
+        status: 'confirmed',
+      },
       // 4 nights, all counted against 2027
     ]
     // Raise maxConsecutiveNights for this test so the 10/11-night probe
@@ -103,7 +131,7 @@ describe('validateReservation — yearly cap', () => {
         endDate: '2027-03-11', // 10 nights
         existingReservations: existing,
         bookingRules: rulesForThisTest,
-      })
+      }),
     )
     expect(result.valid).toBe(true)
 
@@ -114,15 +142,21 @@ describe('validateReservation — yearly cap', () => {
         endDate: '2027-03-12', // 11 nights
         existingReservations: existing,
         bookingRules: rulesForThisTest,
-      })
+      }),
     )
     expect(resultOver.valid).toBe(false)
     if (!resultOver.valid) expect(resultOver.code).toBe('YEARLY_CAP')
   })
 
-  it('does not count another user\'s reservations against this user\'s cap', () => {
+  it("does not count another user's reservations against this user's cap", () => {
     const existing: ExistingReservation[] = [
-      { id: 'r1', userId: 'someone-else', startDate: '2027-01-01', endDate: '2027-01-11', status: 'confirmed' },
+      {
+        id: 'r1',
+        userId: 'someone-else',
+        startDate: '2027-01-01',
+        endDate: '2027-01-11',
+        status: 'confirmed',
+      },
     ]
     const result = validateReservation(baseInput({ existingReservations: existing }))
     expect(result.valid).toBe(true)
@@ -130,7 +164,13 @@ describe('validateReservation — yearly cap', () => {
 
   it('excludes a reservation by id from its own cap recalculation (edit scenario)', () => {
     const existing: ExistingReservation[] = [
-      { id: 'r1', userId: 'user-1', startDate: '2027-01-01', endDate: '2027-01-12', status: 'confirmed' }, // 11 nights
+      {
+        id: 'r1',
+        userId: 'user-1',
+        startDate: '2027-01-01',
+        endDate: '2027-01-12',
+        status: 'confirmed',
+      }, // 11 nights
     ]
     // Editing r1 itself to shift dates slightly (still 11 nights) should not
     // double-count r1 against itself.
@@ -140,7 +180,7 @@ describe('validateReservation — yearly cap', () => {
         endDate: '2027-02-05', // 4 nights, total would be 15 if r1 weren't excluded
         excludeReservationId: 'r1',
         existingReservations: existing,
-      })
+      }),
     )
     expect(result.valid).toBe(true)
   })
@@ -149,7 +189,13 @@ describe('validateReservation — yearly cap', () => {
 describe('validateReservation — overlap against other reservations', () => {
   it('rejects when overlapping another confirmed reservation (any user)', () => {
     const existing: ExistingReservation[] = [
-      { id: 'r1', userId: 'someone-else', startDate: '2027-06-03', endDate: '2027-06-06', status: 'confirmed' },
+      {
+        id: 'r1',
+        userId: 'someone-else',
+        startDate: '2027-06-03',
+        endDate: '2027-06-06',
+        status: 'confirmed',
+      },
     ]
     const result = validateReservation(baseInput({ existingReservations: existing }))
     expect(result.valid).toBe(false)
@@ -158,7 +204,13 @@ describe('validateReservation — overlap against other reservations', () => {
 
   it('does not reject when overlapping a cancelled reservation', () => {
     const existing: ExistingReservation[] = [
-      { id: 'r1', userId: 'someone-else', startDate: '2027-06-03', endDate: '2027-06-06', status: 'cancelled' },
+      {
+        id: 'r1',
+        userId: 'someone-else',
+        startDate: '2027-06-03',
+        endDate: '2027-06-06',
+        status: 'cancelled',
+      },
     ]
     const result = validateReservation(baseInput({ existingReservations: existing }))
     expect(result.valid).toBe(true)
@@ -166,7 +218,13 @@ describe('validateReservation — overlap against other reservations', () => {
 
   it('allows same-day turnover against an existing confirmed reservation', () => {
     const existing: ExistingReservation[] = [
-      { id: 'r1', userId: 'someone-else', startDate: '2027-05-28', endDate: '2027-06-01', status: 'confirmed' },
+      {
+        id: 'r1',
+        userId: 'someone-else',
+        startDate: '2027-05-28',
+        endDate: '2027-06-01',
+        status: 'confirmed',
+      },
     ]
     const result = validateReservation(baseInput({ existingReservations: existing }))
     expect(result.valid).toBe(true)
@@ -176,7 +234,7 @@ describe('validateReservation — overlap against other reservations', () => {
 describe('validateReservation — overlap against blocked dates', () => {
   it('rejects when overlapping a blocked date range', () => {
     const result = validateReservation(
-      baseInput({ blockedDates: [{ startDate: '2027-06-02', endDate: '2027-06-04' }] })
+      baseInput({ blockedDates: [{ startDate: '2027-06-02', endDate: '2027-06-04' }] }),
     )
     expect(result.valid).toBe(false)
     if (!result.valid) expect(result.code).toBe('OVERLAP_BLOCKED')
@@ -184,7 +242,7 @@ describe('validateReservation — overlap against blocked dates', () => {
 
   it('accepts when adjacent to (not overlapping) a blocked date range', () => {
     const result = validateReservation(
-      baseInput({ blockedDates: [{ startDate: '2027-06-05', endDate: '2027-06-10' }] })
+      baseInput({ blockedDates: [{ startDate: '2027-06-05', endDate: '2027-06-10' }] }),
     )
     expect(result.valid).toBe(true)
   })

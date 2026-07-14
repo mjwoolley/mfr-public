@@ -38,20 +38,20 @@ This applies the migration to the dev database and regenerates the Prisma client
 
 See `.env.example`. Summary:
 
-| Variable | Purpose |
-| --- | --- |
-| `DATABASE_URL` | Neon **pooled** connection string — used by the app at runtime |
-| `DIRECT_URL` | Neon **direct** (unpooled) connection string — used by Prisma CLI for migrations |
-| `AUTH_SECRET` | Auth.js session encryption key — generate with `openssl rand -base64 33` |
-| `AUTH_URL` | Base URL of the deployment (e.g. `https://your-app.vercel.app`) |
-| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google OAuth Web Client credentials |
-| `ADMIN_EMAILS` | Comma-separated emails that get the `ADMIN` role on first sign-in |
-| `SES_REGION` | AWS region for SES (default `us-east-1`) |
+| Variable                                      | Purpose                                                                              |
+| --------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `DATABASE_URL`                                | Neon **pooled** connection string — used by the app at runtime                       |
+| `DIRECT_URL`                                  | Neon **direct** (unpooled) connection string — used by Prisma CLI for migrations     |
+| `AUTH_SECRET`                                 | Auth.js session encryption key — generate with `openssl rand -base64 33`             |
+| `AUTH_URL`                                    | Base URL of the deployment (e.g. `https://your-app.vercel.app`)                      |
+| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`       | Google OAuth Web Client credentials                                                  |
+| `ADMIN_EMAILS`                                | Comma-separated emails that get the `ADMIN` role on first sign-in                    |
+| `SES_REGION`                                  | AWS region for SES (default `us-east-1`)                                             |
 | `SES_ACCESS_KEY_ID` / `SES_SECRET_ACCESS_KEY` | IAM credentials with `ses:SendEmail` (SES_-prefixed because Vercel reserves `AWS_*`) |
-| `EMAIL_FROM` | Verified SES sender address for notification emails |
-| `EMAIL_ENABLED` | Set to `true` in production only — lets email reach real recipients |
-| `EMAIL_OVERRIDE_TO` | Non-prod inbox that all mail is redirected to (blank in prod) |
-| `APP_BASE_URL` | Used to build links inside emails |
+| `EMAIL_FROM`                                  | Verified SES sender address for notification emails                                  |
+| `EMAIL_ENABLED`                               | Set to `true` in production only — lets email reach real recipients                  |
+| `EMAIL_OVERRIDE_TO`                           | Non-prod inbox that all mail is redirected to (blank in prod)                        |
+| `APP_BASE_URL`                                | Used to build links inside emails                                                    |
 
 ## Setting up Google OAuth
 

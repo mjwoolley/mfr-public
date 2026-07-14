@@ -19,7 +19,9 @@ function makeEvent(overrides: Partial<ActivityEvent>): ActivityEvent {
 
 describe('formatActivityMessage', () => {
   it('formats user_signed_up', () => {
-    expect(formatActivityMessage(makeEvent({ eventType: 'user_signed_up' }), users)).toBe('Jane signed up.')
+    expect(formatActivityMessage(makeEvent({ eventType: 'user_signed_up' }), users)).toBe(
+      'Jane signed up.',
+    )
   })
 
   it('formats user_approved', () => {
@@ -48,7 +50,7 @@ describe('formatActivityMessage', () => {
     expect(formatActivityMessage(event, users)).toBe('Jane booked 2027-07-01 → 2027-07-05.')
   })
 
-  it('formats reservation_edited on the actor\'s own reservation', () => {
+  it("formats reservation_edited on the actor's own reservation", () => {
     const event = makeEvent({
       eventType: 'reservation_edited',
       metadata: {
@@ -61,11 +63,11 @@ describe('formatActivityMessage', () => {
       },
     })
     expect(formatActivityMessage(event, users)).toBe(
-      'Jane changed their reservation from 2027-07-01 → 2027-07-05 to 2027-07-02 → 2027-07-06.'
+      'Jane changed their reservation from 2027-07-01 → 2027-07-05 to 2027-07-02 → 2027-07-06.',
     )
   })
 
-  it('formats reservation_edited when an admin edits someone else\'s reservation', () => {
+  it("formats reservation_edited when an admin edits someone else's reservation", () => {
     const event = makeEvent({
       eventType: 'reservation_edited',
       actorUserId: 'user-admin',
@@ -79,26 +81,38 @@ describe('formatActivityMessage', () => {
       },
     })
     expect(formatActivityMessage(event, users)).toBe(
-      "Admin User changed Jane's reservation from 2027-07-01 → 2027-07-05 to 2027-07-02 → 2027-07-06."
+      "Admin User changed Jane's reservation from 2027-07-01 → 2027-07-05 to 2027-07-02 → 2027-07-06.",
     )
   })
 
-  it('formats reservation_cancelled on the actor\'s own reservation', () => {
+  it("formats reservation_cancelled on the actor's own reservation", () => {
     const event = makeEvent({
       eventType: 'reservation_cancelled',
-      metadata: { reservationId: 'r1', userId: 'user-jane', startDate: '2027-07-01', endDate: '2027-07-05' },
+      metadata: {
+        reservationId: 'r1',
+        userId: 'user-jane',
+        startDate: '2027-07-01',
+        endDate: '2027-07-05',
+      },
     })
-    expect(formatActivityMessage(event, users)).toBe('Jane cancelled their reservation for 2027-07-01 → 2027-07-05.')
+    expect(formatActivityMessage(event, users)).toBe(
+      'Jane cancelled their reservation for 2027-07-01 → 2027-07-05.',
+    )
   })
 
-  it('formats reservation_cancelled when an admin cancels someone else\'s reservation', () => {
+  it("formats reservation_cancelled when an admin cancels someone else's reservation", () => {
     const event = makeEvent({
       eventType: 'reservation_cancelled',
       actorUserId: 'user-admin',
-      metadata: { reservationId: 'r1', userId: 'user-jane', startDate: '2027-07-01', endDate: '2027-07-05' },
+      metadata: {
+        reservationId: 'r1',
+        userId: 'user-jane',
+        startDate: '2027-07-01',
+        endDate: '2027-07-05',
+      },
     })
     expect(formatActivityMessage(event, users)).toBe(
-      "Admin User cancelled Jane's reservation for 2027-07-01 → 2027-07-05."
+      "Admin User cancelled Jane's reservation for 2027-07-01 → 2027-07-05.",
     )
   })
 
@@ -106,27 +120,48 @@ describe('formatActivityMessage', () => {
     const event = makeEvent({
       eventType: 'blocked_date_created',
       actorUserId: 'user-admin',
-      metadata: { blockedDateId: 'b1', startDate: '2027-10-01', endDate: '2027-10-10', reason: 'maintenance' },
+      metadata: {
+        blockedDateId: 'b1',
+        startDate: '2027-10-01',
+        endDate: '2027-10-10',
+        reason: 'maintenance',
+      },
     })
-    expect(formatActivityMessage(event, users)).toBe('Admin User blocked off 2027-10-01 → 2027-10-10 (maintenance).')
+    expect(formatActivityMessage(event, users)).toBe(
+      'Admin User blocked off 2027-10-01 → 2027-10-10 (maintenance).',
+    )
   })
 
   it('formats blocked_date_created without a reason', () => {
     const event = makeEvent({
       eventType: 'blocked_date_created',
       actorUserId: 'user-admin',
-      metadata: { blockedDateId: 'b1', startDate: '2027-10-01', endDate: '2027-10-10', reason: null },
+      metadata: {
+        blockedDateId: 'b1',
+        startDate: '2027-10-01',
+        endDate: '2027-10-10',
+        reason: null,
+      },
     })
-    expect(formatActivityMessage(event, users)).toBe('Admin User blocked off 2027-10-01 → 2027-10-10.')
+    expect(formatActivityMessage(event, users)).toBe(
+      'Admin User blocked off 2027-10-01 → 2027-10-10.',
+    )
   })
 
   it('formats blocked_date_removed', () => {
     const event = makeEvent({
       eventType: 'blocked_date_removed',
       actorUserId: 'user-admin',
-      metadata: { blockedDateId: 'b1', startDate: '2027-10-01', endDate: '2027-10-10', reason: null },
+      metadata: {
+        blockedDateId: 'b1',
+        startDate: '2027-10-01',
+        endDate: '2027-10-10',
+        reason: null,
+      },
     })
-    expect(formatActivityMessage(event, users)).toBe('Admin User removed the blocked dates 2027-10-01 → 2027-10-10.')
+    expect(formatActivityMessage(event, users)).toBe(
+      'Admin User removed the blocked dates 2027-10-01 → 2027-10-10.',
+    )
   })
 
   it('formats booking_rules_updated', () => {
@@ -134,12 +169,20 @@ describe('formatActivityMessage', () => {
       eventType: 'booking_rules_updated',
       actorUserId: 'user-admin',
       metadata: {
-        before: { bookingHorizonDate: '2027-12-31', maxConsecutiveNights: 7, maxNightsPerUserPerYear: 14 },
-        after: { bookingHorizonDate: '2028-12-31', maxConsecutiveNights: 10, maxNightsPerUserPerYear: 14 },
+        before: {
+          bookingHorizonDate: '2027-12-31',
+          maxConsecutiveNights: 7,
+          maxNightsPerUserPerYear: 14,
+        },
+        after: {
+          bookingHorizonDate: '2028-12-31',
+          maxConsecutiveNights: 10,
+          maxNightsPerUserPerYear: 14,
+        },
       },
     })
     expect(formatActivityMessage(event, users)).toBe(
-      'Admin User updated the booking rules (horizon: 2028-12-31, max consecutive nights: 10, max nights/year: 14).'
+      'Admin User updated the booking rules (horizon: 2028-12-31, max consecutive nights: 10, max nights/year: 14).',
     )
   })
 

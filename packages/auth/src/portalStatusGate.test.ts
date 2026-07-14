@@ -35,7 +35,10 @@ describe('createPortalStatusGate', () => {
   })
 
   it('redirects to loginPath when the session has no user', () => {
-    expectRedirectTo(() => gate({ user: undefined, expires: '' } as unknown as Session), '/app/login')
+    expectRedirectTo(
+      () => gate({ user: undefined, expires: '' } as unknown as Session),
+      '/app/login',
+    )
   })
 
   it('redirects to pendingPath when status is pending', () => {

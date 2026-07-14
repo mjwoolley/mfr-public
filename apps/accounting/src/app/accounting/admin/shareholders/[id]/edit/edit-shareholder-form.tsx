@@ -1,11 +1,7 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
-import {
-  updateShareholder,
-  setShareholderActive,
-  type ActionState,
-} from "@/actions/shareholders";
+import { updateShareholder, setShareholderActive, type ActionState } from "@/actions/shareholders";
 import type { Shareholder } from "@/generated/prisma/client";
 
 export function EditShareholderForm({ shareholder }: { shareholder: Shareholder }) {
@@ -22,7 +18,13 @@ export function EditShareholderForm({ shareholder }: { shareholder: Shareholder 
         <input type="hidden" name="shareholderId" value={shareholder.id} />
         <div className="field">
           <label htmlFor="edit-sh-name">Name</label>
-          <input id="edit-sh-name" name="name" defaultValue={shareholder.name} required className="input" />
+          <input
+            id="edit-sh-name"
+            name="name"
+            defaultValue={shareholder.name}
+            required
+            className="input"
+          />
         </div>
         <div className="field">
           <label htmlFor="edit-sh-email">Email (optional)</label>

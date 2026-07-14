@@ -5,7 +5,7 @@ import { AuthStatus } from './AuthStatus'
 describe('AuthStatus', () => {
   it('renders the signed-in email', () => {
     const html = renderToStaticMarkup(
-      <AuthStatus email="alice@example.com" onSignOut={async () => {}} />
+      <AuthStatus email="alice@example.com" onSignOut={async () => {}} />,
     )
 
     expect(html).toContain('alice@example.com')
@@ -13,7 +13,7 @@ describe('AuthStatus', () => {
 
   it('renders a sign-out form that submits via the given action', () => {
     const html = renderToStaticMarkup(
-      <AuthStatus email="alice@example.com" onSignOut={async () => {}} />
+      <AuthStatus email="alice@example.com" onSignOut={async () => {}} />,
     )
 
     expect(html).toContain('<form')
@@ -23,7 +23,7 @@ describe('AuthStatus', () => {
 
   it('reflects a different email when given different props', () => {
     const html = renderToStaticMarkup(
-      <AuthStatus email="bob@example.com" onSignOut={async () => {}} />
+      <AuthStatus email="bob@example.com" onSignOut={async () => {}} />,
     )
 
     expect(html).toContain('bob@example.com')

@@ -6,5 +6,11 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.test.tsx'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json-summary'],
+      reportsDirectory: './coverage',
+      exclude: ['**/*.test.tsx', '**/*.config.*'],
+    },
   },
 })

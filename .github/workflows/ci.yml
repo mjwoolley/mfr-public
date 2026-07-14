@@ -1,0 +1,374 @@
+# CI pipeline. Every job here must pass (except `audit`, which is advisory)
+# before a PR can merge — branch protection requires the single `ci-ok` gate
+# job, so job renames/additions only need the `needs` list below updated.
+#
+# Integration tests run against ephemeral Neon branches created from each
+# project's `production` branch: migrations then apply the exact delta a
+# production deploy would, and the branches are deleted when the job ends.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  static:
+    name: Format, lint, typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+
+  unit:
+    name: Unit tests + coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+        working-directory: apps/accounting
+      - run: npm run test:coverage
+      - name: Coverage summary
+        if: always()
+        run: |
+          echo "## Coverage (lines / branches / functions)" >> "$GITHUB_STEP_SUMMARY"
+          for f in apps/*/coverage/coverage-summary.json packages/*/coverage/coverage-summary.json; do
+            [ -f "$f" ] || continue
+            ws=$(echo "$f" | cut -d/ -f1-2)
+            jq -r --arg ws "$ws" \
+              '"- **\($ws)**: \(.total.lines.pct)% / \(.total.branches.pct)% / \(.total.functions.pct)%"' \
+              "$f" >> "$GITHUB_STEP_SUMMARY"
+          done
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage
+          path: '**/coverage/coverage-summary.json'
+          if-no-files-found: ignore
+
+  build:
+    name: Build ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [web, reservations, accounting]
+    env:
+      # Dummy values: several modules read DB URLs at import time and throw
+      # when unset, but the drivers connect lazily so nothing dials out.
+      # If a build ever tries to reach these, a page is statically
+      # prerendering a DB query and should be marked dynamic instead.
+      DATABASE_URL: postgres://ci:ci@localhost:5432/ci
+      DIRECT_URL: postgres://ci:ci@localhost:5432/ci
+      IDENTITY_DATABASE_URL: postgres://ci:ci@localhost:5432/ci
+      AUTH_SECRET: ci-dummy-secret-not-used
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build -w apps/${{ matrix.app }}
+
+  integration-accounting:
+    name: Integration tests (accounting)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Create accounting DB branch
+        id: db
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_ACCOUNTING }}
+          parent_branch: production
+          branch_name: ci-${{ github.run_id }}-${{ github.run_attempt }}-acc
+          api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Create identity DB branch
+        id: iddb
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_IDENTITY }}
+          parent_branch: production
+          branch_name: ci-${{ github.run_id }}-${{ github.run_attempt }}-acc-id
+          api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Apply accounting migrations
+        working-directory: apps/accounting
+        env:
+          DIRECT_URL: ${{ steps.db.outputs.db_url }}
+        run: npx prisma generate && npx prisma migrate deploy
+      # No identity schema step: the CI branch is a full clone of the identity
+      # production branch and already carries the exact live schema. (Drizzle
+      # migrate collides on production's non-matching journal, and push rebuilds
+      # from schema.ts and drops migration-only constraints — neither is safe.)
+      - name: Run integration tests
+        env:
+          TEST_DATABASE_URL: ${{ steps.db.outputs.db_url_pooled }}
+          TEST_DIRECT_URL: ${{ steps.db.outputs.db_url }}
+          TEST_IDENTITY_DATABASE_URL: ${{ steps.iddb.outputs.db_url_pooled }}
+          TEST_IDENTITY_DIRECT_DATABASE_URL: ${{ steps.iddb.outputs.db_url }}
+        run: npm run test:integration -w apps/accounting
+      - name: Delete accounting DB branch
+        if: always()
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_ACCOUNTING }}
+          branch: ci-${{ github.run_id }}-${{ github.run_attempt }}-acc
+          api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Delete identity DB branch
+        if: always()
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_IDENTITY }}
+          branch: ci-${{ github.run_id }}-${{ github.run_attempt }}-acc-id
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+  integration-reservations:
+    name: Integration tests (reservations)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Create reservations DB branch
+        id: db
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_RESERVATIONS }}
+          parent_branch: production
+          branch_name: ci-${{ github.run_id }}-${{ github.run_attempt }}-res
+          api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Create identity DB branch
+        id: iddb
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_IDENTITY }}
+          parent_branch: production
+          branch_name: ci-${{ github.run_id }}-${{ github.run_attempt }}-res-id
+          api_key: ${{ secrets.NEON_API_KEY }}
+      # No reservations schema step — the production-clone branch already has the
+      # full schema incl. migration-only constraints (see identity note above).
+      # No identity schema step: the CI branch is a full clone of the identity
+      # production branch and already carries the exact live schema. (Drizzle
+      # migrate collides on production's non-matching journal, and push rebuilds
+      # from schema.ts and drops migration-only constraints — neither is safe.)
+      - name: Run integration tests
+        env:
+          TEST_DATABASE_URL: ${{ steps.db.outputs.db_url_pooled }}
+          TEST_DIRECT_DATABASE_URL: ${{ steps.db.outputs.db_url }}
+          TEST_IDENTITY_DATABASE_URL: ${{ steps.iddb.outputs.db_url_pooled }}
+          TEST_IDENTITY_DIRECT_DATABASE_URL: ${{ steps.iddb.outputs.db_url }}
+        run: npm run test:integration -w apps/reservations
+      - name: Delete reservations DB branch
+        if: always()
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_RESERVATIONS }}
+          branch: ci-${{ github.run_id }}-${{ github.run_attempt }}-res
+          api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Delete identity DB branch
+        if: always()
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_IDENTITY }}
+          branch: ci-${{ github.run_id }}-${{ github.run_attempt }}-res-id
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+  e2e:
+    name: E2E tests (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Create accounting DB branch
+        id: acc
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_ACCOUNTING }}
+          parent_branch: production
+          branch_name: ci-${{ github.run_id }}-${{ github.run_attempt }}-e2e-acc
+          api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Create reservations DB branch
+        id: res
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_RESERVATIONS }}
+          parent_branch: production
+          branch_name: ci-${{ github.run_id }}-${{ github.run_attempt }}-e2e-res
+          api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Create identity DB branch
+        id: iddb
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_IDENTITY }}
+          parent_branch: production
+          branch_name: ci-${{ github.run_id }}-${{ github.run_attempt }}-e2e-id
+          api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Apply accounting migrations
+        working-directory: apps/accounting
+        env:
+          DIRECT_URL: ${{ steps.acc.outputs.db_url }}
+        run: npx prisma generate && npx prisma migrate deploy
+      # No reservations schema step — the production-clone branch already has the
+      # full schema incl. migration-only constraints (see identity note below).
+      # No identity schema step: the CI branch is a full clone of the identity
+      # production branch and already carries the exact live schema. (Drizzle
+      # migrate collides on production's non-matching journal, and push rebuilds
+      # from schema.ts and drops migration-only constraints — neither is safe.)
+      - name: Build apps
+        env:
+          # Dummy build-time env; the real branch URLs are injected at runtime
+          # by playwright.config.ts webServer entries.
+          DATABASE_URL: postgres://ci:ci@localhost:5432/ci
+          DIRECT_URL: postgres://ci:ci@localhost:5432/ci
+          IDENTITY_DATABASE_URL: postgres://ci:ci@localhost:5432/ci
+          AUTH_SECRET: ci-dummy-secret-not-used
+        run: npm run build
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - run: npx playwright install --with-deps chromium
+      - name: Run Playwright tests
+        env:
+          E2E_IDENTITY_DATABASE_URL: ${{ steps.iddb.outputs.db_url_pooled }}
+          E2E_IDENTITY_DIRECT_URL: ${{ steps.iddb.outputs.db_url }}
+          E2E_ACCOUNTING_DATABASE_URL: ${{ steps.acc.outputs.db_url_pooled }}
+          E2E_ACCOUNTING_DIRECT_URL: ${{ steps.acc.outputs.db_url }}
+          E2E_RESERVATIONS_DATABASE_URL: ${{ steps.res.outputs.db_url_pooled }}
+          E2E_RESERVATIONS_DIRECT_URL: ${{ steps.res.outputs.db_url }}
+        run: npx playwright test
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: playwright-report/
+      - name: Delete accounting DB branch
+        if: always()
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_ACCOUNTING }}
+          branch: ci-${{ github.run_id }}-${{ github.run_attempt }}-e2e-acc
+          api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Delete reservations DB branch
+        if: always()
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_RESERVATIONS }}
+          branch: ci-${{ github.run_id }}-${{ github.run_attempt }}-e2e-res
+          api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Delete identity DB branch
+        if: always()
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_IDENTITY }}
+          branch: ci-${{ github.run_id }}-${{ github.run_attempt }}-e2e-id
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+  gitleaks:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      # Run the gitleaks CLI directly rather than gitleaks-action: the action's
+      # PR mode calls the GitHub API for the PR's commits, which the read-only
+      # default token on a private repo rejects ("Resource not accessible by
+      # integration"). The CLI scans local history with no API access and exits
+      # non-zero on a real finding.
+      - name: Install gitleaks
+        run: curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.24.3/gitleaks_8.24.3_linux_x64.tar.gz | sudo tar -xz -C /usr/local/bin gitleaks
+      - name: Scan git history
+        run: gitleaks git . --redact --verbose
+
+  # Static security analysis. CodeQL would be preferred but requires GitHub
+  # Code Security (unavailable on this private repo's plan), so run semgrep's
+  # open-source default ruleset instead. Advisory-only: findings appear in the
+  # job log/summary without blocking merges.
+  semgrep:
+    name: Semgrep scan (advisory)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v7
+      # Report findings without failing the job (advisory). No --error, so the
+      # scan surfaces issues in the log without a red X on the check.
+      - run: semgrep scan --config p/default --metrics=off
+
+  audit:
+    name: npm audit (advisory)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Audit high-severity vulnerabilities
+        run: |
+          echo "## npm audit (high+)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          npm audit --audit-level=high 2>&1 | tee -a "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          npm audit --audit-level=high
+
+  # The single required status check for branch protection. Everything except
+  # `audit` (advisory-only) must succeed.
+  ci-ok:
+    name: CI OK
+    runs-on: ubuntu-latest
+    needs: [static, unit, build, integration-accounting, integration-reservations, e2e, gitleaks]
+    if: always()
+    steps:
+      - name: Check all required jobs succeeded
+        run: |
+          results='${{ join(needs.*.result, ' ') }}'
+          echo "job results: $results"
+          for r in $results; do
+            [ "$r" = "success" ] || { echo "a required job did not succeed"; exit 1; }
+          done

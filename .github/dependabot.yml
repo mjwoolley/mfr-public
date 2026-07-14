@@ -1,0 +1,38 @@
+# Weekly dependency update PRs. npm workspaces are handled from the root
+# lockfile. Grouping + a low PR limit keep the volume down: without them
+# Dependabot's first run opened nine PRs at once, each triggering a full CI
+# run and three Vercel preview builds.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    open-pull-requests-limit: 3
+    schedule:
+      interval: weekly
+    groups:
+      # Everything shippable lands in a single weekly PR.
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # Stay current on minor/patch, but never auto-propose a major-version
+      # jump — majors are breaking changes to adopt deliberately, not on
+      # Dependabot's schedule (this is what kept suggesting typescript 7,
+      # eslint 10, @types/node 26, etc.). Bump majors by hand when you choose.
+      - dependency-name: '*'
+        update-types:
+          - version-update:semver-major
+  - package-ecosystem: github-actions
+    directory: /
+    open-pull-requests-limit: 3
+    schedule:
+      interval: weekly
+    # One grouped PR for all action bumps. Majors are NOT ignored here on
+    # purpose: actions are pinned by major tag (@v4), so major bumps are their
+    # normal, low-risk update cadence — ignoring them would freeze CI actions
+    # and let deprecations (e.g. the Node 20 runner sunset) pile up silently.
+    groups:
+      github-actions:
+        patterns:
+          - '*'

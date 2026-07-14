@@ -75,7 +75,8 @@ export function useCalendarData() {
     reservations: reservationsQuery.data ?? [],
     blockedDates: blockedDatesQuery.data ?? [],
     bookingRules: bookingRulesQuery.data,
-    isLoading: reservationsQuery.isLoading || blockedDatesQuery.isLoading || bookingRulesQuery.isLoading,
+    isLoading:
+      reservationsQuery.isLoading || blockedDatesQuery.isLoading || bookingRulesQuery.isLoading,
     error: reservationsQuery.error ?? blockedDatesQuery.error ?? bookingRulesQuery.error ?? null,
     refetchAll: () => {
       reservationsQuery.refetch()

@@ -38,15 +38,25 @@ export type ValidationCode =
   | 'OVERLAP_BLOCKED'
 
 export type ValidationResult =
-  | { valid: true }
-  | { valid: false; code: ValidationCode; reason: string }
+  { valid: true } | { valid: false; code: ValidationCode; reason: string }
 
 export function validateReservation(input: ValidateReservationInput): ValidationResult {
-  const { userId, startDate, endDate, excludeReservationId, existingReservations, blockedDates, bookingRules } =
-    input
+  const {
+    userId,
+    startDate,
+    endDate,
+    excludeReservationId,
+    existingReservations,
+    blockedDates,
+    bookingRules,
+  } = input
 
   if (endDate <= startDate) {
-    return { valid: false, code: 'INVALID_RANGE', reason: 'The end date must be after the start date.' }
+    return {
+      valid: false,
+      code: 'INVALID_RANGE',
+      reason: 'The end date must be after the start date.',
+    }
   }
 
   if (startDate > bookingRules.bookingHorizonDate) {
@@ -68,7 +78,7 @@ export function validateReservation(input: ValidateReservationInput): Validation
 
   const year = calendarYearOf(startDate)
   const otherConfirmed = existingReservations.filter(
-    (r) => r.status === 'confirmed' && r.id !== excludeReservationId
+    (r) => r.status === 'confirmed' && r.id !== excludeReservationId,
   )
 
   const existingNightsThisYear = otherConfirmed
@@ -84,7 +94,7 @@ export function validateReservation(input: ValidateReservationInput): Validation
   }
 
   const overlapsBooked = otherConfirmed.some((r) =>
-    rangesOverlap(startDate, endDate, r.startDate, r.endDate)
+    rangesOverlap(startDate, endDate, r.startDate, r.endDate),
   )
   if (overlapsBooked) {
     return {
@@ -95,7 +105,7 @@ export function validateReservation(input: ValidateReservationInput): Validation
   }
 
   const overlapsBlocked = blockedDates.some((b) =>
-    rangesOverlap(startDate, endDate, b.startDate, b.endDate)
+    rangesOverlap(startDate, endDate, b.startDate, b.endDate),
   )
   if (overlapsBlocked) {
     return {

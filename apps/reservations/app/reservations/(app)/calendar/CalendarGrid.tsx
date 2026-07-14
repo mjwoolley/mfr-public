@@ -65,7 +65,16 @@ export function CalendarGrid({
       result.push({ date, ...info, isInSelection, isSelectionStart: date === selectionStart })
     }
     return result
-  }, [year, month, reservations, blockedDates, bookingRules, selectionStart, selectionEnd, hoverDate])
+  }, [
+    year,
+    month,
+    reservations,
+    blockedDates,
+    bookingRules,
+    selectionStart,
+    selectionEnd,
+    hoverDate,
+  ])
 
   const leadingBlanks = firstWeekdayOfMonth(year, month)
 

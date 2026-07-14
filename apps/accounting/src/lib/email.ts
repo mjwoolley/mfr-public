@@ -61,9 +61,7 @@ export function plusAddress(inbox: string, original: string): string {
  */
 export function resolveRecipient(
   to: string,
-):
-  | { deliver: true; to: string; redirectedFrom?: string }
-  | { deliver: false; reason: string } {
+): { deliver: true; to: string; redirectedFrom?: string } | { deliver: false; reason: string } {
   if (process.env.EMAIL_ENABLED === "true") {
     return { deliver: true, to };
   }
@@ -96,8 +94,7 @@ export async function sendEmail(opts: {
     const html = await render(opts.react);
     await getClient().send(
       new SendEmailCommand({
-        FromEmailAddress:
-          process.env.EMAIL_FROM ?? "accounting@millerfamilyreunions.org",
+        FromEmailAddress: process.env.EMAIL_FROM ?? "accounting@millerfamilyreunions.org",
         Destination: { ToAddresses: [routing.to] },
         ReplyToAddresses: opts.replyTo ? [opts.replyTo] : undefined,
         Content: {

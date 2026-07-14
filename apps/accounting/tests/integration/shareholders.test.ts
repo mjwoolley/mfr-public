@@ -239,7 +239,11 @@ describe("linkShareholderToUser / unlinkShareholder", () => {
 describe("the `active` flag's pre-existing effect, now under real integration test coverage", () => {
   it("excludes inactive shareholders from getAllShareholderBalances (Reports)", async () => {
     const active = await testDb.shareholder.create({
-      data: { name: `Active Holder ${Date.now()}`, email: `active-${Date.now()}@example.com`, active: true },
+      data: {
+        name: `Active Holder ${Date.now()}`,
+        email: `active-${Date.now()}@example.com`,
+        active: true,
+      },
     });
     const inactive = await testDb.shareholder.create({
       data: {
@@ -258,7 +262,11 @@ describe("the `active` flag's pre-existing effect, now under real integration te
   it("blocks a new contribution for an inactive shareholder", async () => {
     vi.mocked(auth).mockResolvedValue(ADMIN_SESSION);
     const inactive = await testDb.shareholder.create({
-      data: { name: `Inactive For Tx ${Date.now()}`, email: `inactivetx-${Date.now()}@example.com`, active: false },
+      data: {
+        name: `Inactive For Tx ${Date.now()}`,
+        email: `inactivetx-${Date.now()}@example.com`,
+        active: false,
+      },
     });
     createdShareholderIds.push(inactive.id);
 
@@ -275,7 +283,11 @@ describe("the `active` flag's pre-existing effect, now under real integration te
   it("allows a new contribution for an active shareholder", async () => {
     vi.mocked(auth).mockResolvedValue(ADMIN_SESSION);
     const active = await testDb.shareholder.create({
-      data: { name: `Active For Tx ${Date.now()}`, email: `activetx-${Date.now()}@example.com`, active: true },
+      data: {
+        name: `Active For Tx ${Date.now()}`,
+        email: `activetx-${Date.now()}@example.com`,
+        active: true,
+      },
     });
     createdShareholderIds.push(active.id);
 

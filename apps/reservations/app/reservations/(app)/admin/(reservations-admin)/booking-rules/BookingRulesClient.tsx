@@ -111,7 +111,10 @@ function BookingRulesForm({ initialRules }: { initialRules: BookingRules }) {
           />
         </div>
         {formError && (
-          <p className="m-0 mt-3 text-[13px] font-semibold" style={{ color: 'var(--color-accent-800)' }}>
+          <p
+            className="m-0 mt-3 text-[13px] font-semibold"
+            style={{ color: 'var(--color-accent-800)' }}
+          >
             {formError}
           </p>
         )}
@@ -120,7 +123,10 @@ function BookingRulesForm({ initialRules }: { initialRules: BookingRules }) {
             {submitting ? 'Saving…' : 'Save changes'}
           </button>
           {saved && (
-            <span className="text-[13px] font-semibold" style={{ color: 'var(--color-accent-2-700)' }}>
+            <span
+              className="text-[13px] font-semibold"
+              style={{ color: 'var(--color-accent-2-700)' }}
+            >
               Saved.
             </span>
           )}

@@ -12,7 +12,8 @@ export interface NavTab {
   lock?: boolean;
 }
 
-const tabBase = "inline-flex items-center gap-1.5 whitespace-nowrap border-b-2 py-3.5 text-[15px] transition-colors";
+const tabBase =
+  "inline-flex items-center gap-1.5 whitespace-nowrap border-b-2 py-3.5 text-[15px] transition-colors";
 
 const HOME_URL = "https://millerfamilyreunions.org";
 

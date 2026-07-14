@@ -20,10 +20,12 @@
 ### Task 1: Scaffold Next.js project
 
 **Files:**
+
 - Create: entire Next.js project skeleton via `create-next-app` (package.json, tsconfig.json, next.config.ts, tailwind config, app/layout.tsx, app/page.tsx, app/globals.css, .eslintrc/eslint.config, .gitignore)
 - Modify: `.gitignore` (add `.superpowers/` if not already covered by an existing ignore rule)
 
 **Interfaces:**
+
 - Consumes: nothing (first task in the project)
 - Produces: a working Next.js App Router project at the repo root, runnable via `npm run dev` and buildable via `npm run build`. Later tasks add `app/(public)`, `app/(app)`, `app/api` route groups inside the existing `app/` directory created here.
 
@@ -64,12 +66,14 @@ git commit -m "chore: scaffold Next.js project (TypeScript, Tailwind, App Router
 ### Task 2: Structured technical logger
 
 **Files:**
+
 - Create: `lib/logger.ts`
 - Create: `lib/logger.test.ts`
 - Modify: `package.json` (add `pino` dependency, add `test` script)
 - Create: `vitest.config.ts`
 
 **Interfaces:**
+
 - Consumes: nothing new (standalone module)
 - Produces: `export const logger: pino.Logger` from `lib/logger.ts`, importable as `import { logger } from '@/lib/logger'`. Later milestones' API routes call `logger.info({...}, 'message')` / `logger.error({...}, 'message')`. This is the only produced interface later tasks depend on — keep the export name and shape (`pino.Logger` instance, not a wrapper class) stable.
 
@@ -172,9 +176,11 @@ git commit -m "feat: add structured pino logger for technical/operational loggin
 ### Task 3: Environment variable template
 
 **Files:**
+
 - Create: `.env.example`
 
 **Interfaces:**
+
 - Consumes: nothing
 - Produces: documented list of every environment variable later milestones will read via `process.env.*`. This file is documentation only (not loaded at runtime) — later tasks that read a new `process.env.X` must add `X` here in their own task, but the initial known set is created now.
 

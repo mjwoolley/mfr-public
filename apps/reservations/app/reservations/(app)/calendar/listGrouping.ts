@@ -8,7 +8,7 @@ import type { ReservationRow } from './useCalendarData'
 export function reservationsStartingInMonth(
   reservations: ReservationRow[],
   year: number,
-  month: number // 0-11
+  month: number, // 0-11
 ): ReservationRow[] {
   const prefix = `${year}-${String(month + 1).padStart(2, '0')}-`
   return reservations

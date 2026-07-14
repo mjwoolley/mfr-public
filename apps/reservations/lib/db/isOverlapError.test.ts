@@ -7,15 +7,15 @@ describe('isOverlapError', () => {
   })
 
   it('returns true when the trigger message contains reservation_overlaps_blocked_date', () => {
-    expect(
-      isOverlapError({ cause: { message: 'error: reservation_overlaps_blocked_date' } })
-    ).toBe(true)
+    expect(isOverlapError({ cause: { message: 'error: reservation_overlaps_blocked_date' } })).toBe(
+      true,
+    )
   })
 
   it('returns true when the trigger message contains blocked_date_overlaps_reservation', () => {
-    expect(
-      isOverlapError({ cause: { message: 'error: blocked_date_overlaps_reservation' } })
-    ).toBe(true)
+    expect(isOverlapError({ cause: { message: 'error: blocked_date_overlaps_reservation' } })).toBe(
+      true,
+    )
   })
 
   it('returns false for an unrelated postgres error code', () => {

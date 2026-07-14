@@ -118,7 +118,12 @@ describe("createTransfer notifications", () => {
 
     const res = await createTransfer(
       undefined,
-      fd({ fromShareholderId: from.id, toShareholderId: to.id, amount: "10", description: "a gift" }),
+      fd({
+        fromShareholderId: from.id,
+        toShareholderId: to.id,
+        amount: "10",
+        description: "a gift",
+      }),
     );
     expect(res?.success).toBe(true);
     await trackTxFor(from.id);
@@ -138,7 +143,12 @@ describe("createTransfer notifications", () => {
 
     const res = await createTransfer(
       undefined,
-      fd({ fromShareholderId: from.id, toShareholderId: to.id, amount: "5", description: "half gift" }),
+      fd({
+        fromShareholderId: from.id,
+        toShareholderId: to.id,
+        amount: "5",
+        description: "half gift",
+      }),
     );
     expect(res?.success).toBe(true);
     await trackTxFor(from.id);

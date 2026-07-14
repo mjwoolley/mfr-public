@@ -70,7 +70,10 @@ export function SummaryClient() {
             </div>
             <div className="mt-1 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <h3 className="text-muted mb-1 text-[11px] font-bold tracking-[0.08em] uppercase" style={{ fontFamily: 'var(--font-body)' }}>
+                <h3
+                  className="text-muted mb-1 text-[11px] font-bold tracking-[0.08em] uppercase"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
                   Upcoming
                 </h3>
                 {group.upcoming.length === 0 ? (
@@ -84,7 +87,10 @@ export function SummaryClient() {
                 )}
               </div>
               <div>
-                <h3 className="text-muted mb-1 text-[11px] font-bold tracking-[0.08em] uppercase" style={{ fontFamily: 'var(--font-body)' }}>
+                <h3
+                  className="text-muted mb-1 text-[11px] font-bold tracking-[0.08em] uppercase"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
                   Past
                 </h3>
                 {group.past.length === 0 ? (
