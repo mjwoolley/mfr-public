@@ -22,11 +22,13 @@
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.2",
+    "@aws-sdk/client-sesv2": "^3.1085.0",
     "@mfr/auth": "*",
     "@mfr/ui": "*",
     "@prisma/adapter-neon": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@react-email/components": "^1.0.12",
+    "@react-email/render": "^2.0.6",
     "@vercel/microfrontends": "^2.4.0",
     "drizzle-orm": "^0.45.2",
     "next": "16.2.10",
@@ -35,9 +37,7 @@
     "qrcode": "^1.5.4",
     "react": "19.2.7",
     "react-dom": "19.2.7",
-    "react-email": "^6.8.1",
     "recharts": "^3.9.2",
-    "resend": "^6.17.2",
     "zod": "^4.4.3"
   },
   "devDependencies": {

@@ -17,6 +17,16 @@ import { users } from '@mfr/auth'
 // the module mocked, that top-level code never runs.
 vi.mock('../../lib/auth/config', () => ({ auth: vi.fn() }))
 
+// The write routes send notification emails after each commit; mock the
+// notifications module so these tests neither query the identity DB for
+// recipients nor call SES. Email behavior is covered in
+// notifications.test.ts.
+vi.mock('../../lib/notifications', () => ({
+  sendReservationCreatedEmail: vi.fn(),
+  sendReservationUpdatedEmail: vi.fn(),
+  sendReservationCancelledEmail: vi.fn(),
+}))
+
 import { auth } from '../../lib/auth/config'
 import { POST, GET } from '../../app/reservations/api/reservations/route'
 import { PATCH, DELETE } from '../../app/reservations/api/reservations/[id]/route'

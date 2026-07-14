@@ -13,7 +13,7 @@ vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 // actions' own logic is under test (same as shareholders.test.ts).
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
-// Avoid real Resend network calls from createCorrection's notification emails.
+// Avoid real SES network calls from createCorrection's notification emails.
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn(), appUrl: (p: string) => p }));
 
 import { auth } from "@/lib/auth";

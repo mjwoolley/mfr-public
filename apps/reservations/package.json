@@ -22,8 +22,11 @@
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.2",
+    "@aws-sdk/client-sesv2": "^3.1085.0",
     "@mfr/auth": "*",
     "@mfr/ui": "*",
+    "@react-email/components": "^1.0.12",
+    "@react-email/render": "^2.0.6",
     "@tanstack/react-query": "^5.101.2",
     "@vercel/microfrontends": "^2.4.0",
     "drizzle-orm": "^0.45.2",

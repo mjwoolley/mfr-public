@@ -12,6 +12,14 @@ import { users } from '@mfr/auth'
 // `process.env.DATABASE_URL = ...` assignment does not reliably work).
 vi.mock('../../lib/auth/config', () => ({ auth: vi.fn() }))
 
+// POST sends a notification email after commit; mock the notifications
+// module so this file neither queries the identity DB nor calls SES.
+vi.mock('../../lib/notifications', () => ({
+  sendReservationCreatedEmail: vi.fn(),
+  sendReservationUpdatedEmail: vi.fn(),
+  sendReservationCancelledEmail: vi.fn(),
+}))
+
 import { auth } from '../../lib/auth/config'
 import { POST } from '../../app/reservations/api/reservations/route'
 
