@@ -120,6 +120,16 @@ production data, without touching the family's real data or email.
   the staging deploy, the same way merging `main` is the prod deploy. Keep staging
   mirroring prod by merging `main → staging` after a release; or push a feature
   branch to `staging` first to smoke-test it live before it reaches `main`.
+- **Build gate.** Each project's Vercel _Ignored Build Step_ is
+  `if [ "$VERCEL_ENV" == "production" ] || [ "$VERCEL_GIT_COMMIT_REF" == "staging" ]; then exit 1; else exit 0; fi`
+  — it builds production and the `staging` branch, and skips every other preview
+  branch (so random PR previews don't deploy). If a staging push shows up
+  "Canceled" with a 0 ms build, this setting is why — confirm the branch is
+  literally `staging`.
+- **Privacy.** The staging deployments sit behind Vercel Deployment Protection
+  (Vercel Authentication), so only signed-in Vercel team members can open the
+  URLs. Fine for solo testing; add a Protection Bypass or relax it if the family
+  needs to reach staging directly.
 - **Env vars (Vercel, scoped to Preview → the `staging` branch, ×3 apps).** A full
   set with staging values: the `staging` Neon DB URLs; the shared identity
   `staging` URLs and a **staging-only** `AUTH_SECRET` (identical across the three,
@@ -138,10 +148,16 @@ production data, without touching the family's real data or email.
   (Drizzle) need the same manual `drizzle-kit push` against the `staging` branch
   that production requires — or just re-run the refresh script to re-fork the
   schema from prod.
-- **OAuth / DNS (one-time console setup).** The staging redirect URIs
-  (`https://<app>.staging.millerfamilyreunions.org/<basePath>/callback/google`)
-  must be registered on the Google OAuth client, and the
-  `*.staging.millerfamilyreunions.org` DNS records pointed at Vercel.
+- **OAuth / DNS / domains (one-time console setup).**
+  - Google OAuth client → Authorized redirect URIs (basePath differs per app):
+    `https://staging.millerfamilyreunions.org/api/auth/callback/google`,
+    `https://reservations.staging.millerfamilyreunions.org/reservations/api/auth/callback/google`,
+    `https://accounting.staging.millerfamilyreunions.org/accounting/api/auth/callback/google`;
+    add the three hosts to Authorized JavaScript origins too.
+  - Vercel: assign each staging subdomain to the project's `staging` branch
+    (Project → Settings → Domains → add domain → Git branch `staging`).
+  - DNS: point `staging`, `reservations.staging`, `accounting.staging`
+    (under millerfamilyreunions.org) at Vercel per its instructions.
 
 ### Shared packages (`packages/ui`, `packages/auth`)
 

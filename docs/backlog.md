@@ -145,25 +145,29 @@ easy way for members to contribute pictures.
 album; moderation (any review before a photo appears?); storage cost/limits;
 whether albums/tags are needed or one flat gallery is enough to start.
 
-### 5. Online staging environment — remaining one-time infra setup
+### 5. Online staging environment — remaining one-time console setup
 
-The repo side is done (env-driven cross-app URLs, `ADDITIONAL_ALLOWED_ORIGINS`,
-distinct staging session cookie, `refresh-dev-from-prod.sh --target staging`, and
-the full write-up in [workflow.md](workflow.md#staging-environment-test-the-deployed-site)).
-What's left is console/infra work that needs Neon / Vercel / Google / DNS access —
-delete this item once staging is live:
+Repo + most infra are done. **Done:** env-driven cross-app URLs,
+`ADDITIONAL_ALLOWED_ORIGINS`, distinct staging session cookie,
+`refresh-dev-from-prod.sh --target staging`, the full
+[workflow.md](workflow.md#staging-environment-test-the-deployed-site) write-up;
+the three Neon `staging` branches (forked from prod, IDs in the refresh script);
+the long-lived `staging` git branch; the staging env-var set on all three Vercel
+projects (Preview → `staging`); the per-project Ignored Build Step updated to
+build the `staging` branch. All three staging previews build green.
 
-- **Neon:** create a persistent `staging` branch (fork of `production`) in each of
-  the three projects; paste the branch ids into the `PROJECTS` table in
-  `scripts/refresh-dev-from-prod.sh` (currently empty placeholders).
-- **Vercel:** create the long-lived `staging` git branch; assign each app's staging
-  subdomain to that branch's preview deploys; add the staging env-var set scoped to
-  Preview → `staging` (see workflow.md for the full list).
-- **Google OAuth:** register the staging redirect URIs / JS origins.
-- **DNS:** point `*.staging.millerfamilyreunions.org` at Vercel.
-- **Seed:** run `./scripts/refresh-dev-from-prod.sh --target staging`, then deploy
-  the `staging` branch and smoke-test (auth SSO across the three staging subdomains,
-  cross-app links stay on staging, email redirects to `EMAIL_OVERRIDE_TO`).
+**What's left (needs Google / DNS / Vercel-dashboard access) — delete this item
+once staging is live and end-to-end tested:**
+
+- **Google OAuth:** add the three staging redirect URIs + JS origins to the OAuth
+  client (exact URIs in workflow.md → Staging environment).
+- **DNS + Vercel domains:** point `staging`, `reservations.staging`,
+  `accounting.staging` (under millerfamilyreunions.org) at Vercel and assign each
+  to its project's `staging` branch.
+- **Then verify:** sign in on staging, SSO across the three subdomains, cross-app
+  links stay on staging, a triggered email lands at `EMAIL_OVERRIDE_TO`, prod data
+  untouched. (Optional: relax Vercel Deployment Protection if the family needs
+  direct access — today the staging URLs require a Vercel login.)
 
 ## Defects
 
