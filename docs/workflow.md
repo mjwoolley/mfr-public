@@ -70,6 +70,21 @@ restores the previous deployment; `git revert` the commit afterward (via a PR).
   `migrate deploy` (and drizzle-kit for reservations/identity) against it
   after adding migrations.
 
+### Refreshing dev with production data
+
+When you want local dev to run against a fresh copy of real data, run
+`./scripts/refresh-dev-from-prod.sh` (needs `NEON_API_KEY` and a PG17+
+`pg_dump`/`pg_restore` — see the script header). It snapshots each `dev` branch
+to `backup-dev-<timestamp>`, then replaces its contents with a dump of
+`production`. Production is only read; the dev branch IDs don't change, so local
+`.env` files keep working. Note this **overwrites** any local-only data you'd
+set up in dev.
+
+Because dev then holds real family emails, the accounting app's `sendEmail`
+never delivers to real recipients outside production: only prod sets
+`EMAIL_ENABLED=true`; everywhere else mail is redirected to `EMAIL_OVERRIDE_TO`
+(or dropped). Keep `EMAIL_ENABLED` unset in every local/dev env.
+
 ### Shared packages (`packages/ui`, `packages/auth`)
 
 A change there ships to all three apps at once — verify all three, not just

@@ -9,9 +9,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:reservations": "npm run dev -w apps/reservations",
-    "dev:accounting": "npm run dev -w apps/accounting",
-    "dev:web": "npm run dev -w apps/web",
+    "dev:reservations": "npm run dev -w apps/reservations -- -p 3000",
+    "dev:accounting": "npm run dev -w apps/accounting -- -p 3001",
+    "dev:web": "npm run dev -w apps/web -- -p 3002",
+    "dev:all": "concurrently -k -n reservations,accounting,web -c cyan,yellow,magenta \"npm run dev:reservations\" \"npm run dev:accounting\" \"npm run dev:web\"",
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
@@ -28,6 +29,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
+    "concurrently": "^10.0.3",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "postgres": "^3.4.9",
