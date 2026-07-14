@@ -101,9 +101,9 @@ describe("computeIncomeExpenseChart", () => {
   it("omits zero-value bars instead of drawing empty rects", () => {
     // 2019 has no expenses and 2026 has no capital — no bars for those.
     expect(chart.bars.filter((b) => b.h === 0)).toEqual([]);
-    expect(
-      chart.bars.some((b) => b.title.startsWith("FY2026") && b.kind === "capital"),
-    ).toBe(false);
+    expect(chart.bars.some((b) => b.title.startsWith("FY2026") && b.kind === "capital")).toBe(
+      false,
+    );
   });
 
   it("gives every bar and dot an exact-figure tooltip title", () => {

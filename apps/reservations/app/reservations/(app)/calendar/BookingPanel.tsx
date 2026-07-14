@@ -109,10 +109,7 @@ export function BookingPanel({
         </div>
       </div>
       {nights > 0 && validation.valid && (
-        <div
-          className="text-sm font-semibold"
-          style={{ color: 'var(--color-accent-2-700)' }}
-        >
+        <div className="text-sm font-semibold" style={{ color: 'var(--color-accent-2-700)' }}>
           {nights} night{nights === 1 ? '' : 's'} at the cabin
         </div>
       )}

@@ -11,12 +11,7 @@ export function nightsBetween(startDate: string, endDate: string): number {
   return Math.round((end.getTime() - start.getTime()) / msPerNight)
 }
 
-export function rangesOverlap(
-  aStart: string,
-  aEnd: string,
-  bStart: string,
-  bEnd: string
-): boolean {
+export function rangesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string): boolean {
   // Half-open ranges [aStart, aEnd) and [bStart, bEnd): overlap iff each
   // range starts before the other ends.
   return aStart < bEnd && bStart < aEnd

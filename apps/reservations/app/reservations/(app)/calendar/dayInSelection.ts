@@ -21,7 +21,7 @@ export function isDayInSelection(
   date: string,
   selectionStart: string | null,
   selectionEnd: string | null,
-  hoverDate: string | null
+  hoverDate: string | null,
 ): boolean {
   if (!selectionStart) {
     return false

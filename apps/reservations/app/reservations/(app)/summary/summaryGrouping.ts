@@ -35,7 +35,10 @@ export interface UserSummaryGroup {
  * `today` is an explicit parameter (rather than read internally from
  * `Date.now()`) so this function stays pure and deterministic for testing.
  */
-export function groupByUser(reservationsList: SummaryReservation[], today: string): UserSummaryGroup[] {
+export function groupByUser(
+  reservationsList: SummaryReservation[],
+  today: string,
+): UserSummaryGroup[] {
   const groups = new Map<string, UserSummaryGroup>()
 
   for (const r of reservationsList) {

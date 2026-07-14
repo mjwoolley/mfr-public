@@ -77,7 +77,10 @@ export default async function DashboardPage() {
           <div className="text-muted text-xs tracking-[0.06em] uppercase">
             Shares currently owned
           </div>
-          <div className="mt-2 text-[44px] leading-[1.05]" style={{ fontFamily: "var(--font-heading)" }}>
+          <div
+            className="mt-2 text-[44px] leading-[1.05]"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
             {usd0(Number(balance))}
           </div>
           <div className="text-muted mt-1 text-[13px]">$1 contributed = 1 share</div>
@@ -86,7 +89,10 @@ export default async function DashboardPage() {
           className="card elev-sm min-w-[240px] flex-1 px-6 py-6"
           style={{ background: "var(--color-accent-2-100)" }}
         >
-          <div className="text-xs tracking-[0.06em] uppercase" style={{ color: "var(--color-accent-2-800)" }}>
+          <div
+            className="text-xs tracking-[0.06em] uppercase"
+            style={{ color: "var(--color-accent-2-800)" }}
+          >
             Your ownership
           </div>
           <div
@@ -215,7 +221,8 @@ export default async function DashboardPage() {
                       }}
                     >
                       <p className="m-0">
-                        <span className="font-semibold">Your dispute:</span> {approval.disputeReason}
+                        <span className="font-semibold">Your dispute:</span>{" "}
+                        {approval.disputeReason}
                       </p>
                       {approval.resolvedAt ? (
                         <p className="m-0 mt-1" style={{ color: "var(--color-accent-700)" }}>

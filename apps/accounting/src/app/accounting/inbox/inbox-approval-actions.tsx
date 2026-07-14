@@ -49,7 +49,11 @@ export function InboxApprovalActions({ approvalId }: { approvalId: string }) {
       <button
         type="button"
         disabled={pending}
-        onClick={() => startTransition(async () => { await confirmTransaction(approvalId); })}
+        onClick={() =>
+          startTransition(async () => {
+            await confirmTransaction(approvalId);
+          })
+        }
         className="btn btn-primary"
       >
         Confirm

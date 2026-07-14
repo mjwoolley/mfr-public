@@ -23,15 +23,24 @@ export function IncomeExpenseChart({ data }: { data: YearFinancials[] }) {
     <>
       <div className="mt-2.5 mb-4 flex flex-wrap gap-4">
         <span className="flex items-center gap-[7px] text-[13px]">
-          <span className="h-[13px] w-[13px] rounded" style={{ background: SERIES_COLORS.contributions }} />
+          <span
+            className="h-[13px] w-[13px] rounded"
+            style={{ background: SERIES_COLORS.contributions }}
+          />
           Contributions in
         </span>
         <span className="flex items-center gap-[7px] text-[13px]">
-          <span className="h-[13px] w-[13px] rounded" style={{ background: SERIES_COLORS.operating }} />
+          <span
+            className="h-[13px] w-[13px] rounded"
+            style={{ background: SERIES_COLORS.operating }}
+          />
           Operating expenses
         </span>
         <span className="flex items-center gap-[7px] text-[13px]">
-          <span className="h-[13px] w-[13px] rounded" style={{ background: SERIES_COLORS.capital }} />
+          <span
+            className="h-[13px] w-[13px] rounded"
+            style={{ background: SERIES_COLORS.capital }}
+          />
           Capital investment
         </span>
         <span className="flex items-center gap-[7px] text-[13px]">
@@ -40,14 +49,39 @@ export function IncomeExpenseChart({ data }: { data: YearFinancials[] }) {
         </span>
       </div>
 
-      <svg viewBox="0 0 660 240" width="100%" style={{ height: "auto", overflow: "visible", display: "block" }}>
+      <svg
+        viewBox="0 0 660 240"
+        width="100%"
+        style={{ height: "auto", overflow: "visible", display: "block" }}
+      >
         {chart.gridTicks.map((tick, i) => (
           <g key={`tick-${i}`}>
-            <line x1={54} y1={tick.y} x2={598} y2={tick.y} stroke="var(--color-divider)" strokeWidth={1} />
-            <text x={46} y={tick.y} fontSize={11} fill={TICK_COLOR} textAnchor="end" dominantBaseline="middle">
+            <line
+              x1={54}
+              y1={tick.y}
+              x2={598}
+              y2={tick.y}
+              stroke="var(--color-divider)"
+              strokeWidth={1}
+            />
+            <text
+              x={46}
+              y={tick.y}
+              fontSize={11}
+              fill={TICK_COLOR}
+              textAnchor="end"
+              dominantBaseline="middle"
+            >
               {tick.leftLabel}
             </text>
-            <text x={606} y={tick.y} fontSize={11} fill={LINE_COLOR} textAnchor="start" dominantBaseline="middle">
+            <text
+              x={606}
+              y={tick.y}
+              fontSize={11}
+              fill={LINE_COLOR}
+              textAnchor="start"
+              dominantBaseline="middle"
+            >
               {tick.rightLabel}
             </text>
           </g>
@@ -80,7 +114,13 @@ export function IncomeExpenseChart({ data }: { data: YearFinancials[] }) {
             <circle cx={dot.cx} cy={dot.cy} r={11} fill="transparent" style={{ cursor: "default" }}>
               <title>{dot.title}</title>
             </circle>
-            <circle cx={dot.cx} cy={dot.cy} r={chart.dotR} fill={LINE_COLOR} style={{ pointerEvents: "none" }} />
+            <circle
+              cx={dot.cx}
+              cy={dot.cy}
+              r={chart.dotR}
+              fill={LINE_COLOR}
+              style={{ pointerEvents: "none" }}
+            />
           </g>
         ))}
         {chart.yearLabels.map((label) => (

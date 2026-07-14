@@ -20,13 +20,20 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (!auth.ok) return auth.response
 
   const { id } = await params
-  const { reservation, allowed } = await loadOwnedReservation(id, auth.session.user.id, auth.session.user.isReservationsAdmin)
+  const { reservation, allowed } = await loadOwnedReservation(
+    id,
+    auth.session.user.id,
+    auth.session.user.isReservationsAdmin,
+  )
   if (!reservation) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await request.json().catch(() => null)
   if (!body || typeof body.startDate !== 'string' || typeof body.endDate !== 'string') {
-    return NextResponse.json({ error: 'startDate and endDate (YYYY-MM-DD) are required' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'startDate and endDate (YYYY-MM-DD) are required' },
+      { status: 400 },
+    )
   }
   const { startDate, endDate } = body
 
@@ -92,8 +99,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   } catch (err) {
     if (isOverlapError(err)) {
       return NextResponse.json(
-        { error: 'Those dates were just booked or blocked by someone else. Please pick different dates.' },
-        { status: 409 }
+        {
+          error:
+            'Those dates were just booked or blocked by someone else. Please pick different dates.',
+        },
+        { status: 409 },
       )
     }
     logger.error({ err, id, startDate, endDate }, 'failed to edit reservation')
@@ -101,12 +111,19 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const auth = await requireApprovedUser()
   if (!auth.ok) return auth.response
 
   const { id } = await params
-  const { reservation, allowed } = await loadOwnedReservation(id, auth.session.user.id, auth.session.user.isReservationsAdmin)
+  const { reservation, allowed } = await loadOwnedReservation(
+    id,
+    auth.session.user.id,
+    auth.session.user.isReservationsAdmin,
+  )
   if (!reservation) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 

@@ -6,11 +6,7 @@ import { identityDb } from "@/lib/identityDb";
 import { EditShareholderForm } from "./edit-shareholder-form";
 import { LinkLoginControl } from "./link-login-control";
 
-export default async function EditShareholderPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function EditShareholderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const shareholder = await prisma.shareholder.findUnique({ where: { id } });
   if (!shareholder) notFound();

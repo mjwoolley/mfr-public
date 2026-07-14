@@ -36,7 +36,10 @@ export function AdminSettingsCards({
 
   return (
     <div className="mb-6 flex flex-col gap-3">
-      <div className="card elev-sm flex-wrap bg-white px-5 py-4" style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+      <div
+        className="card elev-sm flex-wrap bg-white px-5 py-4"
+        style={{ flexDirection: "row", alignItems: "center", gap: 16 }}
+      >
         <div className="min-w-[200px] flex-1">
           <div className="text-base" style={{ fontFamily: "var(--font-heading)" }}>
             Contributions tab visibility
@@ -47,7 +50,10 @@ export function AdminSettingsCards({
               : "Only admins can open the Contributions tab. Shareholders still see their dashboard, ownership and expenses."}
           </div>
         </div>
-        <div className="seg" style={{ background: "var(--color-surface)", opacity: visibilityPending ? 0.6 : 1 }}>
+        <div
+          className="seg"
+          style={{ background: "var(--color-surface)", opacity: visibilityPending ? 0.6 : 1 }}
+        >
           <label className="seg-opt">
             <input
               type="radio"
@@ -116,13 +122,19 @@ export function AdminSettingsCards({
             {goalPending ? "Saving…" : "Save goal"}
           </button>
           {goalState?.saved && (
-            <span className="text-[13px] font-semibold" style={{ color: "var(--color-accent-2-700)" }}>
+            <span
+              className="text-[13px] font-semibold"
+              style={{ color: "var(--color-accent-2-700)" }}
+            >
               Saved.
             </span>
           )}
         </div>
         {goalState?.error && (
-          <p className="m-0 w-full text-[13px] font-semibold" style={{ color: "var(--color-accent-800)" }}>
+          <p
+            className="m-0 w-full text-[13px] font-semibold"
+            style={{ color: "var(--color-accent-800)" }}
+          >
             {goalState.error}
           </p>
         )}

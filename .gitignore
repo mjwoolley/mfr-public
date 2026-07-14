@@ -7,3 +7,6 @@ node_modules/
 .DS_Store
 .vercel
 .superpowers/
+.husky/_/
+test-results/
+playwright-report/

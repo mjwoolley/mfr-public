@@ -33,7 +33,7 @@ export function createAuthConfig(opts: CreateAuthConfigOptions): NextAuthConfig 
     // Host-only session cookies silently break cross-subdomain SSO — every
     // production app must set AUTH_COOKIE_DOMAIN (.millerfamilyreunions.org).
     console.warn(
-      '[auth] cookieDomain is unset: the session cookie will be host-only and sign-in will NOT be shared across millerfamilyreunions.org subdomains.'
+      '[auth] cookieDomain is unset: the session cookie will be host-only and sign-in will NOT be shared across millerfamilyreunions.org subdomains.',
     )
   }
   return {
@@ -86,7 +86,10 @@ export function createAuthConfig(opts: CreateAuthConfigOptions): NextAuthConfig 
     events: {
       async linkAccount({ user, account }) {
         if (account.provider === 'google' && user.id) {
-          await opts.db.update(users).set({ googleSub: account.providerAccountId }).where(eq(users.id, user.id))
+          await opts.db
+            .update(users)
+            .set({ googleSub: account.providerAccountId })
+            .where(eq(users.id, user.id))
         }
       },
       async createUser({ user }) {

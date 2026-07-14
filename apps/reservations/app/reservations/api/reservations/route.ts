@@ -18,7 +18,10 @@ export async function GET(request: NextRequest) {
   const from = searchParams.get('from')
   const to = searchParams.get('to')
   if (!from || !to) {
-    return NextResponse.json({ error: 'Query params "from" and "to" (YYYY-MM-DD) are required' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'Query params "from" and "to" (YYYY-MM-DD) are required' },
+      { status: 400 },
+    )
   }
 
   const rows = await db
@@ -34,8 +37,8 @@ export async function GET(request: NextRequest) {
       and(
         eq(reservations.status, 'confirmed'),
         lt(reservations.startDate, to),
-        gte(reservations.endDate, from)
-      )
+        gte(reservations.endDate, from),
+      ),
     )
 
   // users lives in the separate shared identity database now — no SQL-level
@@ -43,7 +46,12 @@ export async function GET(request: NextRequest) {
   // and merge in application code.
   const userIds = [...new Set(rows.map((r) => r.userId))]
   const userRows =
-    userIds.length > 0 ? await identityDb.select({ id: users.id, name: users.name }).from(users).where(inArray(users.id, userIds)) : []
+    userIds.length > 0
+      ? await identityDb
+          .select({ id: users.id, name: users.name })
+          .from(users)
+          .where(inArray(users.id, userIds))
+      : []
   const nameById = new Map(userRows.map((u) => [u.id, u.name]))
 
   const withNames = rows.map((r) => ({ ...r, userName: nameById.get(r.userId) ?? null }))
@@ -57,7 +65,10 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json().catch(() => null)
   if (!body || typeof body.startDate !== 'string' || typeof body.endDate !== 'string') {
-    return NextResponse.json({ error: 'startDate and endDate (YYYY-MM-DD) are required' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'startDate and endDate (YYYY-MM-DD) are required' },
+      { status: 400 },
+    )
   }
 
   const userId = auth.session.user.id
@@ -117,8 +128,11 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     if (isOverlapError(err)) {
       return NextResponse.json(
-        { error: 'Those dates were just booked or blocked by someone else. Please pick different dates.' },
-        { status: 409 }
+        {
+          error:
+            'Those dates were just booked or blocked by someone else. Please pick different dates.',
+        },
+        { status: 409 },
       )
     }
     logger.error({ err, userId, startDate, endDate }, 'failed to create reservation')

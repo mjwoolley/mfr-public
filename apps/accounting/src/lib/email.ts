@@ -24,9 +24,7 @@ export function appUrl(path: string) {
  */
 export function resolveRecipient(
   to: string,
-):
-  | { deliver: true; to: string; redirectedFrom?: string }
-  | { deliver: false; reason: string } {
+): { deliver: true; to: string; redirectedFrom?: string } | { deliver: false; reason: string } {
   if (process.env.EMAIL_ENABLED === "true") {
     return { deliver: true, to };
   }

@@ -18,7 +18,10 @@ export interface CalendarSelection {
  *   validateReservation.ts, the API route, the DB).
  * - Third click (a selection is already complete): starts a new selection.
  */
-export function computeSelectionAfterClick(current: CalendarSelection, clicked: string): CalendarSelection {
+export function computeSelectionAfterClick(
+  current: CalendarSelection,
+  clicked: string,
+): CalendarSelection {
   if (!current.selectionStart) {
     return { selectionStart: clicked, selectionEnd: null }
   }

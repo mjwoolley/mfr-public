@@ -46,7 +46,12 @@ export async function GET() {
   // and merge in application code.
   const userIds = [...new Set(rows.map((r) => r.userId))]
   const userRows =
-    userIds.length > 0 ? await identityDb.select({ id: users.id, name: users.name }).from(users).where(inArray(users.id, userIds)) : []
+    userIds.length > 0
+      ? await identityDb
+          .select({ id: users.id, name: users.name })
+          .from(users)
+          .where(inArray(users.id, userIds))
+      : []
   const nameById = new Map(userRows.map((u) => [u.id, u.name]))
 
   const withNames = rows.map((r) => ({ ...r, userName: nameById.get(r.userId) ?? null }))

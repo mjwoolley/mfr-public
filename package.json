@@ -1,6 +1,9 @@
 {
   "name": "mfr",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -12,9 +15,24 @@
     "dev:all": "concurrently -k -n reservations,accounting,web -c cyan,yellow,magenta \"npm run dev:reservations\" \"npm run dev:accounting\" \"npm run dev:web\"",
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:coverage": "npm run test:coverage --workspaces --if-present",
+    "test:integration": "npm run test:integration --workspaces --if-present",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "e2e": "playwright test",
+    "prepare": "husky || true"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,mjs,json,css,md,yml,yaml}": "prettier --write"
   },
   "devDependencies": {
-    "concurrently": "^10.0.3"
+    "@playwright/test": "^1.61.1",
+    "concurrently": "^10.0.3",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "postgres": "^3.4.9",
+    "prettier": "^3.9.5"
   }
 }

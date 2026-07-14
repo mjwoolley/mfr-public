@@ -5,6 +5,12 @@ export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
     environment: 'node',
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json-summary'],
+      reportsDirectory: './coverage',
+      exclude: ['drizzle/**', 'tests/**', '**/*.test.ts', '**/*.config.*', '.next/**'],
+    },
     projects: [
       {
         plugins: [tsconfigPaths()],

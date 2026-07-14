@@ -23,11 +23,12 @@ export function PortalHeader({ appName, appHref, children }: PortalHeaderProps) 
     <header>
       <nav className="nav mx-auto max-w-5xl flex-wrap gap-y-2 px-4 pt-5 pb-2.5 sm:px-7">
         <span className="mr-auto flex items-center gap-3">
-          <a href={HOME_URL} className="flex shrink-0 items-center gap-3" style={{ color: 'inherit' }}>
-            <RidgelineMark
-              className="h-[30px] w-[30px]"
-              style={{ color: 'var(--color-accent)' }}
-            />
+          <a
+            href={HOME_URL}
+            className="flex shrink-0 items-center gap-3"
+            style={{ color: 'inherit' }}
+          >
+            <RidgelineMark className="h-[30px] w-[30px]" style={{ color: 'var(--color-accent)' }} />
             <span className="nav-brand" style={{ marginRight: 0 }}>
               <span className="hidden sm:inline">Miller Family Reunions</span>
               <span className="sm:hidden">MFR</span>
@@ -39,9 +40,7 @@ export function PortalHeader({ appName, appHref, children }: PortalHeaderProps) 
             </a>
           )}
         </span>
-        {children && (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">{children}</div>
-        )}
+        {children && <div className="flex flex-wrap items-center gap-x-4 gap-y-2">{children}</div>}
       </nav>
     </header>
   )

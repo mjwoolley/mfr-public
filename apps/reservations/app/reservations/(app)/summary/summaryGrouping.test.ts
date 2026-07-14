@@ -17,25 +17,37 @@ function makeReservation(overrides: Partial<SummaryReservation> = {}): SummaryRe
 
 describe('groupByUser', () => {
   it('classifies a reservation ending before today as past', () => {
-    const groups = groupByUser([makeReservation({ startDate: '2027-06-01', endDate: '2027-06-05' })], today)
+    const groups = groupByUser(
+      [makeReservation({ startDate: '2027-06-01', endDate: '2027-06-05' })],
+      today,
+    )
     expect(groups[0].past).toHaveLength(1)
     expect(groups[0].upcoming).toHaveLength(0)
   })
 
   it('classifies a reservation ending exactly on today as past (fully checked out)', () => {
-    const groups = groupByUser([makeReservation({ startDate: '2027-07-06', endDate: today })], today)
+    const groups = groupByUser(
+      [makeReservation({ startDate: '2027-07-06', endDate: today })],
+      today,
+    )
     expect(groups[0].past).toHaveLength(1)
     expect(groups[0].upcoming).toHaveLength(0)
   })
 
   it('classifies a reservation starting after today as upcoming', () => {
-    const groups = groupByUser([makeReservation({ startDate: '2027-08-01', endDate: '2027-08-05' })], today)
+    const groups = groupByUser(
+      [makeReservation({ startDate: '2027-08-01', endDate: '2027-08-05' })],
+      today,
+    )
     expect(groups[0].upcoming).toHaveLength(1)
     expect(groups[0].past).toHaveLength(0)
   })
 
   it('classifies an in-progress stay (today falls inside the range) as upcoming, not past', () => {
-    const groups = groupByUser([makeReservation({ startDate: '2027-07-08', endDate: '2027-07-12' })], today)
+    const groups = groupByUser(
+      [makeReservation({ startDate: '2027-07-08', endDate: '2027-07-12' })],
+      today,
+    )
     expect(groups[0].upcoming).toHaveLength(1)
     expect(groups[0].past).toHaveLength(0)
   })
@@ -43,10 +55,20 @@ describe('groupByUser', () => {
   it('excludes cancelled reservations entirely, including from subtotals', () => {
     const groups = groupByUser(
       [
-        makeReservation({ id: 'r1', status: 'cancelled', startDate: '2027-08-01', endDate: '2027-08-05' }),
-        makeReservation({ id: 'r2', status: 'confirmed', startDate: '2027-08-10', endDate: '2027-08-12' }),
+        makeReservation({
+          id: 'r1',
+          status: 'cancelled',
+          startDate: '2027-08-01',
+          endDate: '2027-08-05',
+        }),
+        makeReservation({
+          id: 'r2',
+          status: 'confirmed',
+          startDate: '2027-08-10',
+          endDate: '2027-08-12',
+        }),
       ],
-      today
+      today,
     )
     expect(groups).toHaveLength(1)
     expect(groups[0].upcoming.map((r) => r.id)).toEqual(['r2'])
@@ -65,7 +87,7 @@ describe('groupByUser', () => {
         makeReservation({ id: 'r2', startDate: '2027-08-01', endDate: '2027-08-04' }), // upcoming, 3 nights
         makeReservation({ id: 'r3', startDate: '2027-09-01', endDate: '2027-09-03' }), // upcoming, 2 nights
       ],
-      today
+      today,
     )
     expect(groups[0].pastNights).toBe(4)
     expect(groups[0].upcomingNights).toBe(5)
@@ -80,7 +102,7 @@ describe('groupByUser', () => {
         makeReservation({ id: 'past-older', startDate: '2027-01-01', endDate: '2027-01-03' }),
         makeReservation({ id: 'past-newer', startDate: '2027-06-01', endDate: '2027-06-03' }),
       ],
-      today
+      today,
     )
     expect(groups[0].upcoming.map((r) => r.id)).toEqual(['up-sooner', 'up-later'])
     expect(groups[0].past.map((r) => r.id)).toEqual(['past-newer', 'past-older'])
@@ -89,10 +111,22 @@ describe('groupByUser', () => {
   it('groups separate users and sorts groups alphabetically by name', () => {
     const groups = groupByUser(
       [
-        makeReservation({ id: 'r1', userId: 'u-zed', userName: 'Zed', startDate: '2027-08-01', endDate: '2027-08-02' }),
-        makeReservation({ id: 'r2', userId: 'u-amy', userName: 'Amy', startDate: '2027-08-01', endDate: '2027-08-02' }),
+        makeReservation({
+          id: 'r1',
+          userId: 'u-zed',
+          userName: 'Zed',
+          startDate: '2027-08-01',
+          endDate: '2027-08-02',
+        }),
+        makeReservation({
+          id: 'r2',
+          userId: 'u-amy',
+          userName: 'Amy',
+          startDate: '2027-08-01',
+          endDate: '2027-08-02',
+        }),
       ],
-      today
+      today,
     )
     expect(groups.map((g) => g.userName)).toEqual(['Amy', 'Zed'])
   })

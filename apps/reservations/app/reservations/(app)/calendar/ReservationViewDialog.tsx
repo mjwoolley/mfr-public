@@ -48,19 +48,13 @@ export function ReservationViewDialog({
   return (
     <ModalDialog title="Reservation" onClose={onClose}>
       <div className="flex items-center gap-2.5">
-        <span
-          className="h-3 w-3 flex-none rounded-full"
-          style={{ background: tone.bar }}
-        />
+        <span className="h-3 w-3 flex-none rounded-full" style={{ background: tone.bar }} />
         <span className="text-xl" style={{ fontFamily: 'var(--font-heading)' }}>
           {reservation.userName ?? 'Family'}
         </span>
         <span className={tone.tagClass}>{tone.tagLabel}</span>
       </div>
-      <div
-        className="text-[26px] leading-tight"
-        style={{ fontFamily: 'var(--font-heading)' }}
-      >
+      <div className="text-[26px] leading-tight" style={{ fontFamily: 'var(--font-heading)' }}>
         {niceRange(reservation.startDate, reservation.endDate)}
       </div>
       <div>

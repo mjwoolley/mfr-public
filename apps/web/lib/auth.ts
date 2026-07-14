@@ -6,16 +6,11 @@ import { identityDb } from './identityDb'
 // landing page — it has no business-DB fields to attach (no
 // `extendSession`) and never sees a brand-new identity row first
 // (no `onUserCreated`; reservations/accounting own that).
-export const {
-  handlers,
-  auth,
-  signIn,
-  signOut,
-} = NextAuth(
+export const { handlers, auth, signIn, signOut } = NextAuth(
   createAuthConfig({
     db: identityDb,
     basePath: '/api/auth',
     cookieDomain: process.env.AUTH_COOKIE_DOMAIN,
     pages: { signIn: '/sign-in' },
-  })
+  }),
 )

@@ -74,7 +74,8 @@ const usd0 = (n: number) =>
 const signed = (n: number) => (n === 0 ? "$0" : (n > 0 ? "+" : "") + usd0(n));
 
 /** "$0" / "$5k" / "-$10k" axis labels. */
-const kfmt = (v: number) => (v === 0 ? "$0" : `${v < 0 ? "-" : ""}$${Math.round(Math.abs(v) / 1000)}k`);
+const kfmt = (v: number) =>
+  v === 0 ? "$0" : `${v < 0 ? "-" : ""}$${Math.round(Math.abs(v) / 1000)}k`;
 
 function expensesOf(y: YearFinancials): number {
   return y.operating + y.capital;

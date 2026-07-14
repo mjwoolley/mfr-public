@@ -37,10 +37,10 @@ function EntryLine({
         className="flex-1"
         style={{ color: "color-mix(in srgb, var(--color-text) 80%, transparent)" }}
       >
-        {showWho ? `${entry.shareholderName}${entry.description ? ` — ${entry.description}` : ""}` : (entry.description ?? "")}
-        {entry.deleted && (
-          <span className="no-underline text-muted"> (corrected)</span>
-        )}
+        {showWho
+          ? `${entry.shareholderName}${entry.description ? ` — ${entry.description}` : ""}`
+          : (entry.description ?? "")}
+        {entry.deleted && <span className="no-underline text-muted"> (corrected)</span>}
       </span>
       <span
         className="font-semibold"
@@ -101,7 +101,11 @@ export function ContributionsClient({
       {group === "shareholder" ? (
         <div className="flex flex-col gap-3.5">
           {perShareholder.map((p) => (
-            <div key={p.shareholderId} className="card elev-sm bg-white px-5 py-4" style={{ gap: 12 }}>
+            <div
+              key={p.shareholderId}
+              className="card elev-sm bg-white px-5 py-4"
+              style={{ gap: 12 }}
+            >
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-[19px]" style={{ fontFamily: "var(--font-heading)" }}>
                   {p.name}
@@ -110,8 +114,8 @@ export function ContributionsClient({
                   <span className="tag tag-accent px-2 py-0 text-[10px]">You</span>
                 )}
                 <span className="text-muted ml-auto text-[13px]">
-                  Contributed {usd0(p.contributed)} · Balance {usd0(p.balance)} ·{" "}
-                  {p.pct.toFixed(1)}%
+                  Contributed {usd0(p.contributed)} · Balance {usd0(p.balance)} · {p.pct.toFixed(1)}
+                  %
                 </span>
               </div>
               <div className="flex flex-col">

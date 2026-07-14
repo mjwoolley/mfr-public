@@ -10,7 +10,17 @@
   "scripts": {
     "generate": "drizzle-kit generate",
     "migrate": "drizzle-kit migrate",
-    "test": "vitest run"
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{js,mjs,json,css,md}": "prettier --write"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.2",
@@ -22,9 +32,12 @@
     "next": "^16.0.0"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.31.10",
+    "@vitest/coverage-v8": "^4.1.10",
     "dotenv": "^16.4.5",
+    "drizzle-kit": "^0.31.10",
+    "eslint": "^9",
     "typescript": "^5",
+    "typescript-eslint": "^8",
     "vitest": "^4.1.10"
   }
 }

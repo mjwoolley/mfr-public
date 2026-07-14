@@ -137,7 +137,8 @@ export default async function ExpensesPage() {
                   <td
                     className="num pt-3"
                     style={{
-                      color: totalNet >= 0 ? "var(--color-accent-2-800)" : "var(--color-accent-800)",
+                      color:
+                        totalNet >= 0 ? "var(--color-accent-2-800)" : "var(--color-accent-800)",
                     }}
                   >
                     {signed(totalNet)}

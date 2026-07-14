@@ -9,8 +9,8 @@ export default async function UnauthorizedPage() {
       <p className="max-w-md text-muted">
         {session?.user?.email ? (
           <>
-            <span className="font-mono">{session.user.email}</span>{" "}
-            isn&apos;t set up as a shareholder yet.
+            <span className="font-mono">{session.user.email}</span> isn&apos;t set up as a
+            shareholder yet.
           </>
         ) : (
           "You need to sign in."

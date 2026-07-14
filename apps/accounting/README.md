@@ -38,17 +38,17 @@ This applies the migration to the dev database and regenerates the Prisma client
 
 See `.env.example`. Summary:
 
-| Variable | Purpose |
-| --- | --- |
-| `DATABASE_URL` | Neon **pooled** connection string — used by the app at runtime |
-| `DIRECT_URL` | Neon **direct** (unpooled) connection string — used by Prisma CLI for migrations |
-| `AUTH_SECRET` | Auth.js session encryption key — generate with `openssl rand -base64 33` |
-| `AUTH_URL` | Base URL of the deployment (e.g. `https://your-app.vercel.app`) |
-| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google OAuth Web Client credentials |
-| `ADMIN_EMAILS` | Comma-separated emails that get the `ADMIN` role on first sign-in |
-| `RESEND_API_KEY` | Resend API key |
-| `EMAIL_FROM` | Sender address for notification emails |
-| `APP_BASE_URL` | Used to build links inside emails |
+| Variable                                | Purpose                                                                          |
+| --------------------------------------- | -------------------------------------------------------------------------------- |
+| `DATABASE_URL`                          | Neon **pooled** connection string — used by the app at runtime                   |
+| `DIRECT_URL`                            | Neon **direct** (unpooled) connection string — used by Prisma CLI for migrations |
+| `AUTH_SECRET`                           | Auth.js session encryption key — generate with `openssl rand -base64 33`         |
+| `AUTH_URL`                              | Base URL of the deployment (e.g. `https://your-app.vercel.app`)                  |
+| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google OAuth Web Client credentials                                              |
+| `ADMIN_EMAILS`                          | Comma-separated emails that get the `ADMIN` role on first sign-in                |
+| `RESEND_API_KEY`                        | Resend API key                                                                   |
+| `EMAIL_FROM`                            | Sender address for notification emails                                           |
+| `APP_BASE_URL`                          | Used to build links inside emails                                                |
 
 ## Setting up Google OAuth
 

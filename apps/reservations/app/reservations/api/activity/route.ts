@@ -30,13 +30,18 @@ export async function GET(request: NextRequest) {
         .where(lt(activityLog.createdAt, new Date(before)))
         .orderBy(desc(activityLog.createdAt))
         .limit(PAGE_SIZE)
-    : await db.select(selection).from(activityLog).orderBy(desc(activityLog.createdAt)).limit(PAGE_SIZE)
+    : await db
+        .select(selection)
+        .from(activityLog)
+        .orderBy(desc(activityLog.createdAt))
+        .limit(PAGE_SIZE)
 
   const allUsers = await identityDb.select({ id: users.id, name: users.name }).from(users)
   const userNames: Record<string, string | null> = {}
   for (const u of allUsers) userNames[u.id] = u.name
 
-  const nextCursor = rows.length === PAGE_SIZE ? rows[rows.length - 1].createdAt.toISOString() : null
+  const nextCursor =
+    rows.length === PAGE_SIZE ? rows[rows.length - 1].createdAt.toISOString() : null
 
   return NextResponse.json({ events: rows, users: userNames, nextCursor })
 }

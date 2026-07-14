@@ -39,7 +39,13 @@ async function makeAdmin(suffix: string) {
 
 function mockSessionFor(admin: { id: string; email: string }) {
   vi.mocked(auth).mockResolvedValue({
-    user: { id: admin.id, status: 'approved', isReservationsAdmin: true, isAccountingAdmin: false, email: admin.email },
+    user: {
+      id: admin.id,
+      status: 'approved',
+      isReservationsAdmin: true,
+      isAccountingAdmin: false,
+      email: admin.email,
+    },
     expires: '2099-01-01',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any)
@@ -53,7 +59,10 @@ afterEach(async () => {
     // booking_rules is a shared singleton row (id=1) that outlives any one
     // test's fixtures; its updated_by FK must be cleared before the actor
     // user who last patched it can be deleted.
-    await testDb.update(bookingRules).set({ updatedBy: null }).where(eq(bookingRules.updatedBy, userId))
+    await testDb
+      .update(bookingRules)
+      .set({ updatedBy: null })
+      .where(eq(bookingRules.updatedBy, userId))
     await testIdentityDb.delete(users).where(eq(users.id, userId))
   }
   createdUserIds.length = 0
@@ -75,12 +84,17 @@ describe('admin routes', () => {
       method: 'PATCH',
       body: JSON.stringify({ status: 'approved' }),
     })
-    const response = await patchUser(request as never, { params: Promise.resolve({ id: pending.id }) })
+    const response = await patchUser(request as never, {
+      params: Promise.resolve({ id: pending.id }),
+    })
     expect(response.status).toBe(200)
     const body = await response.json()
     expect(body.user.status).toBe('approved')
 
-    const activityRows = await testDb.select().from(activityLog).where(eq(activityLog.actorUserId, admin.id))
+    const activityRows = await testDb
+      .select()
+      .from(activityLog)
+      .where(eq(activityLog.actorUserId, admin.id))
     expect(activityRows.some((a) => a.eventType === 'user_approved')).toBe(true)
   })
 
@@ -90,12 +104,19 @@ describe('admin routes', () => {
 
     const request = new Request('http://localhost/api/admin/blocked-dates', {
       method: 'POST',
-      body: JSON.stringify({ startDate: '2027-11-01', endDate: '2027-11-05', reason: 'maintenance' }),
+      body: JSON.stringify({
+        startDate: '2027-11-01',
+        endDate: '2027-11-05',
+        reason: 'maintenance',
+      }),
     })
     const response = await postBlockedDate(request as never)
     expect(response.status).toBe(201)
 
-    const activityRows = await testDb.select().from(activityLog).where(eq(activityLog.actorUserId, admin.id))
+    const activityRows = await testDb
+      .select()
+      .from(activityLog)
+      .where(eq(activityLog.actorUserId, admin.id))
     expect(activityRows.some((a) => a.eventType === 'blocked_date_created')).toBe(true)
   })
 
@@ -105,10 +126,19 @@ describe('admin routes', () => {
 
     await testDb
       .insert(bookingRules)
-      .values({ id: 1, bookingHorizonDate: '2027-12-31', maxConsecutiveNights: 7, maxNightsPerUserPerYear: 14 })
+      .values({
+        id: 1,
+        bookingHorizonDate: '2027-12-31',
+        maxConsecutiveNights: 7,
+        maxNightsPerUserPerYear: 14,
+      })
       .onConflictDoUpdate({
         target: bookingRules.id,
-        set: { bookingHorizonDate: '2027-12-31', maxConsecutiveNights: 7, maxNightsPerUserPerYear: 14 },
+        set: {
+          bookingHorizonDate: '2027-12-31',
+          maxConsecutiveNights: 7,
+          maxNightsPerUserPerYear: 14,
+        },
       })
 
     const request = new Request('http://localhost/api/admin/booking-rules', {
@@ -120,10 +150,16 @@ describe('admin routes', () => {
     const body = await response.json()
     expect(body.bookingRules.maxConsecutiveNights).toBe(10)
 
-    const activityRows = await testDb.select().from(activityLog).where(eq(activityLog.actorUserId, admin.id))
+    const activityRows = await testDb
+      .select()
+      .from(activityLog)
+      .where(eq(activityLog.actorUserId, admin.id))
     const rulesEvent = activityRows.find((a) => a.eventType === 'booking_rules_updated')
     expect(rulesEvent).toBeDefined()
-    expect((rulesEvent!.metadata as { before: { maxConsecutiveNights: number } }).before.maxConsecutiveNights).toBe(7)
+    expect(
+      (rulesEvent!.metadata as { before: { maxConsecutiveNights: number } }).before
+        .maxConsecutiveNights,
+    ).toBe(7)
   })
 
   it('creates the booking rules row when none exists (bootstrap)', async () => {
@@ -170,7 +206,13 @@ describe('admin routes', () => {
     // reservations admin), proving the field-level permission check in the
     // PATCH handler — not just the outer requirePortalAdmin gate.
     vi.mocked(auth).mockResolvedValue({
-      user: { id: admin.id, status: 'approved', isReservationsAdmin: false, isAccountingAdmin: true, email: admin.email },
+      user: {
+        id: admin.id,
+        status: 'approved',
+        isReservationsAdmin: false,
+        isAccountingAdmin: true,
+        email: admin.email,
+      },
       expires: '2099-01-01',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any)
@@ -186,7 +228,9 @@ describe('admin routes', () => {
       method: 'PATCH',
       body: JSON.stringify({ isReservationsAdmin: true }),
     })
-    const response = await patchUser(request as never, { params: Promise.resolve({ id: target.id }) })
+    const response = await patchUser(request as never, {
+      params: Promise.resolve({ id: target.id }),
+    })
     expect(response.status).toBe(403)
 
     const [unchanged] = await testIdentityDb.select().from(users).where(eq(users.id, target.id))

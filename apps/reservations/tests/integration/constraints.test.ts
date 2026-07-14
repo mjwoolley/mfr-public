@@ -44,7 +44,7 @@ describe('database overlap constraints', () => {
         startDate: '2030-07-03',
         endDate: '2030-07-08',
         status: 'confirmed',
-      })
+      }),
     ).rejects.toMatchObject({ cause: { code: '23P01' } })
   })
 
@@ -64,7 +64,7 @@ describe('database overlap constraints', () => {
         startDate: '2030-08-05',
         endDate: '2030-08-08',
         status: 'confirmed',
-      })
+      }),
     ).resolves.toBeDefined()
   })
 
@@ -84,7 +84,7 @@ describe('database overlap constraints', () => {
         startDate: '2030-09-01',
         endDate: '2030-09-05',
         status: 'confirmed',
-      })
+      }),
     ).resolves.toBeDefined()
   })
 
@@ -106,8 +106,10 @@ describe('database overlap constraints', () => {
         startDate: '2030-10-05',
         endDate: '2030-10-06',
         status: 'confirmed',
-      })
-    ).rejects.toMatchObject({ cause: { message: expect.stringMatching(/reservation_overlaps_blocked_date/) } })
+      }),
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringMatching(/reservation_overlaps_blocked_date/) },
+    })
   })
 
   it('rejects a blocked date range overlapping an existing confirmed reservation', async () => {
@@ -126,8 +128,10 @@ describe('database overlap constraints', () => {
         endDate: '2030-11-04',
         reason: 'maintenance',
         createdBy: userId,
-      })
-    ).rejects.toMatchObject({ cause: { message: expect.stringMatching(/blocked_date_overlaps_reservation/) } })
+      }),
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringMatching(/blocked_date_overlaps_reservation/) },
+    })
   })
 
   it('enforces booking_rules as a singleton (id must be 1)', async () => {
@@ -137,7 +141,7 @@ describe('database overlap constraints', () => {
         bookingHorizonDate: '2030-12-31',
         maxConsecutiveNights: 7,
         maxNightsPerUserPerYear: 14,
-      })
+      }),
     ).rejects.toThrow()
   })
 })

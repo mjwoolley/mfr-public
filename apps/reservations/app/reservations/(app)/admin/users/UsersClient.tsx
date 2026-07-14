@@ -13,7 +13,10 @@ interface AdminUser {
   createdAt: string
 }
 
-type UserPatch = { status: 'approved' | 'blocked' } | { isReservationsAdmin: boolean } | { isAccountingAdmin: boolean }
+type UserPatch =
+  | { status: 'approved' | 'blocked' }
+  | { isReservationsAdmin: boolean }
+  | { isAccountingAdmin: boolean }
 
 interface UsersClientProps {
   actorIsReservationsAdmin: boolean
@@ -71,7 +74,10 @@ function UserRow({
         </div>
         <div className="text-muted text-[13px]">{user.email}</div>
         {rowError && (
-          <p className="m-0 mt-1 text-[13px] font-semibold" style={{ color: 'var(--color-accent-800)' }}>
+          <p
+            className="m-0 mt-1 text-[13px] font-semibold"
+            style={{ color: 'var(--color-accent-800)' }}
+          >
             {rowError}
           </p>
         )}
@@ -126,7 +132,10 @@ function UserRow({
   )
 }
 
-export function UsersClient({ actorIsReservationsAdmin, actorIsAccountingAdmin }: UsersClientProps) {
+export function UsersClient({
+  actorIsReservationsAdmin,
+  actorIsAccountingAdmin,
+}: UsersClientProps) {
   const queryClient = useQueryClient()
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [rowError, setRowError] = useState<{ id: string; message: string } | null>(null)
@@ -179,7 +188,10 @@ export function UsersClient({ actorIsReservationsAdmin, actorIsAccountingAdmin }
     <div>
       <p className="text-muted mb-4 text-sm">Approve pending signups and manage access.</p>
       <section className="mb-6">
-        <h2 className="text-muted mb-2 text-[11px] font-bold tracking-[0.08em] uppercase" style={{ fontFamily: 'var(--font-body)' }}>
+        <h2
+          className="text-muted mb-2 text-[11px] font-bold tracking-[0.08em] uppercase"
+          style={{ fontFamily: 'var(--font-body)' }}
+        >
           Pending approval
         </h2>
         {pending.length === 0 && <p className="text-muted text-sm">No pending users.</p>}
@@ -198,7 +210,10 @@ export function UsersClient({ actorIsReservationsAdmin, actorIsAccountingAdmin }
         </div>
       </section>
       <section>
-        <h2 className="text-muted mb-2 text-[11px] font-bold tracking-[0.08em] uppercase" style={{ fontFamily: 'var(--font-body)' }}>
+        <h2
+          className="text-muted mb-2 text-[11px] font-bold tracking-[0.08em] uppercase"
+          style={{ fontFamily: 'var(--font-body)' }}
+        >
           All users
         </h2>
         <div className="flex flex-col gap-2.5">
