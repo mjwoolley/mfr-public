@@ -209,7 +209,7 @@ describe("updateExpense — admin-only, date-preserving", () => {
 });
 
 describe("Reports figures — hand-computed against seeded data", () => {
-  it("Contributions by Year: groups CONTRIBUTION entries by the transaction's createdAt year", async () => {
+  it("Contributions by Year: groups CONTRIBUTION entries by the transaction's createdAt fiscal year", async () => {
     const holderA = await testDb.shareholder.create({
       data: { name: `Report Holder A ${Date.now()}`, email: `report-a-${Date.now()}@example.com` },
     });
@@ -218,9 +218,12 @@ describe("Reports figures — hand-computed against seeded data", () => {
     });
     createdShareholderIds.push(holderA.id, holderB.id);
 
-    // Two contributions in 2013 (100 + 50 = 150), one in 2014 (300).
-    // 2013/2014 are far from "today" (2026) so no other test's default-dated
-    // (now()) fixtures can collide with these totals.
+    // Two contributions in FY2013 (100 + 50 = 150), one in FY2014 (300).
+    // getContributionsByYear buckets by FISCAL year (Mar 1–end of Feb), so the
+    // dates are chosen to sit unambiguously inside their fiscal year — a Jan
+    // date would roll back into the previous FY. FY2013/FY2014 are also far
+    // from "today" (2026) so no other test's default-dated (now()) fixtures
+    // can collide with these totals.
     const tx1 = await testDb.transaction.create({
       data: {
         type: TransactionType.CONTRIBUTION,
@@ -240,7 +243,7 @@ describe("Reports figures — hand-computed against seeded data", () => {
     const tx3 = await testDb.transaction.create({
       data: {
         type: TransactionType.CONTRIBUTION,
-        createdAt: new Date("2014-01-01T00:00:00Z"),
+        createdAt: new Date("2014-06-01T00:00:00Z"),
         createdById: "seed-admin",
         entries: { create: { shareholderId: holderA.id, shares: 300 } },
       },
