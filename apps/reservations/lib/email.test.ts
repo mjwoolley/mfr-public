@@ -84,7 +84,7 @@ describe('sendEmail', () => {
 
   it('omits cc and replyTo when not provided', async () => {
     await sendEmail({ to: 'owner@example.com', cc: [], subject: 'Test', react })
-    const input = sentInput() as {
+    const input = sentInput() as unknown as {
       Destination: Record<string, unknown>
       ReplyToAddresses?: unknown
     }
@@ -133,7 +133,7 @@ describe('email guard (non-prod)', () => {
       subject: 'Reservation confirmed',
       react,
     })
-    const input = sentInput() as {
+    const input = sentInput() as unknown as {
       Destination: { ToAddresses: string[]; CcAddresses?: string[] }
       Content: { Simple: { Subject: { Data: string } } }
     }

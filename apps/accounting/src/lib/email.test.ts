@@ -151,7 +151,7 @@ describe("sendEmail (SES transport)", () => {
     vi.stubEnv("EMAIL_ENABLED", "");
     vi.stubEnv("EMAIL_OVERRIDE_TO", "test@example.com");
     await sendEmail({ to: "dbrown@gmail.com", subject: "Hi", react });
-    const input = sentInput() as {
+    const input = sentInput() as unknown as {
       Destination: { ToAddresses: string[] };
       Content: { Simple: { Subject: { Data: string } } };
     };
