@@ -6,21 +6,21 @@ version: 2
 updates:
   - package-ecosystem: npm
     directory: /
-    # Minor+patch land in one grouped PR; majors get their own (breaking
-    # changes deserve individual review). Cap concurrent PRs so a burst of
-    # major bumps can't flood CI.
     open-pull-requests-limit: 3
     schedule:
       interval: weekly
     groups:
+      # Everything shippable lands in a single weekly PR.
       minor-and-patch:
         update-types:
           - minor
           - patch
     ignore:
-      # @types/node is deliberately pinned to ^22 to match the Node 22 runtime
-      # (.nvmrc / engines); don't let Dependabot jump it to a newer major.
-      - dependency-name: '@types/node'
+      # Stay current on minor/patch, but never auto-propose a major-version
+      # jump — majors are breaking changes to adopt deliberately, not on
+      # Dependabot's schedule (this is what kept suggesting typescript 7,
+      # eslint 10, @types/node 26, etc.). Bump majors by hand when you choose.
+      - dependency-name: '*'
         update-types:
           - version-update:semver-major
   - package-ecosystem: github-actions
@@ -28,7 +28,10 @@ updates:
     open-pull-requests-limit: 3
     schedule:
       interval: weekly
-    # One PR for all action bumps instead of one per action.
+    # One grouped PR for all action bumps. Majors are NOT ignored here on
+    # purpose: actions are pinned by major tag (@v4), so major bumps are their
+    # normal, low-risk update cadence — ignoring them would freeze CI actions
+    # and let deprecations (e.g. the Node 20 runner sunset) pile up silently.
     groups:
       github-actions:
         patterns:
