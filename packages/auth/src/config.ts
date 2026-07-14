@@ -17,6 +17,14 @@ export interface CreateAuthConfigOptions {
    * browser-visible origin (host-only cookies already share in that case).
    */
   cookieDomain?: string
+  /**
+   * Overrides the session cookie's name. Left unset in production so Auth.js
+   * uses its default name. A second environment sharing a registrable domain
+   * with production (e.g. staging under *.staging.millerfamilyreunions.org)
+   * sets a distinct name so production's cookie — which rides along to every
+   * subdomain — is never mistaken for a staging session, and vice versa.
+   */
+  sessionCookieName?: string
   pages?: NextAuthConfig['pages']
   /** Runs once, when the Auth.js adapter creates a brand-new identity row. */
   onUserCreated?: (user: { id: string; email: string }) => Promise<void> | void
@@ -58,12 +66,13 @@ export function createAuthConfig(opts: CreateAuthConfigOptions): NextAuthConfig 
       }),
     ],
     session: { strategy: 'database' },
-    ...(opts.cookieDomain
+    ...(opts.cookieDomain || opts.sessionCookieName
       ? {
           cookies: {
             sessionToken: {
+              ...(opts.sessionCookieName ? { name: opts.sessionCookieName } : {}),
               options: {
-                domain: opts.cookieDomain,
+                ...(opts.cookieDomain ? { domain: opts.cookieDomain } : {}),
                 path: '/',
                 sameSite: 'lax' as const,
                 httpOnly: true,

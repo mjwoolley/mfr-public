@@ -145,6 +145,30 @@ easy way for members to contribute pictures.
 album; moderation (any review before a photo appears?); storage cost/limits;
 whether albums/tags are needed or one flat gallery is enough to start.
 
+### 5. Online staging environment — remaining one-time console setup
+
+Repo + most infra are done. **Done:** env-driven cross-app URLs,
+`ADDITIONAL_ALLOWED_ORIGINS`, distinct staging session cookie,
+`refresh-dev-from-prod.sh --target staging`, the full
+[workflow.md](workflow.md#staging-environment-test-the-deployed-site) write-up;
+the three Neon `staging` branches (forked from prod, IDs in the refresh script);
+the long-lived `staging` git branch; the staging env-var set on all three Vercel
+projects (Preview → `staging`); the per-project Ignored Build Step updated to
+build the `staging` branch. All three staging previews build green.
+
+**What's left (needs Google / DNS / Vercel-dashboard access) — delete this item
+once staging is live and end-to-end tested:**
+
+- **Google OAuth:** add the three staging redirect URIs + JS origins to the OAuth
+  client (exact URIs in workflow.md → Staging environment).
+- **DNS + Vercel domains:** point `staging`, `reservations.staging`,
+  `accounting.staging` (under millerfamilyreunions.org) at Vercel and assign each
+  to its project's `staging` branch.
+- **Then verify:** sign in on staging, SSO across the three subdomains, cross-app
+  links stay on staging, a triggered email lands at `EMAIL_OVERRIDE_TO`, prod data
+  untouched. (Optional: relax Vercel Deployment Protection if the family needs
+  direct access — today the staging URLs require a Vercel login.)
+
 ## Defects
 
 _(nothing tracked yet — add items here as they're found)_

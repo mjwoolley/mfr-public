@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import Image from 'next/image'
-import { RidgelineMark } from '@mfr/ui'
+import { RidgelineMark, RESERVATIONS_URL, ACCOUNTING_URL } from '@mfr/ui'
 
 // The hero photo is provided by the family; until it lands in public/,
 // the layout stands on its own without the framed snapshot.
@@ -64,9 +64,6 @@ function ArrowIcon() {
     </svg>
   )
 }
-
-const RESERVATIONS_URL = 'https://reservations.millerfamilyreunions.org/reservations'
-const ACCOUNTING_URL = 'https://accounting.millerfamilyreunions.org/accounting'
 
 const apps = [
   {

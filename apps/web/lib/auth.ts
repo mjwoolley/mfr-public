@@ -11,6 +11,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth(
     db: identityDb,
     basePath: '/api/auth',
     cookieDomain: process.env.AUTH_COOKIE_DOMAIN,
+    sessionCookieName: process.env.AUTH_SESSION_COOKIE_NAME,
     pages: { signIn: '/sign-in' },
   }),
 )

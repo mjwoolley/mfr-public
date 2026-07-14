@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { Caprasimo, Figtree } from 'next/font/google'
-import { PortalHeader, AuthStatus } from '@mfr/ui'
+import { PortalHeader, AuthStatus, RESERVATIONS_URL, ACCOUNTING_URL } from '@mfr/ui'
 import { auth, signOut } from '@/lib/auth'
 import './globals.css'
 
@@ -32,8 +32,8 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col">
         <PortalHeader>
           <nav className="flex gap-x-5 text-sm">
-            <a href="https://reservations.millerfamilyreunions.org/reservations">Reservations</a>
-            <a href="https://accounting.millerfamilyreunions.org/accounting">Accounting</a>
+            <a href={RESERVATIONS_URL}>Reservations</a>
+            <a href={ACCOUNTING_URL}>Accounting</a>
           </nav>
           {session?.user ? (
             <AuthStatus
