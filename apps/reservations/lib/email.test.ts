@@ -13,9 +13,9 @@ vi.mock('@aws-sdk/client-sesv2', () => ({
     }
   },
 }))
-vi.mock('@/lib/logger', () => ({ logger: { error: vi.fn() } }))
+vi.mock('@/lib/logger', () => ({ logger: { error: vi.fn(), warn: vi.fn() } }))
 
-import { appUrl, sendEmail } from './email'
+import { appUrl, plusAddress, resolveRecipient, sendEmail } from './email'
 import { logger } from '@/lib/logger'
 
 const react = createElement('p', null, 'hello')
@@ -28,6 +28,7 @@ beforeEach(() => {
   sendMock.mockReset()
   sendMock.mockResolvedValue({})
   vi.mocked(logger.error).mockReset()
+  vi.mocked(logger.warn).mockReset()
 })
 
 afterEach(() => {
@@ -52,6 +53,12 @@ describe('appUrl', () => {
 })
 
 describe('sendEmail', () => {
+  beforeEach(() => {
+    // These assert the real-delivery path; production is the only env that
+    // enables it. Guard/redirect behavior is covered separately below.
+    vi.stubEnv('EMAIL_ENABLED', 'true')
+  })
+
   it('sends from EMAIL_FROM with to/cc/replyTo and rendered HTML', async () => {
     vi.stubEnv('EMAIL_FROM', 'reservations@millerfamilyreunions.org')
     await sendEmail({
@@ -84,5 +91,55 @@ describe('sendEmail', () => {
     sendMock.mockRejectedValue(new Error('credentials missing'))
     await expect(sendEmail({ to: 'owner@example.com', subject: 'Test', react })).resolves.toBeUndefined()
     expect(logger.error).toHaveBeenCalled()
+  })
+})
+
+describe('email guard (non-prod)', () => {
+  it('plusAddress folds the full original address into the inbox', () => {
+    expect(plusAddress('mwoolley2@gmail.com', 'dbrown@gmail.com')).toBe(
+      'mwoolley2+dbrown=gmail.com@gmail.com'
+    )
+  })
+
+  it('resolveRecipient redirects to the override inbox when EMAIL_ENABLED is unset', () => {
+    vi.stubEnv('EMAIL_ENABLED', '')
+    vi.stubEnv('EMAIL_OVERRIDE_TO', 'test@example.com')
+    expect(resolveRecipient('owner@example.com')).toEqual({
+      deliver: true,
+      to: 'test+owner=example.com@example.com',
+      redirectedFrom: 'owner@example.com',
+    })
+  })
+
+  it('resolveRecipient drops the message when disabled with no override', () => {
+    vi.stubEnv('EMAIL_ENABLED', '')
+    vi.stubEnv('EMAIL_OVERRIDE_TO', '')
+    expect(resolveRecipient('owner@example.com').deliver).toBe(false)
+  })
+
+  it('sendEmail redirects both to and cc to the override inbox and prefixes the subject', async () => {
+    vi.stubEnv('EMAIL_ENABLED', '')
+    vi.stubEnv('EMAIL_OVERRIDE_TO', 'test@example.com')
+    await sendEmail({
+      to: 'owner@example.com',
+      cc: ['admin@example.com'],
+      subject: 'Reservation confirmed',
+      react,
+    })
+    const input = sentInput() as {
+      Destination: { ToAddresses: string[]; CcAddresses?: string[] }
+      Content: { Simple: { Subject: { Data: string } } }
+    }
+    expect(input.Destination.ToAddresses).toEqual(['test+owner=example.com@example.com'])
+    expect(input.Destination.CcAddresses).toEqual(['test+admin=example.com@example.com'])
+    expect(input.Content.Simple.Subject.Data).toBe('[dev→owner@example.com] Reservation confirmed')
+  })
+
+  it('sendEmail sends nothing and never ccs admins when disabled with no override', async () => {
+    vi.stubEnv('EMAIL_ENABLED', '')
+    vi.stubEnv('EMAIL_OVERRIDE_TO', '')
+    await sendEmail({ to: 'owner@example.com', cc: ['admin@example.com'], subject: 'Test', react })
+    expect(sendMock).not.toHaveBeenCalled()
+    expect(logger.warn).toHaveBeenCalled()
   })
 })
