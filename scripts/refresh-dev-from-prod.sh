@@ -40,15 +40,10 @@
 set -euo pipefail
 
 # project label | Neon project id | production branch id | dev branch id | staging branch id
-#
-# The staging branch ids are filled in when the persistent `staging` branches
-# are created (see docs/workflow.md "Staging environment"). Until then, a
-# `--target staging` run for a project with an empty id aborts with a clear
-# message rather than touching the wrong branch.
 PROJECTS=(
-  "accounting|nameless-fog-46521987|br-proud-wind-a642mkzo|br-wild-surf-a6w3iro4|"
-  "reservations|sweet-tooth-47867008|br-mute-cell-afh5kusc|br-weathered-firefly-afkvvx7g|"
-  "identity|flat-tree-08961616|br-patient-water-ajen7oii|br-summer-brook-ajs1uwtt|"
+  "accounting|nameless-fog-46521987|br-proud-wind-a642mkzo|br-wild-surf-a6w3iro4|br-hidden-bread-a6kl8ujj"
+  "reservations|sweet-tooth-47867008|br-mute-cell-afh5kusc|br-weathered-firefly-afkvvx7g|br-patient-dream-afzknsa5"
+  "identity|flat-tree-08961616|br-patient-water-ajen7oii|br-summer-brook-ajs1uwtt|br-snowy-bread-ajy4m400"
 )
 
 ASSUME_YES=0
