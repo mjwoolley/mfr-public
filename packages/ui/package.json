@@ -10,7 +10,8 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -26,6 +27,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.3",
+    "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^9",
     "react-dom": "^19.2.4",
     "typescript": "^5",

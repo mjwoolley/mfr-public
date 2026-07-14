@@ -12,7 +12,8 @@
     "migrate": "drizzle-kit migrate",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -31,8 +32,9 @@
     "next": "^16.0.0"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.31.10",
+    "@vitest/coverage-v8": "^4.1.10",
     "dotenv": "^16.4.5",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "typescript": "^5",
     "typescript-eslint": "^8",

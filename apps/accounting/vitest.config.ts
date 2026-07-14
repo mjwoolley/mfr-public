@@ -9,6 +9,12 @@ export default defineConfig({
   resolve: { alias },
   test: {
     environment: "node",
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json-summary"],
+      reportsDirectory: "./coverage",
+      exclude: ["src/generated/**", "tests/**", "**/*.test.ts", "**/*.config.*", ".next/**"],
+    },
     projects: [
       {
         resolve: { alias },
