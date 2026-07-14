@@ -9,6 +9,13 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit"
   },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{js,mjs,json,css,md}": "prettier --write"
+  },
   "dependencies": {
     "@mfr/auth": "*",
     "@mfr/ui": "*",

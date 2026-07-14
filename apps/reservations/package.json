@@ -12,6 +12,13 @@
     "test:watch": "vitest",
     "test:integration": "vitest run --project integration --passWithNoTests"
   },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{js,mjs,json,css,md}": "prettier --write"
+  },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.2",
     "@mfr/auth": "*",

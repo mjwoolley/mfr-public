@@ -12,6 +12,13 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{js,mjs,json,css,md}": "prettier --write"
+  },
   "peerDependencies": {
     "react": "^19.0.0"
   },
