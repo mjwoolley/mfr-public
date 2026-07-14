@@ -1,0 +1,14 @@
+{
+  "semi": false,
+  "singleQuote": true,
+  "printWidth": 100,
+  "overrides": [
+    {
+      "files": "apps/accounting/**",
+      "options": {
+        "semi": true,
+        "singleQuote": false
+      }
+    }
+  ]
+}
