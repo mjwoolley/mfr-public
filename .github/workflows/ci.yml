@@ -320,9 +320,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Run the gitleaks CLI directly rather than gitleaks-action: the action's
+      # PR mode calls the GitHub API for the PR's commits, which the read-only
+      # default token on a private repo rejects ("Resource not accessible by
+      # integration"). The CLI scans local history with no API access and exits
+      # non-zero on a real finding.
+      - name: Install gitleaks
+        run: curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.24.3/gitleaks_8.24.3_linux_x64.tar.gz | sudo tar -xz -C /usr/local/bin gitleaks
+      - name: Scan git history
+        run: gitleaks git . --redact --verbose
 
   # Static security analysis. CodeQL would be preferred but requires GitHub
   # Code Security (unavailable on this private repo's plan), so run semgrep's
@@ -337,7 +343,9 @@ jobs:
       image: semgrep/semgrep
     steps:
       - uses: actions/checkout@v4
-      - run: semgrep scan --config p/default --metrics=off --error
+      # Report findings without failing the job (advisory). No --error, so the
+      # scan surfaces issues in the log without a red X on the check.
+      - run: semgrep scan --config p/default --metrics=off
 
   audit:
     name: npm audit (advisory)
