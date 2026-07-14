@@ -99,6 +99,50 @@ never delivers to real recipients outside production: only prod sets
 `EMAIL_ENABLED=true`; everywhere else mail is redirected to `EMAIL_OVERRIDE_TO`
 (or dropped). Keep `EMAIL_ENABLED` unset in every local/dev env.
 
+### Staging environment (test the deployed site)
+
+An always-online copy of the whole portal, for exercising the _deployed_ site —
+real URLs, real Vercel build, real OAuth — against a throwaway copy of
+production data, without touching the family's real data or email.
+
+- **Where it runs.** Three Vercel preview deployments of a long-lived `staging`
+  git branch, each aliased to a staging subdomain:
+  - web → `staging.millerfamilyreunions.org`
+  - reservations → `reservations.staging.millerfamilyreunions.org`
+  - accounting → `accounting.staging.millerfamilyreunions.org`
+- **Its data.** A persistent `staging` branch in each of the three Neon projects,
+  forked from `production` (so it starts with the current schema + a full copy of
+  prod data). Unlike `test`, staging is never truncated by e2e. Refresh it with a
+  fresh prod copy anytime: `./scripts/refresh-dev-from-prod.sh --target staging`
+  (snapshots each `staging` branch to `backup-staging-<stamp>` first; production
+  is only read).
+- **Deploying to it.** Push (or merge `main`) into the `staging` branch — that's
+  the staging deploy, the same way merging `main` is the prod deploy. Keep staging
+  mirroring prod by merging `main → staging` after a release; or push a feature
+  branch to `staging` first to smoke-test it live before it reaches `main`.
+- **Env vars (Vercel, scoped to Preview → the `staging` branch, ×3 apps).** A full
+  set with staging values: the `staging` Neon DB URLs; the shared identity
+  `staging` URLs and a **staging-only** `AUTH_SECRET` (identical across the three,
+  never prod's); `AUTH_COOKIE_DOMAIN=.staging.millerfamilyreunions.org` and a
+  distinct `AUTH_SESSION_COOKIE_NAME` (so prod's cookie — which rides along to
+  every `*.millerfamilyreunions.org` subdomain — is never read as a staging
+  session); staging `AUTH_URL` / `APP_BASE_URL`; the three `NEXT_PUBLIC_*_URL`
+  cross-app links pointing at the staging hosts (otherwise nav bounces you back to
+  prod); `ADDITIONAL_ALLOWED_ORIGINS` set to the staging host (else server actions
+  are rejected). Scope these to the `staging` branch so ordinary PR previews are
+  unaffected.
+- **Email safety.** Leave `EMAIL_ENABLED` **unset** on staging, exactly as for dev
+  — all mail is redirected to `EMAIL_OVERRIDE_TO`, never a real family address.
+- **Schema changes.** Accounting (Prisma) migrates automatically on each staging
+  deploy via `vercel-build`'s `prisma migrate deploy`. Reservations / identity
+  (Drizzle) need the same manual `drizzle-kit push` against the `staging` branch
+  that production requires — or just re-run the refresh script to re-fork the
+  schema from prod.
+- **OAuth / DNS (one-time console setup).** The staging redirect URIs
+  (`https://<app>.staging.millerfamilyreunions.org/<basePath>/callback/google`)
+  must be registered on the Google OAuth client, and the
+  `*.staging.millerfamilyreunions.org` DNS records pointed at Vercel.
+
 ### Shared packages (`packages/ui`, `packages/auth`)
 
 A change there ships to all three apps at once — verify all three, not just
@@ -156,6 +200,7 @@ branch older than 24h that a crashed runner leaked.
 | Integration tests | vitest on your machine                               | `test` branch (via `TEST_*` env vars)   | destructive schema/query tests |
 | Local e2e         | `next start` ×3 via Playwright                       | `test` branch (via `E2E_*` env vars)    | browser smoke tests            |
 | CI                | GitHub Actions (PRs + pushes to `main`)              | ephemeral `ci-*` branches, auto-deleted | the merge gate                 |
+| Staging           | Vercel preview of the `staging` branch (×3 apps)     | `staging` branch (copy of production)   | testing the deployed site      |
 | Production        | Vercel (mfr_web / mfr_reservations / mfr_accounting) | `production` branch                     | the family                     |
 
 Neon projects: `mfr-identity` (shared Auth.js tables — sessions/users),

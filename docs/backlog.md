@@ -145,6 +145,26 @@ easy way for members to contribute pictures.
 album; moderation (any review before a photo appears?); storage cost/limits;
 whether albums/tags are needed or one flat gallery is enough to start.
 
+### 5. Online staging environment — remaining one-time infra setup
+
+The repo side is done (env-driven cross-app URLs, `ADDITIONAL_ALLOWED_ORIGINS`,
+distinct staging session cookie, `refresh-dev-from-prod.sh --target staging`, and
+the full write-up in [workflow.md](workflow.md#staging-environment-test-the-deployed-site)).
+What's left is console/infra work that needs Neon / Vercel / Google / DNS access —
+delete this item once staging is live:
+
+- **Neon:** create a persistent `staging` branch (fork of `production`) in each of
+  the three projects; paste the branch ids into the `PROJECTS` table in
+  `scripts/refresh-dev-from-prod.sh` (currently empty placeholders).
+- **Vercel:** create the long-lived `staging` git branch; assign each app's staging
+  subdomain to that branch's preview deploys; add the staging env-var set scoped to
+  Preview → `staging` (see workflow.md for the full list).
+- **Google OAuth:** register the staging redirect URIs / JS origins.
+- **DNS:** point `*.staging.millerfamilyreunions.org` at Vercel.
+- **Seed:** run `./scripts/refresh-dev-from-prod.sh --target staging`, then deploy
+  the `staging` branch and smoke-test (auth SSO across the three staging subdomains,
+  cross-app links stay on staging, email redirects to `EMAIL_OVERRIDE_TO`).
+
 ## Defects
 
 _(nothing tracked yet — add items here as they're found)_

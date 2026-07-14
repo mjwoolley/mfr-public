@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { HOME_URL } from '@mfr/ui'
 
 interface NavLink {
   href: string
@@ -16,8 +17,6 @@ const baseLinks: NavLink[] = [
 ]
 
 const adminLink: NavLink = { href: '/reservations/admin', label: 'Admin' }
-
-const HOME_URL = 'https://millerfamilyreunions.org'
 
 const tabBase = 'whitespace-nowrap border-b-2 py-3.5 text-[15px] transition-colors'
 

@@ -14,6 +14,7 @@ export const {
     db: identityDb,
     basePath: "/accounting/api/auth",
     cookieDomain: process.env.AUTH_COOKIE_DOMAIN,
+    sessionCookieName: process.env.AUTH_SESSION_COOKIE_NAME,
     pages: { signIn: "/accounting/sign-in" },
     // Runs on every session read. Portal-wide fields (id, status, admin flags)
     // are attached by the shared config; here we add accounting's own
