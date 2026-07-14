@@ -31,16 +31,16 @@ the family seeing it.
 4. **Push the branch and open a PR.** `git push -u origin fix/whatever`, then
    `gh pr create`. CI runs on the PR:
 
-   | Job                     | What it does                                                                                                                           |
-   | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-   | Format, lint, typecheck | `prettier --check`, eslint, `tsc --noEmit` across all workspaces                                                                       |
-   | Unit tests + coverage   | vitest in every workspace; coverage table in the job summary (report-only, no thresholds)                                              |
-   | Build (×3)              | `next build` for each app with dummy DB env                                                                                            |
-   | Integration (×2)        | Creates **ephemeral Neon branches** from `production` (own identity branch each), applies migrations, runs the suite, deletes branches |
-   | E2E (Playwright)        | Ephemeral branches for all 3 DBs, builds and boots all 3 apps, runs 14 browser smoke tests                                             |
-   | Secret scan             | gitleaks over full history                                                                                                             |
-   | Semgrep / npm audit     | Advisory only — never block a merge                                                                                                    |
-   | **CI OK**               | The single required status check; merge is blocked until it's green                                                                    |
+   | Job                     | What it does                                                                                                                                                             |
+   | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+   | Format, lint, typecheck | `prettier --check`, eslint, `tsc --noEmit` across all workspaces                                                                                                         |
+   | Unit tests + coverage   | vitest in every workspace; coverage table in the job summary (report-only, no thresholds)                                                                                |
+   | Build (×3)              | `next build` for each app with dummy DB env                                                                                                                              |
+   | Integration (×2)        | Creates **ephemeral Neon branches** cloned from `production` (own identity branch each), runs the suite, deletes branches (accounting also runs `prisma migrate deploy`) |
+   | E2E (Playwright)        | Ephemeral branches for all 3 DBs, builds and boots all 3 apps, runs 14 browser smoke tests                                                                               |
+   | Secret scan             | gitleaks over full history                                                                                                                                               |
+   | Semgrep / npm audit     | Advisory only — never block a merge                                                                                                                                      |
+   | **CI OK**               | The single required status check; merge is blocked until it's green                                                                                                      |
 
 5. **Merge the PR — that IS the deploy.** All three Vercel projects build and
    auto-promote.
@@ -65,10 +65,24 @@ restores the previous deployment; `git revert` the commit afterward (via a PR).
 - Merge the migration and its dependent code together.
 - Prefer additive changes (new nullable columns, new tables) so old code keeps
   working against the new schema if a rollback is needed.
-- CI migrates its own ephemeral branches automatically. **The long-lived `test`
-  branch still does not self-update** — for _local_ integration runs, apply
-  `migrate deploy` (and drizzle-kit for reservations/identity) against it
-  after adding migrations.
+- CI's ephemeral branches are cloned from `production`, so they already carry
+  the current schema. The accounting job additionally runs `prisma migrate
+deploy` (a clean no-op unless the PR adds a migration, since production's
+  Prisma journal is reliable). **The long-lived `test` branch still does not
+  self-update** — for _local_ integration runs, apply `migrate deploy` against
+  it after adding accounting migrations.
+
+### Schema changes (reservations / identity — Drizzle)
+
+- These schemas were set up with `drizzle-kit push`, so their production
+  branches carry no usable migration journal (`drizzle-kit migrate` would
+  replay every file and collide). CI therefore runs **no** Drizzle step — the
+  production-clone branch already has the full schema, including the
+  migration-only constraints (the `booking_rules` id=1 CHECK, the reservations
+  GIST overlap exclusion) that `drizzle-kit push` would strip.
+- Consequence: a Drizzle schema change is only reflected in CI once it's on the
+  production branch. Apply `drizzle-kit push`/`migrate` to production (and the
+  `test` branch for local runs) as part of shipping the change.
 
 ### Refreshing dev with production data
 
