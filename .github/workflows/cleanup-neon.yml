@@ -1,0 +1,36 @@
+# Safety net: CI deletes its ephemeral Neon branches with `if: always()`,
+# but a crashed runner can still leak them, and the free tier caps branches
+# per project. Delete any `ci-*` branch older than 24 hours, daily.
+name: Cleanup leaked Neon CI branches
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+    steps:
+      - name: Delete ci-* branches older than 24h
+        run: |
+          set -euo pipefail
+          cutoff=$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)
+          for project in \
+            "${{ secrets.NEON_PROJECT_ID_ACCOUNTING }}" \
+            "${{ secrets.NEON_PROJECT_ID_RESERVATIONS }}" \
+            "${{ secrets.NEON_PROJECT_ID_IDENTITY }}"; do
+            echo "Checking project $project"
+            branches=$(curl -sf -H "Authorization: Bearer $NEON_API_KEY" \
+              "https://console.neon.tech/api/v2/projects/$project/branches" |
+              jq -r --arg cutoff "$cutoff" \
+                '.branches[] | select(.name | startswith("ci-")) | select(.created_at < $cutoff) | .id')
+            for id in $branches; do
+              echo "Deleting leaked branch $id"
+              curl -sf -X DELETE -H "Authorization: Bearer $NEON_API_KEY" \
+                "https://console.neon.tech/api/v2/projects/$project/branches/$id" > /dev/null
+            done
+          done
