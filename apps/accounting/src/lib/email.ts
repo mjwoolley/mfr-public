@@ -16,11 +16,35 @@ export function appUrl(path: string) {
 }
 
 /**
+ * Fold a real recipient into a plus sub-address of the override inbox, so each
+ * redirected message keeps the original address visible and arrives as a
+ * distinct "user" while still landing in one inbox. The full original address
+ * is encoded with the conventional `local+other=domain@inbox` form:
+ *   plusAddress("mwoolley2@gmail.com", "dbrown@gmail.com")
+ *     => "mwoolley2+dbrown=gmail.com@gmail.com"
+ * Assumes the inbox provider supports "+" sub-addressing (Gmail does). Falls
+ * back to the bare inbox if either address is malformed.
+ */
+export function plusAddress(inbox: string, original: string): string {
+  const at = inbox.lastIndexOf("@");
+  if (at === -1) return inbox;
+  const baseLocal = inbox.slice(0, at).split("+")[0]; // drop any existing +tag
+  const domain = inbox.slice(at + 1);
+  const tag = original
+    .trim()
+    .toLowerCase()
+    .replace(/@/g, "=")
+    .replace(/[^a-z0-9._=-]/g, "-");
+  return tag ? `${baseLocal}+${tag}@${domain}` : inbox;
+}
+
+/**
  * Decide who actually receives a message. Real recipients are only ever used
  * when sending is explicitly enabled — production is the only environment that
  * sets EMAIL_ENABLED=true. Anywhere else (local dev against copied-down prod
- * data), mail is redirected to EMAIL_OVERRIDE_TO, or dropped if that is unset,
- * so a real family member can never be emailed from a non-prod environment.
+ * data), mail is redirected to a plus sub-address of EMAIL_OVERRIDE_TO, or
+ * dropped if that is unset, so a real family member can never be emailed from
+ * a non-prod environment.
  */
 export function resolveRecipient(
   to: string,
@@ -32,7 +56,7 @@ export function resolveRecipient(
   }
   const override = process.env.EMAIL_OVERRIDE_TO;
   if (override) {
-    return { deliver: true, to: override, redirectedFrom: to };
+    return { deliver: true, to: plusAddress(override, to), redirectedFrom: to };
   }
   return {
     deliver: false,
