@@ -43,7 +43,7 @@ export function useReservationMutations() {
   async function updateReservation(
     id: string,
     startDate: string,
-    endDate: string
+    endDate: string,
   ): Promise<MutationResult> {
     try {
       const res = await fetch(`/reservations/api/reservations/${id}`, {

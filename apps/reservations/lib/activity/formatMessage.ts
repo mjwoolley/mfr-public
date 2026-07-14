@@ -21,7 +21,9 @@ function str(metadata: Record<string, unknown>, key: string): string {
 
 function subjectFor(ownerId: unknown, actorUserId: string | null, users: UserNameMap): string {
   const resolvedOwnerId = typeof ownerId === 'string' ? ownerId : actorUserId
-  return resolvedOwnerId === actorUserId ? 'their reservation' : `${nameOf(resolvedOwnerId, users)}'s reservation`
+  return resolvedOwnerId === actorUserId
+    ? 'their reservation'
+    : `${nameOf(resolvedOwnerId, users)}'s reservation`
 }
 
 export function formatActivityMessage(event: ActivityEvent, users: UserNameMap): string {

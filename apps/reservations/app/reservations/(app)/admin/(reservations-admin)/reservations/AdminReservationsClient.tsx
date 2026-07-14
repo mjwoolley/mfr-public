@@ -69,12 +69,19 @@ export function AdminReservationsClient({ adminUserId }: { adminUserId: string }
                   {r.userName ?? 'Unknown user'} · {nightsLabel(r.startDate, r.endDate)}
                 </div>
                 {rowError?.id === r.id && (
-                  <p className="m-0 mt-1 text-[13px] font-semibold" style={{ color: 'var(--color-accent-800)' }}>
+                  <p
+                    className="m-0 mt-1 text-[13px] font-semibold"
+                    style={{ color: 'var(--color-accent-800)' }}
+                  >
                     {rowError.message}
                   </p>
                 )}
               </div>
-              <button type="button" className="btn btn-secondary flex-none" onClick={() => setEditing(r)}>
+              <button
+                type="button"
+                className="btn btn-secondary flex-none"
+                onClick={() => setEditing(r)}
+              >
                 Edit
               </button>
               <button

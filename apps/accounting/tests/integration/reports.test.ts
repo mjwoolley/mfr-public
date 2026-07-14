@@ -90,7 +90,13 @@ describe("createExpense — admin-only", () => {
 
     const result = await createExpense(
       undefined,
-      fd({ description, amount: "123.45", category: "UTILITIES", capital: "true", incurredAt: "2024-02-20" }),
+      fd({
+        description,
+        amount: "123.45",
+        category: "UTILITIES",
+        capital: "true",
+        incurredAt: "2024-02-20",
+      }),
     );
     expect(result?.error).toBeUndefined();
 

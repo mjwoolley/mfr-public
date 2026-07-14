@@ -7,7 +7,13 @@ import { GET as getAdminUsers } from '../../app/reservations/api/admin/users/rou
 
 function mockSession(status: 'pending' | 'approved' | 'blocked', isReservationsAdmin: boolean) {
   return {
-    user: { id: 'user-1', status, isReservationsAdmin, isAccountingAdmin: false, email: 'test@example.com' },
+    user: {
+      id: 'user-1',
+      status,
+      isReservationsAdmin,
+      isAccountingAdmin: false,
+      email: 'test@example.com',
+    },
     expires: '2099-01-01',
   }
 }

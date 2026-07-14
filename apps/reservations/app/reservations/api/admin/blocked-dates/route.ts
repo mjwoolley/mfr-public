@@ -20,7 +20,10 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json().catch(() => null)
   if (!body || typeof body.startDate !== 'string' || typeof body.endDate !== 'string') {
-    return NextResponse.json({ error: 'startDate and endDate (YYYY-MM-DD) are required' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'startDate and endDate (YYYY-MM-DD) are required' },
+      { status: 400 },
+    )
   }
   if (body.endDate <= body.startDate) {
     return NextResponse.json({ error: 'endDate must be after startDate' }, { status: 400 })
@@ -52,7 +55,7 @@ export async function POST(request: NextRequest) {
     if (isOverlapError(err)) {
       return NextResponse.json(
         { error: 'Those dates overlap an existing reservation.' },
-        { status: 409 }
+        { status: 409 },
       )
     }
     logger.error({ err, body }, 'failed to create blocked date')

@@ -24,7 +24,14 @@ describe('computeDayInfo', () => {
 
   it('reports the booker name and user id for a day covered by a confirmed reservation', () => {
     const reservations: ReservationRow[] = [
-      { id: 'r1', userId: 'u1', startDate: '2027-06-10', endDate: '2027-06-15', status: 'confirmed', userName: 'Jane' },
+      {
+        id: 'r1',
+        userId: 'u1',
+        startDate: '2027-06-10',
+        endDate: '2027-06-15',
+        status: 'confirmed',
+        userName: 'Jane',
+      },
     ]
     const info = computeDayInfo('2027-06-12', reservations, [], rules)
     expect(info.bookedByName).toBe('Jane')
@@ -34,7 +41,14 @@ describe('computeDayInfo', () => {
 
   it('flags only the check-in day as the reservation start', () => {
     const reservations: ReservationRow[] = [
-      { id: 'r1', userId: 'u1', startDate: '2027-06-10', endDate: '2027-06-15', status: 'confirmed', userName: 'Jane' },
+      {
+        id: 'r1',
+        userId: 'u1',
+        startDate: '2027-06-10',
+        endDate: '2027-06-15',
+        status: 'confirmed',
+        userName: 'Jane',
+      },
     ]
     expect(computeDayInfo('2027-06-10', reservations, [], rules).isReservationStart).toBe(true)
     expect(computeDayInfo('2027-06-11', reservations, [], rules).isReservationStart).toBe(false)
@@ -42,7 +56,14 @@ describe('computeDayInfo', () => {
 
   it('does not report a booking for the half-open end date itself', () => {
     const reservations: ReservationRow[] = [
-      { id: 'r1', userId: 'u1', startDate: '2027-06-10', endDate: '2027-06-15', status: 'confirmed', userName: 'Jane' },
+      {
+        id: 'r1',
+        userId: 'u1',
+        startDate: '2027-06-10',
+        endDate: '2027-06-15',
+        status: 'confirmed',
+        userName: 'Jane',
+      },
     ]
     const info = computeDayInfo('2027-06-15', reservations, [], rules)
     expect(info.bookedByName).toBeNull()
@@ -50,14 +71,23 @@ describe('computeDayInfo', () => {
 
   it('ignores a cancelled reservation', () => {
     const reservations: ReservationRow[] = [
-      { id: 'r1', userId: 'u1', startDate: '2027-06-10', endDate: '2027-06-15', status: 'cancelled', userName: 'Jane' },
+      {
+        id: 'r1',
+        userId: 'u1',
+        startDate: '2027-06-10',
+        endDate: '2027-06-15',
+        status: 'cancelled',
+        userName: 'Jane',
+      },
     ]
     const info = computeDayInfo('2027-06-12', reservations, [], rules)
     expect(info.bookedByName).toBeNull()
   })
 
   it('reports a day covered by a blocked range as blocked', () => {
-    const blocked: BlockedDateRow[] = [{ id: 'b1', startDate: '2027-06-10', endDate: '2027-06-15', reason: null }]
+    const blocked: BlockedDateRow[] = [
+      { id: 'b1', startDate: '2027-06-10', endDate: '2027-06-15', reason: null },
+    ]
     const info = computeDayInfo('2027-06-12', [], blocked, rules)
     expect(info.isBlocked).toBe(true)
   })

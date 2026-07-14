@@ -2,7 +2,11 @@ import { describe, it, expect } from 'vitest'
 import { reservationsStartingInMonth } from './listGrouping'
 import type { ReservationRow } from './useCalendarData'
 
-function row(id: string, startDate: string, status: 'confirmed' | 'cancelled' = 'confirmed'): ReservationRow {
+function row(
+  id: string,
+  startDate: string,
+  status: 'confirmed' | 'cancelled' = 'confirmed',
+): ReservationRow {
   return { id, userId: 'u1', startDate, endDate: startDate, status, userName: 'Jane' }
 }
 

@@ -1,7 +1,11 @@
 'use client'
 
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { formatActivityMessage, type ActivityEvent, type UserNameMap } from '@/lib/activity/formatMessage'
+import {
+  formatActivityMessage,
+  type ActivityEvent,
+  type UserNameMap,
+} from '@/lib/activity/formatMessage'
 
 interface ActivityPage {
   events: ActivityEvent[]
@@ -10,19 +14,22 @@ interface ActivityPage {
 }
 
 async function fetchActivityPage(cursor: string | null): Promise<ActivityPage> {
-  const url = cursor ? `/reservations/api/activity?before=${encodeURIComponent(cursor)}` : '/reservations/api/activity'
+  const url = cursor
+    ? `/reservations/api/activity?before=${encodeURIComponent(cursor)}`
+    : '/reservations/api/activity'
   const res = await fetch(url)
   if (!res.ok) throw new Error('Failed to load activity')
   return res.json()
 }
 
 export function ActivityClient() {
-  const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
-    queryKey: ['activity'],
-    queryFn: ({ pageParam }: { pageParam: string | null }) => fetchActivityPage(pageParam),
-    initialPageParam: null as string | null,
-    getNextPageParam: (lastPage: ActivityPage) => lastPage.nextCursor,
-  })
+  const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useInfiniteQuery({
+      queryKey: ['activity'],
+      queryFn: ({ pageParam }: { pageParam: string | null }) => fetchActivityPage(pageParam),
+      initialPageParam: null as string | null,
+      getNextPageParam: (lastPage: ActivityPage) => lastPage.nextCursor,
+    })
 
   if (isLoading) return <p className="text-muted p-8 text-center">Loading...</p>
   if (error) {
@@ -34,7 +41,10 @@ export function ActivityClient() {
   }
 
   const pages = data?.pages ?? []
-  const users: UserNameMap = pages.reduce((acc, page) => ({ ...acc, ...page.users }), {} as UserNameMap)
+  const users: UserNameMap = pages.reduce(
+    (acc, page) => ({ ...acc, ...page.users }),
+    {} as UserNameMap,
+  )
   const events = pages.flatMap((page) => page.events)
 
   return (

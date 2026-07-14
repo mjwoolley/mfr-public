@@ -15,7 +15,8 @@ const figtree = Figtree({
 
 export const metadata: Metadata = {
   title: "MFR — Shareholder Ledger",
-  description: "Shareholder contribution and ownership tracker for the Lake Lure lake house corporation.",
+  description:
+    "Shareholder contribution and ownership tracker for the Lake Lure lake house corporation.",
 };
 
 export default function RootLayout({
@@ -24,10 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${caprasimo.variable} ${figtree.variable} h-full antialiased`}
-    >
+    <html lang="en" className={`${caprasimo.variable} ${figtree.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

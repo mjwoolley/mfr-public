@@ -30,10 +30,19 @@ afterEach(async () => {
 async function runRaceOnce(dateSuffix: string) {
   await testDb
     .insert(bookingRules)
-    .values({ id: 1, bookingHorizonDate: '2028-12-31', maxConsecutiveNights: 30, maxNightsPerUserPerYear: 60 })
+    .values({
+      id: 1,
+      bookingHorizonDate: '2028-12-31',
+      maxConsecutiveNights: 30,
+      maxNightsPerUserPerYear: 60,
+    })
     .onConflictDoUpdate({
       target: bookingRules.id,
-      set: { bookingHorizonDate: '2028-12-31', maxConsecutiveNights: 30, maxNightsPerUserPerYear: 60 },
+      set: {
+        bookingHorizonDate: '2028-12-31',
+        maxConsecutiveNights: 30,
+        maxNightsPerUserPerYear: 60,
+      },
     })
 
   const userA = await testIdentityDb
@@ -62,12 +71,24 @@ async function runRaceOnce(dateSuffix: string) {
   // regardless of which user each belongs to.)
   vi.mocked(auth)
     .mockResolvedValueOnce({
-      user: { id: userA.id, status: 'approved', isReservationsAdmin: false, isAccountingAdmin: false, email: userA.email },
+      user: {
+        id: userA.id,
+        status: 'approved',
+        isReservationsAdmin: false,
+        isAccountingAdmin: false,
+        email: userA.email,
+      },
       expires: '2099-01-01',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any)
     .mockResolvedValueOnce({
-      user: { id: userB.id, status: 'approved', isReservationsAdmin: false, isAccountingAdmin: false, email: userB.email },
+      user: {
+        id: userB.id,
+        status: 'approved',
+        isReservationsAdmin: false,
+        isAccountingAdmin: false,
+        email: userB.email,
+      },
       expires: '2099-01-01',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any)
@@ -75,14 +96,20 @@ async function runRaceOnce(dateSuffix: string) {
   const makeRequest = () =>
     new Request('http://localhost/api/reservations', {
       method: 'POST',
-      body: JSON.stringify({ startDate: `2027-09-${dateSuffix}`, endDate: `2027-09-${String(Number(dateSuffix) + 4).padStart(2, '0')}` }),
+      body: JSON.stringify({
+        startDate: `2027-09-${dateSuffix}`,
+        endDate: `2027-09-${String(Number(dateSuffix) + 4).padStart(2, '0')}`,
+      }),
     })
 
   // Both requests target the SAME dates from DIFFERENT users, fired
   // simultaneously — this is what the M1 database exclusion constraint
   // exists to resolve when application-level checks race (both read the
   // "no existing overlap" state before either commits).
-  const [responseA, responseB] = await Promise.all([POST(makeRequest() as never), POST(makeRequest() as never)])
+  const [responseA, responseB] = await Promise.all([
+    POST(makeRequest() as never),
+    POST(makeRequest() as never),
+  ])
 
   return { responseA, responseB, userA, userB }
 }

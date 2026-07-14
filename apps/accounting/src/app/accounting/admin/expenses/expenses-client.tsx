@@ -181,7 +181,11 @@ export function ExpensesAdminClient({ rows }: { rows: ExpenseRow[] }) {
   return (
     <div>
       <div className="mb-5 flex flex-wrap gap-2.5">
-        <button type="button" className="btn btn-primary" onClick={() => setModal({ mode: "create" })}>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => setModal({ mode: "create" })}
+        >
           Record expense
         </button>
       </div>
@@ -229,7 +233,10 @@ export function ExpensesAdminClient({ rows }: { rows: ExpenseRow[] }) {
       </div>
 
       {modal && modal.mode !== "delete" && (
-        <ExpenseDialog row={modal.mode === "edit" ? modal.row : null} onClose={() => setModal(null)} />
+        <ExpenseDialog
+          row={modal.mode === "edit" ? modal.row : null}
+          onClose={() => setModal(null)}
+        />
       )}
       {modal?.mode === "delete" && (
         <DeleteExpenseDialog row={modal.row} onClose={() => setModal(null)} />

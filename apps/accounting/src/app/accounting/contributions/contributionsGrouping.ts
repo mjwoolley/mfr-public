@@ -46,8 +46,7 @@ export interface YearGroup {
   entries: ContributionEntryRow[];
 }
 
-const byDateDesc = (a: ContributionEntryRow, b: ContributionEntryRow) =>
-  a.date < b.date ? 1 : -1;
+const byDateDesc = (a: ContributionEntryRow, b: ContributionEntryRow) => (a.date < b.date ? 1 : -1);
 
 export function contributionTotalsByYear(rows: ContributionEntryRow[]): Map<number, number> {
   const totals = new Map<number, number>();

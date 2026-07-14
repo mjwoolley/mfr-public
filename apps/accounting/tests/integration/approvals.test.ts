@@ -99,7 +99,9 @@ describe("confirmTransaction", () => {
 
     await confirmTransaction(approval.id);
 
-    const updated = await testDb.transactionApproval.findUniqueOrThrow({ where: { id: approval.id } });
+    const updated = await testDb.transactionApproval.findUniqueOrThrow({
+      where: { id: approval.id },
+    });
     expect(updated.status).toBe(ApprovalStatus.CONFIRMED);
     expect(updated.confirmedAt).not.toBeNull();
   });
@@ -114,7 +116,9 @@ describe("confirmTransaction", () => {
     vi.mocked(auth).mockResolvedValue(shareholderSession(intruder.id));
     await confirmTransaction(approval.id);
 
-    const stillPending = await testDb.transactionApproval.findUniqueOrThrow({ where: { id: approval.id } });
+    const stillPending = await testDb.transactionApproval.findUniqueOrThrow({
+      where: { id: approval.id },
+    });
     expect(stillPending.status).toBe(ApprovalStatus.PENDING);
     expect(stillPending.confirmedAt).toBeNull();
     void shareholder;
@@ -128,7 +132,9 @@ describe("disputeTransaction", () => {
 
     await disputeTransaction(approval.id, "This amount looks wrong");
 
-    const updated = await testDb.transactionApproval.findUniqueOrThrow({ where: { id: approval.id } });
+    const updated = await testDb.transactionApproval.findUniqueOrThrow({
+      where: { id: approval.id },
+    });
     expect(updated.status).toBe(ApprovalStatus.DISPUTED);
     expect(updated.disputedAt).not.toBeNull();
     expect(updated.disputeReason).toBe("This amount looks wrong");
@@ -140,7 +146,9 @@ describe("disputeTransaction", () => {
 
     await expect(disputeTransaction(approval.id, "   ")).rejects.toThrow(/reason/i);
 
-    const unchanged = await testDb.transactionApproval.findUniqueOrThrow({ where: { id: approval.id } });
+    const unchanged = await testDb.transactionApproval.findUniqueOrThrow({
+      where: { id: approval.id },
+    });
     expect(unchanged.status).toBe(ApprovalStatus.PENDING);
   });
 
@@ -154,7 +162,9 @@ describe("disputeTransaction", () => {
     vi.mocked(auth).mockResolvedValue(shareholderSession(intruder.id));
     await disputeTransaction(approval.id, "Not mine to dispute");
 
-    const stillPending = await testDb.transactionApproval.findUniqueOrThrow({ where: { id: approval.id } });
+    const stillPending = await testDb.transactionApproval.findUniqueOrThrow({
+      where: { id: approval.id },
+    });
     expect(stillPending.status).toBe(ApprovalStatus.PENDING);
     expect(stillPending.disputeReason).toBeNull();
     void shareholder;
@@ -170,7 +180,9 @@ describe("resolveDispute — admin-only", () => {
     // Now attempt to resolve as the same (non-admin) shareholder session.
     await expect(resolveDispute(approval.id)).rejects.toThrow();
 
-    const stillDisputed = await testDb.transactionApproval.findUniqueOrThrow({ where: { id: approval.id } });
+    const stillDisputed = await testDb.transactionApproval.findUniqueOrThrow({
+      where: { id: approval.id },
+    });
     expect(stillDisputed.status).toBe(ApprovalStatus.DISPUTED);
     expect(stillDisputed.resolvedAt).toBeNull();
   });
@@ -183,7 +195,9 @@ describe("resolveDispute — admin-only", () => {
     vi.mocked(auth).mockResolvedValue(ADMIN_SESSION);
     await resolveDispute(approval.id);
 
-    const resolved = await testDb.transactionApproval.findUniqueOrThrow({ where: { id: approval.id } });
+    const resolved = await testDb.transactionApproval.findUniqueOrThrow({
+      where: { id: approval.id },
+    });
     expect(resolved.status).toBe(ApprovalStatus.DISPUTED);
     expect(resolved.resolvedAt).not.toBeNull();
     expect(resolved.resolutionTransactionId).toBeNull();
@@ -192,13 +206,16 @@ describe("resolveDispute — admin-only", () => {
 
 describe("full dispute -> correction -> resolved lifecycle", () => {
   it("keeps status DISPUTED (never reverts to CONFIRMED) with resolvedAt and resolutionTransactionId set", async () => {
-    const { shareholder, transaction, approval } = await makeShareholderWithPendingApproval("Lifecycle");
+    const { shareholder, transaction, approval } =
+      await makeShareholderWithPendingApproval("Lifecycle");
 
     // 1. Shareholder disputes the original transaction.
     vi.mocked(auth).mockResolvedValue(shareholderSession(shareholder.id));
     await disputeTransaction(approval.id, "Amount is off by $50");
 
-    const disputed = await testDb.transactionApproval.findUniqueOrThrow({ where: { id: approval.id } });
+    const disputed = await testDb.transactionApproval.findUniqueOrThrow({
+      where: { id: approval.id },
+    });
     expect(disputed.status).toBe(ApprovalStatus.DISPUTED);
 
     // 2. Admin issues a correction referencing the original transaction.
@@ -223,7 +240,9 @@ describe("full dispute -> correction -> resolved lifecycle", () => {
 
     // 4. Final state: DISPUTED, not CONFIRMED — resolvedAt and
     // resolutionTransactionId both set, preserving the audit trail.
-    const final = await testDb.transactionApproval.findUniqueOrThrow({ where: { id: approval.id } });
+    const final = await testDb.transactionApproval.findUniqueOrThrow({
+      where: { id: approval.id },
+    });
     expect(final.status).toBe(ApprovalStatus.DISPUTED);
     expect(final.resolvedAt).not.toBeNull();
     expect(final.resolutionTransactionId).toBe(correction.id);

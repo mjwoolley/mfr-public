@@ -118,13 +118,26 @@ export function BlockedDatesClient() {
           />
         </div>
         {formError && (
-          <p className="m-0 mt-2 text-[13px] font-semibold" style={{ color: 'var(--color-accent-800)' }}>
+          <p
+            className="m-0 mt-2 text-[13px] font-semibold"
+            style={{ color: 'var(--color-accent-800)' }}
+          >
             {formError}
           </p>
         )}
         <div className="mt-3">
           <button type="submit" className="btn btn-primary" disabled={submitting}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
               <path d="M12 5v14M5 12h14" />
             </svg>
             {submitting ? 'Adding…' : 'Block these dates'}
@@ -149,7 +162,17 @@ export function BlockedDatesClient() {
               className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full"
               style={{ background: 'var(--color-neutral-200)', color: 'var(--color-neutral-700)' }}
             >
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg
+                width="17"
+                height="17"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
                 <rect x="3" y="4" width="18" height="18" rx="2" />
                 <path d="M16 2v4M8 2v4M3 10h18M10 14l4 4M14 14l-4 4" />
               </svg>
@@ -158,7 +181,10 @@ export function BlockedDatesClient() {
               <div className="font-semibold">{niceRange(b.startDate, b.endDate)}</div>
               {b.reason && <div className="text-muted text-[13px]">{b.reason}</div>}
               {rowError?.id === b.id && (
-                <p className="m-0 mt-1 text-[13px] font-semibold" style={{ color: 'var(--color-accent-800)' }}>
+                <p
+                  className="m-0 mt-1 text-[13px] font-semibold"
+                  style={{ color: 'var(--color-accent-800)' }}
+                >
                   {rowError.message}
                 </p>
               )}

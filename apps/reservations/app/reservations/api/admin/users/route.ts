@@ -12,7 +12,10 @@ export async function GET(request: NextRequest) {
   const status = searchParams.get('status')
 
   const rows = status
-    ? await identityDb.select().from(users).where(eq(users.status, status as 'pending' | 'approved' | 'blocked'))
+    ? await identityDb
+        .select()
+        .from(users)
+        .where(eq(users.status, status as 'pending' | 'approved' | 'blocked'))
     : await identityDb.select().from(users)
 
   return NextResponse.json({ users: rows })

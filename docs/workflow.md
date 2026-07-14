@@ -36,6 +36,7 @@ restores the previous deployment; `git revert` the commit afterward.
 ## Special cases
 
 ### Schema changes (accounting / Prisma)
+
 - `npx prisma migrate dev --name whatever` locally — writes the migration file
   and applies it to the `dev` branch. Production applies it automatically
   during the deploy build (`prisma migrate deploy` runs in the build script).
@@ -46,10 +47,12 @@ restores the previous deployment; `git revert` the commit afterward.
   too, or integration tests will later fail on the missing column.
 
 ### Shared packages (`packages/ui`, `packages/auth`)
+
 A change there ships to all three apps at once — verify all three, not just
 the one you were working on.
 
 ### Environment variables
+
 - Set per-project ×3 on Vercel (`vercel env add` from the app's directory).
 - Nothing takes effect until a redeploy.
 - Shared values (`AUTH_SECRET`, `AUTH_COOKIE_DOMAIN`, identity DB URLs) must be
@@ -61,11 +64,11 @@ the one you were working on.
 
 ## Reference: environments
 
-| Environment | App runs | Database (each Neon project) | Used for |
-|---|---|---|---|
-| Local dev | your machine (`npm run dev:*`) | `dev` branch | day-to-day development |
-| Integration tests | vitest on your machine | `test` branch (via `TEST_*` env vars) | destructive schema/query tests |
-| Production | Vercel (mfr_web / mfr_reservations / mfr_accounting) | `production` branch | the family |
+| Environment       | App runs                                             | Database (each Neon project)          | Used for                       |
+| ----------------- | ---------------------------------------------------- | ------------------------------------- | ------------------------------ |
+| Local dev         | your machine (`npm run dev:*`)                       | `dev` branch                          | day-to-day development         |
+| Integration tests | vitest on your machine                               | `test` branch (via `TEST_*` env vars) | destructive schema/query tests |
+| Production        | Vercel (mfr_web / mfr_reservations / mfr_accounting) | `production` branch                   | the family                     |
 
 Neon projects: `mfr-identity` (shared Auth.js tables — sessions/users),
 `mfr-reservations` and `mfr-accounting` (per-app business data). Identity

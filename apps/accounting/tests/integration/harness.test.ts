@@ -47,7 +47,10 @@ describe("integration test harness", () => {
 
   it("writes a user via testIdentityDb and reads it back from the shared identity test branch", async () => {
     const email = `harness-proof-identity-${Date.now()}-${Math.random()}@example.com`;
-    const [inserted] = await testIdentityDb.insert(users).values({ email, status: "approved" }).returning();
+    const [inserted] = await testIdentityDb
+      .insert(users)
+      .values({ email, status: "approved" })
+      .returning();
     createdUserIds.push(inserted.id);
 
     const [found] = await testIdentityDb.select().from(users).where(eq(users.id, inserted.id));
@@ -57,7 +60,14 @@ describe("integration test harness", () => {
 
   it("requireAdmin() resolves for a mocked admin session (no real NextAuth involved)", async () => {
     vi.mocked(auth).mockResolvedValue({
-      user: { id: "u1", status: "approved", isAccountingAdmin: true, isReservationsAdmin: false, shareholderId: null, email: "admin@example.com" },
+      user: {
+        id: "u1",
+        status: "approved",
+        isAccountingAdmin: true,
+        isReservationsAdmin: false,
+        shareholderId: null,
+        email: "admin@example.com",
+      },
       expires: "2099-01-01",
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
@@ -68,7 +78,14 @@ describe("integration test harness", () => {
 
   it("requireAdmin() redirects (throws) for a mocked non-admin session", async () => {
     vi.mocked(auth).mockResolvedValue({
-      user: { id: "u2", status: "approved", isAccountingAdmin: false, isReservationsAdmin: false, shareholderId: null, email: "user@example.com" },
+      user: {
+        id: "u2",
+        status: "approved",
+        isAccountingAdmin: false,
+        isReservationsAdmin: false,
+        shareholderId: null,
+        email: "user@example.com",
+      },
       expires: "2099-01-01",
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);

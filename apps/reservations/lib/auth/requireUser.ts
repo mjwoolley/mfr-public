@@ -1,9 +1,7 @@
 import type { Session } from 'next-auth'
 import { auth } from './config'
 
-export type AuthResult =
-  | { ok: true; session: Session }
-  | { ok: false; response: Response }
+export type AuthResult = { ok: true; session: Session } | { ok: false; response: Response }
 
 function jsonError(status: number, error: string): Response {
   return new Response(JSON.stringify({ error }), {

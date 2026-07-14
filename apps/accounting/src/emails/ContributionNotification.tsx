@@ -34,8 +34,8 @@ export function ContributionNotification(props: {
           <Heading as="h2">Contribution recorded</Heading>
           <Text>Hi {shareholderName},</Text>
           <Text>
-            {adminName} recorded a contribution of <strong>{amount}</strong> for you on {date}.
-            This has already been added to your share balance.
+            {adminName} recorded a contribution of <strong>{amount}</strong> for you on {date}. This
+            has already been added to your share balance.
           </Text>
           <Section>
             <Link href={inboxUrl}>Review and acknowledge in your inbox</Link>

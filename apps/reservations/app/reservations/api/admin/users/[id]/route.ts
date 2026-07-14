@@ -36,11 +36,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: 'isReservationsAdmin must be a boolean' }, { status: 400 })
     }
     if (!actor.isReservationsAdmin) {
-      return NextResponse.json({ error: 'Only a reservations admin can change this' }, { status: 403 })
+      return NextResponse.json(
+        { error: 'Only a reservations admin can change this' },
+        { status: 403 },
+      )
     }
     patch.isReservationsAdmin = body.isReservationsAdmin
     events.push({
-      eventType: body.isReservationsAdmin ? 'reservations_admin_granted' : 'reservations_admin_revoked',
+      eventType: body.isReservationsAdmin
+        ? 'reservations_admin_granted'
+        : 'reservations_admin_revoked',
       metadata: { targetUserId: id },
     })
   }
@@ -50,7 +55,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: 'isAccountingAdmin must be a boolean' }, { status: 400 })
     }
     if (!actor.isAccountingAdmin) {
-      return NextResponse.json({ error: 'Only an accounting admin can change this' }, { status: 403 })
+      return NextResponse.json(
+        { error: 'Only an accounting admin can change this' },
+        { status: 403 },
+      )
     }
     patch.isAccountingAdmin = body.isAccountingAdmin
     events.push({
@@ -76,7 +84,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   await db.transaction(async (tx) => {
     for (const event of events) {
-      await logActivity(tx, { eventType: event.eventType, actorUserId: actor.id, metadata: event.metadata })
+      await logActivity(tx, {
+        eventType: event.eventType,
+        actorUserId: actor.id,
+        metadata: event.metadata,
+      })
     }
   })
 

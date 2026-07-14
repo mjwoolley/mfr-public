@@ -12,7 +12,10 @@ export default async function AdminShareholdersPage() {
         <p className="text-muted m-0 text-sm">
           Shareholder records — link a login by matching the email they sign in with.
         </p>
-        <Link href="/accounting/admin/shareholders/new" className="btn btn-primary flex-none no-underline">
+        <Link
+          href="/accounting/admin/shareholders/new"
+          className="btn btn-primary flex-none no-underline"
+        >
           Add shareholder
         </Link>
       </div>

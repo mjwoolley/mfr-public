@@ -23,7 +23,9 @@ export function computeGoalProgress(goalAmount: number, raised: number): GoalPro
   const pct = Math.min(100, Math.round((raised / goalAmount) * 100));
   const remaining = Math.max(0, goalAmount - raised);
   const note =
-    remaining === 0 ? "Goal met — thank you, everyone!" : `${pct}% funded · ${usd0(remaining)} to go`;
+    remaining === 0
+      ? "Goal met — thank you, everyone!"
+      : `${pct}% funded · ${usd0(remaining)} to go`;
   return { pct, remaining, note };
 }
 

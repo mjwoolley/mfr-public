@@ -25,9 +25,12 @@ export async function PATCH(request: NextRequest) {
   const [before] = await db.select().from(bookingRules).where(eq(bookingRules.id, 1))
 
   const patch: Partial<typeof bookingRules.$inferInsert> = {}
-  if (typeof body.bookingHorizonDate === 'string') patch.bookingHorizonDate = body.bookingHorizonDate
-  if (typeof body.maxConsecutiveNights === 'number') patch.maxConsecutiveNights = body.maxConsecutiveNights
-  if (typeof body.maxNightsPerUserPerYear === 'number') patch.maxNightsPerUserPerYear = body.maxNightsPerUserPerYear
+  if (typeof body.bookingHorizonDate === 'string')
+    patch.bookingHorizonDate = body.bookingHorizonDate
+  if (typeof body.maxConsecutiveNights === 'number')
+    patch.maxConsecutiveNights = body.maxConsecutiveNights
+  if (typeof body.maxNightsPerUserPerYear === 'number')
+    patch.maxNightsPerUserPerYear = body.maxNightsPerUserPerYear
 
   // Bootstrap path: no rules row exists yet (fresh environment). A partial
   // patch can't create a complete row, so require all three fields.
@@ -40,7 +43,10 @@ export async function PATCH(request: NextRequest) {
     )
   ) {
     return NextResponse.json(
-      { error: 'No booking rules exist yet — horizon date and both night limits are all required to create them' },
+      {
+        error:
+          'No booking rules exist yet — horizon date and both night limits are all required to create them',
+      },
       { status: 400 },
     )
   }

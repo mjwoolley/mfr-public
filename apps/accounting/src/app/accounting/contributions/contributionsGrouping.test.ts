@@ -11,12 +11,60 @@ import {
 // falls in February, so it rolls back into FY2023 — proof the grouping uses
 // the fiscal year, not the calendar year.
 const rows: ContributionEntryRow[] = [
-  { shareholderId: "a", shareholderName: "Alice", type: "CONTRIBUTION", date: "2024-07-01T00:00:00.000Z", description: "Buy-in", amount: 12000, deleted: false }, // FY2024
-  { shareholderId: "b", shareholderName: "Bob", type: "CONTRIBUTION", date: "2024-02-01T00:00:00.000Z", description: null, amount: 3000, deleted: false }, // Feb → FY2023
-  { shareholderId: "a", shareholderName: "Alice", type: "ADJUSTMENT", date: "2025-04-02T00:00:00.000Z", description: "Reconcile", amount: 500, deleted: false },
-  { shareholderId: "b", shareholderName: "Bob", type: "TRANSFER", date: "2025-05-15T00:00:00.000Z", description: "Gift", amount: -2000, deleted: false },
-  { shareholderId: "a", shareholderName: "Alice", type: "TRANSFER", date: "2025-05-15T00:00:00.000Z", description: "Gift", amount: 2000, deleted: false },
-  { shareholderId: "a", shareholderName: "Alice", type: "CONTRIBUTION", date: "2025-09-10T00:00:00.000Z", description: "Dock", amount: 6000, deleted: false },
+  {
+    shareholderId: "a",
+    shareholderName: "Alice",
+    type: "CONTRIBUTION",
+    date: "2024-07-01T00:00:00.000Z",
+    description: "Buy-in",
+    amount: 12000,
+    deleted: false,
+  }, // FY2024
+  {
+    shareholderId: "b",
+    shareholderName: "Bob",
+    type: "CONTRIBUTION",
+    date: "2024-02-01T00:00:00.000Z",
+    description: null,
+    amount: 3000,
+    deleted: false,
+  }, // Feb → FY2023
+  {
+    shareholderId: "a",
+    shareholderName: "Alice",
+    type: "ADJUSTMENT",
+    date: "2025-04-02T00:00:00.000Z",
+    description: "Reconcile",
+    amount: 500,
+    deleted: false,
+  },
+  {
+    shareholderId: "b",
+    shareholderName: "Bob",
+    type: "TRANSFER",
+    date: "2025-05-15T00:00:00.000Z",
+    description: "Gift",
+    amount: -2000,
+    deleted: false,
+  },
+  {
+    shareholderId: "a",
+    shareholderName: "Alice",
+    type: "TRANSFER",
+    date: "2025-05-15T00:00:00.000Z",
+    description: "Gift",
+    amount: 2000,
+    deleted: false,
+  },
+  {
+    shareholderId: "a",
+    shareholderName: "Alice",
+    type: "CONTRIBUTION",
+    date: "2025-09-10T00:00:00.000Z",
+    description: "Dock",
+    amount: 6000,
+    deleted: false,
+  },
 ];
 
 const balances: ShareholderBalanceRow[] = [
@@ -35,7 +83,15 @@ describe("contributionTotalsByYear", () => {
   it("excludes deleted (corrected) entries from the total", () => {
     const withDeleted: ContributionEntryRow[] = [
       ...rows,
-      { shareholderId: "a", shareholderName: "Alice", type: "CONTRIBUTION", date: "2025-11-01T00:00:00.000Z", description: "Corrected out", amount: 9000, deleted: true },
+      {
+        shareholderId: "a",
+        shareholderName: "Alice",
+        type: "CONTRIBUTION",
+        date: "2025-11-01T00:00:00.000Z",
+        description: "Corrected out",
+        amount: 9000,
+        deleted: true,
+      },
     ];
     const totals = contributionTotalsByYear(withDeleted);
     expect(totals.get(2025)).toBe(6000);
@@ -63,7 +119,15 @@ describe("groupEntriesByShareholder", () => {
   it("keeps a deleted (corrected) entry visible in the list but excludes it from contributed", () => {
     const withDeleted: ContributionEntryRow[] = [
       ...rows,
-      { shareholderId: "a", shareholderName: "Alice", type: "CONTRIBUTION", date: "2025-11-01T00:00:00.000Z", description: "Corrected out", amount: 9000, deleted: true },
+      {
+        shareholderId: "a",
+        shareholderName: "Alice",
+        type: "CONTRIBUTION",
+        date: "2025-11-01T00:00:00.000Z",
+        description: "Corrected out",
+        amount: 9000,
+        deleted: true,
+      },
     ];
     const groups = groupEntriesByShareholder(withDeleted, balances);
     const alice = groups[0];

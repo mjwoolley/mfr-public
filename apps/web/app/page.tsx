@@ -1,12 +1,12 @@
-import { existsSync } from "node:fs";
-import path from "node:path";
-import Image from "next/image";
-import { RidgelineMark } from "@mfr/ui";
+import { existsSync } from 'node:fs'
+import path from 'node:path'
+import Image from 'next/image'
+import { RidgelineMark } from '@mfr/ui'
 
 // The hero photo is provided by the family; until it lands in public/,
 // the layout stands on its own without the framed snapshot.
-const HERO_PHOTO = "/lake-house.jpg";
-const hasPhoto = existsSync(path.join(process.cwd(), "public", "lake-house.jpg"));
+const HERO_PHOTO = '/lake-house.jpg'
+const hasPhoto = existsSync(path.join(process.cwd(), 'public', 'lake-house.jpg'))
 
 function CalendarIcon({ className }: { className?: string }) {
   return (
@@ -25,7 +25,7 @@ function CalendarIcon({ className }: { className?: string }) {
       <path d="M8 3v4M16 3v4" />
       <path d="M8 14h3M13 14h3M8 17.5h3" />
     </svg>
-  );
+  )
 }
 
 function LedgerIcon({ className }: { className?: string }) {
@@ -44,7 +44,7 @@ function LedgerIcon({ className }: { className?: string }) {
       <path d="M8 3v18" />
       <path d="M11.5 8h4M11.5 12h4M11.5 16h2.5" />
     </svg>
-  );
+  )
 }
 
 function ArrowIcon() {
@@ -62,32 +62,32 @@ function ArrowIcon() {
     >
       <path d="M5 12h14M13 6l6 6-6 6" />
     </svg>
-  );
+  )
 }
 
-const RESERVATIONS_URL = "https://reservations.millerfamilyreunions.org/reservations";
-const ACCOUNTING_URL = "https://accounting.millerfamilyreunions.org/accounting";
+const RESERVATIONS_URL = 'https://reservations.millerfamilyreunions.org/reservations'
+const ACCOUNTING_URL = 'https://accounting.millerfamilyreunions.org/accounting'
 
 const apps = [
   {
-    name: "Reservations",
+    name: 'Reservations',
     href: RESERVATIONS_URL,
-    description: "See the calendar and book your stay at the house.",
+    description: 'See the calendar and book your stay at the house.',
     Icon: CalendarIcon,
-    chipBg: "var(--color-accent-100)",
-    chipColor: "var(--color-accent-700)",
-    ctaColor: "var(--color-accent-700)",
+    chipBg: 'var(--color-accent-100)',
+    chipColor: 'var(--color-accent-700)',
+    ctaColor: 'var(--color-accent-700)',
   },
   {
-    name: "Accounting",
+    name: 'Accounting',
     href: ACCOUNTING_URL,
     description: "Shares, contributions, and who's paid what.",
     Icon: LedgerIcon,
-    chipBg: "var(--color-accent-2-100)",
-    chipColor: "var(--color-accent-2-700)",
-    ctaColor: "var(--color-accent-2-700)",
+    chipBg: 'var(--color-accent-2-100)',
+    chipColor: 'var(--color-accent-2-700)',
+    ctaColor: 'var(--color-accent-2-700)',
   },
-];
+]
 
 export default function Home() {
   return (
@@ -96,18 +96,18 @@ export default function Home() {
       <section className="mx-auto w-full max-w-5xl px-7 pt-8 pb-5">
         <div
           className="flex flex-wrap items-center gap-11"
-          style={{ animation: "fadeup .5s ease both" }}
+          style={{ animation: 'fadeup .5s ease both' }}
         >
           <div className="min-w-[300px] flex-[1_1_350px]">
             <div
               className="text-xs font-bold tracking-[0.22em] uppercase"
-              style={{ color: "var(--color-accent-700)" }}
+              style={{ color: 'var(--color-accent-700)' }}
             >
               Lake Lure, North Carolina
             </div>
             <h1
               className="mt-3.5"
-              style={{ fontSize: "clamp(46px, 6.4vw, 70px)", lineHeight: 1.02 }}
+              style={{ fontSize: 'clamp(46px, 6.4vw, 70px)', lineHeight: 1.02 }}
             >
               Our place
               <br />
@@ -115,23 +115,23 @@ export default function Home() {
             </h1>
             <p
               className="mt-5 max-w-[420px] text-lg leading-relaxed"
-              style={{ color: "color-mix(in srgb, var(--color-text) 78%, transparent)" }}
+              style={{ color: 'color-mix(in srgb, var(--color-text) 78%, transparent)' }}
             >
-              Everything for the Miller family&rsquo;s lake house — plan your stay
-              and keep the books straight, all in one place.
+              Everything for the Miller family&rsquo;s lake house — plan your stay and keep the
+              books straight, all in one place.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <a
                 href={RESERVATIONS_URL}
                 className="btn btn-primary px-5 py-3 font-bold"
-                style={{ fontFamily: "var(--font-body)" }}
+                style={{ fontFamily: 'var(--font-body)' }}
               >
                 Plan a stay
               </a>
               <a
                 href={ACCOUNTING_URL}
                 className="btn btn-secondary px-5 py-3 font-bold"
-                style={{ fontFamily: "var(--font-body)" }}
+                style={{ fontFamily: 'var(--font-body)' }}
               >
                 Open the ledger
               </a>
@@ -145,7 +145,7 @@ export default function Home() {
                 style={{
                   width: 340,
                   height: 340,
-                  background: "var(--color-accent-2-200)",
+                  background: 'var(--color-accent-2-200)',
                   top: -30,
                   right: -10,
                 }}
@@ -155,7 +155,7 @@ export default function Home() {
                 style={{
                   width: 120,
                   height: 120,
-                  background: "var(--color-accent-200)",
+                  background: 'var(--color-accent-200)',
                   bottom: -24,
                   left: -6,
                 }}
@@ -163,15 +163,15 @@ export default function Home() {
               <figure
                 className="relative z-[1] bg-white p-3.5"
                 style={{
-                  borderRadius: "var(--radius-md)",
-                  boxShadow: "var(--shadow-lg)",
-                  transform: "rotate(1.6deg)",
-                  width: "min(400px, 86vw)",
+                  borderRadius: 'var(--radius-md)',
+                  boxShadow: 'var(--shadow-lg)',
+                  transform: 'rotate(1.6deg)',
+                  width: 'min(400px, 86vw)',
                 }}
               >
                 <div
                   className="washed overflow-hidden"
-                  style={{ borderRadius: "calc(var(--radius-md) - 6px)" }}
+                  style={{ borderRadius: 'calc(var(--radius-md) - 6px)' }}
                 >
                   <Image
                     src={HERO_PHOTO}
@@ -184,7 +184,7 @@ export default function Home() {
                 </div>
                 <figcaption
                   className="px-1 pt-3 pb-1 text-center text-xs"
-                  style={{ color: "var(--color-neutral-600)" }}
+                  style={{ color: 'var(--color-neutral-600)' }}
                 >
                   The whole crew, on the dock
                 </figcaption>
@@ -196,10 +196,7 @@ export default function Home() {
 
       {/* Ridgeline divider — the portal's mark, quietly repeated */}
       <div className="flex flex-col items-center gap-2.5 pt-11 pb-2">
-        <RidgelineMark
-          className="h-10 w-10"
-          style={{ color: "var(--color-accent-2)" }}
-        />
+        <RidgelineMark className="h-10 w-10" style={{ color: 'var(--color-accent-2)' }} />
       </div>
 
       {/* App cards */}
@@ -207,8 +204,8 @@ export default function Home() {
         <h2
           className="text-center text-[15px] font-bold tracking-[0.02em]"
           style={{
-            fontFamily: "var(--font-body)",
-            color: "var(--color-neutral-700)",
+            fontFamily: 'var(--font-body)',
+            color: 'var(--color-neutral-700)',
           }}
         >
           Two things to do here
@@ -230,7 +227,7 @@ export default function Home() {
               <h3 className="mt-5 text-2xl">{name}</h3>
               <p
                 className="mt-2 text-[15px] leading-relaxed"
-                style={{ color: "color-mix(in srgb, var(--color-text) 70%, transparent)" }}
+                style={{ color: 'color-mix(in srgb, var(--color-text) 70%, transparent)' }}
               >
                 {description}
               </p>
@@ -246,5 +243,5 @@ export default function Home() {
         </div>
       </section>
     </div>
-  );
+  )
 }

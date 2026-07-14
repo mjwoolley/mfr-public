@@ -10,7 +10,10 @@ export function ShareholderForm() {
   );
 
   return (
-    <form action={formAction} className="card elev-sm mt-5 flex max-w-sm flex-col gap-3.5 bg-white px-6 py-5">
+    <form
+      action={formAction}
+      className="card elev-sm mt-5 flex max-w-sm flex-col gap-3.5 bg-white px-6 py-5"
+    >
       <div className="field">
         <label htmlFor="sh-name">Name</label>
         <input id="sh-name" name="name" required className="input" />

@@ -22,7 +22,11 @@ export interface PortalStatusGatePaths {
  * Component/Server Action behavior), so the `null`/`pending`/`blocked`
  * branches never fall through to the return below.
  */
-export function createPortalStatusGate({ loginPath, pendingPath, blockedPath }: PortalStatusGatePaths) {
+export function createPortalStatusGate({
+  loginPath,
+  pendingPath,
+  blockedPath,
+}: PortalStatusGatePaths) {
   return function gatePortalStatus(session: Session | null): Session {
     if (!session?.user) {
       redirect(loginPath)
