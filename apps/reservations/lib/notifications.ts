@@ -34,7 +34,9 @@ function formatLong(date: string) {
 }
 
 function nightsBetween(startDate: string, endDate: string) {
-  return Math.round((Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`)) / 86_400_000)
+  return Math.round(
+    (Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`)) / 86_400_000,
+  )
 }
 
 // One identity-DB round-trip fetches the owner AND every approved
@@ -50,10 +52,15 @@ async function getReservationRecipients(ownerUserId: string) {
     })
     .from(users)
     .where(
-      or(eq(users.id, ownerUserId), and(eq(users.isReservationsAdmin, true), eq(users.status, 'approved')))
+      or(
+        eq(users.id, ownerUserId),
+        and(eq(users.isReservationsAdmin, true), eq(users.status, 'approved')),
+      ),
     )
   const owner = rows.find((r) => r.id === ownerUserId) ?? null
-  const admins = rows.filter((r) => r.isReservationsAdmin && r.status === 'approved' && r.id !== ownerUserId)
+  const admins = rows.filter(
+    (r) => r.isReservationsAdmin && r.status === 'approved' && r.id !== ownerUserId,
+  )
   return { owner, admins }
 }
 
@@ -74,7 +81,10 @@ export async function sendReservationCreatedEmail(input: {
   try {
     const { owner, admins } = await getReservationRecipients(input.ownerUserId)
     if (!owner) {
-      logger.warn({ reservationId: input.reservationId, ownerUserId: input.ownerUserId }, 'reservation email skipped: owner not found in identity db')
+      logger.warn(
+        { reservationId: input.reservationId, ownerUserId: input.ownerUserId },
+        'reservation email skipped: owner not found in identity db',
+      )
       return
     }
     await sendEmail({
@@ -90,7 +100,10 @@ export async function sendReservationCreatedEmail(input: {
       }),
     })
   } catch (err) {
-    logger.error({ err, reservationId: input.reservationId }, 'failed to send reservation-created email')
+    logger.error(
+      { err, reservationId: input.reservationId },
+      'failed to send reservation-created email',
+    )
   }
 }
 
@@ -106,7 +119,10 @@ export async function sendReservationUpdatedEmail(input: {
   try {
     const { owner, admins } = await getReservationRecipients(input.ownerUserId)
     if (!owner) {
-      logger.warn({ reservationId: input.reservationId, ownerUserId: input.ownerUserId }, 'reservation email skipped: owner not found in identity db')
+      logger.warn(
+        { reservationId: input.reservationId, ownerUserId: input.ownerUserId },
+        'reservation email skipped: owner not found in identity db',
+      )
       return
     }
     const actor = findActor(input.actorUserId, owner, admins)
@@ -127,7 +143,10 @@ export async function sendReservationUpdatedEmail(input: {
       }),
     })
   } catch (err) {
-    logger.error({ err, reservationId: input.reservationId }, 'failed to send reservation-updated email')
+    logger.error(
+      { err, reservationId: input.reservationId },
+      'failed to send reservation-updated email',
+    )
   }
 }
 
@@ -141,7 +160,10 @@ export async function sendReservationCancelledEmail(input: {
   try {
     const { owner, admins } = await getReservationRecipients(input.ownerUserId)
     if (!owner) {
-      logger.warn({ reservationId: input.reservationId, ownerUserId: input.ownerUserId }, 'reservation email skipped: owner not found in identity db')
+      logger.warn(
+        { reservationId: input.reservationId, ownerUserId: input.ownerUserId },
+        'reservation email skipped: owner not found in identity db',
+      )
       return
     }
     const actor = findActor(input.actorUserId, owner, admins)
@@ -159,6 +181,9 @@ export async function sendReservationCancelledEmail(input: {
       }),
     })
   } catch (err) {
-    logger.error({ err, reservationId: input.reservationId }, 'failed to send reservation-cancelled email')
+    logger.error(
+      { err, reservationId: input.reservationId },
+      'failed to send reservation-cancelled email',
+    )
   }
 }

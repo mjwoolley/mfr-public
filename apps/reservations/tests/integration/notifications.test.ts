@@ -23,7 +23,11 @@ import { PATCH, DELETE } from '../../app/reservations/api/reservations/[id]/rout
 
 const createdUserIds: string[] = []
 
-function mockSessionFor(user: { id: string; isReservationsAdmin?: boolean; email?: string | null }) {
+function mockSessionFor(user: {
+  id: string
+  isReservationsAdmin?: boolean
+  email?: string | null
+}) {
   vi.mocked(auth).mockResolvedValue({
     user: {
       id: user.id,
@@ -40,7 +44,11 @@ function mockSessionFor(user: { id: string; isReservationsAdmin?: boolean; email
 async function makeUser(suffix: string, overrides: Partial<typeof users.$inferInsert> = {}) {
   const [user] = await testIdentityDb
     .insert(users)
-    .values({ email: `notif-test-${suffix}-${Date.now()}-${Math.random()}@example.com`, status: 'approved', ...overrides })
+    .values({
+      email: `notif-test-${suffix}-${Date.now()}-${Math.random()}@example.com`,
+      status: 'approved',
+      ...overrides,
+    })
     .returning()
   createdUserIds.push(user.id)
   return user
@@ -57,10 +65,19 @@ async function createReservation(user: { id: string }, startDate: string, endDat
 beforeAll(async () => {
   await testDb
     .insert(bookingRules)
-    .values({ id: 1, bookingHorizonDate: '2028-12-31', maxConsecutiveNights: 7, maxNightsPerUserPerYear: 14 })
+    .values({
+      id: 1,
+      bookingHorizonDate: '2028-12-31',
+      maxConsecutiveNights: 7,
+      maxNightsPerUserPerYear: 14,
+    })
     .onConflictDoUpdate({
       target: bookingRules.id,
-      set: { bookingHorizonDate: '2028-12-31', maxConsecutiveNights: 7, maxNightsPerUserPerYear: 14 },
+      set: {
+        bookingHorizonDate: '2028-12-31',
+        maxConsecutiveNights: 7,
+        maxNightsPerUserPerYear: 14,
+      },
     })
 })
 
@@ -79,14 +96,17 @@ describe('reservation notification emails', () => {
   it('POST sends a confirmation to the booker, CCing approved admins but not pending ones', async () => {
     const booker = await makeUser('booker')
     const approvedAdmin = await makeUser('admin-ok', { isReservationsAdmin: true })
-    const pendingAdmin = await makeUser('admin-pending', { isReservationsAdmin: true, status: 'pending' })
+    const pendingAdmin = await makeUser('admin-pending', {
+      isReservationsAdmin: true,
+      status: 'pending',
+    })
     mockSessionFor(booker)
 
     const response = await POST(
       new Request('http://localhost/api/reservations', {
         method: 'POST',
         body: JSON.stringify({ startDate: '2027-03-01', endDate: '2027-03-04' }),
-      }) as never
+      }) as never,
     )
     expect(response.status).toBe(201)
 
@@ -107,7 +127,7 @@ describe('reservation notification emails', () => {
       new Request('http://localhost/api/reservations', {
         method: 'POST',
         body: JSON.stringify({ startDate: '2029-07-01', endDate: '2029-07-05' }), // past horizon
-      }) as never
+      }) as never,
     )
     expect(response.status).toBe(400)
     expect(sendEmail).not.toHaveBeenCalled()
@@ -122,7 +142,7 @@ describe('reservation notification emails', () => {
       new Request('http://localhost/api/reservations', {
         method: 'POST',
         body: JSON.stringify({ startDate: '2027-04-01', endDate: '2027-04-03' }),
-      }) as never
+      }) as never,
     )
     expect(response.status).toBe(201)
     const call = vi.mocked(sendEmail).mock.calls[0][0]
@@ -142,7 +162,7 @@ describe('reservation notification emails', () => {
         method: 'PATCH',
         body: JSON.stringify({ startDate: '2027-05-02', endDate: '2027-05-05' }),
       }) as never,
-      { params: Promise.resolve({ id: reservation.id }) }
+      { params: Promise.resolve({ id: reservation.id }) },
     )
     expect(response.status).toBe(200)
 
@@ -166,7 +186,7 @@ describe('reservation notification emails', () => {
         method: 'PATCH',
         body: JSON.stringify({ startDate: '2027-06-01', endDate: '2027-06-04' }),
       }) as never,
-      { params: Promise.resolve({ id: reservation.id }) }
+      { params: Promise.resolve({ id: reservation.id }) },
     )
     expect(response.status).toBe(200)
     expect(sendEmail).not.toHaveBeenCalled()
@@ -178,8 +198,10 @@ describe('reservation notification emails', () => {
     mockSessionFor(owner)
 
     const first = await DELETE(
-      new Request(`http://localhost/api/reservations/${reservation.id}`, { method: 'DELETE' }) as never,
-      { params: Promise.resolve({ id: reservation.id }) }
+      new Request(`http://localhost/api/reservations/${reservation.id}`, {
+        method: 'DELETE',
+      }) as never,
+      { params: Promise.resolve({ id: reservation.id }) },
     )
     expect(first.status).toBe(200)
     expect(sendEmail).toHaveBeenCalledTimes(1)
@@ -188,8 +210,10 @@ describe('reservation notification emails', () => {
     expect(call.subject).toContain('Reservation cancelled')
 
     const second = await DELETE(
-      new Request(`http://localhost/api/reservations/${reservation.id}`, { method: 'DELETE' }) as never,
-      { params: Promise.resolve({ id: reservation.id }) }
+      new Request(`http://localhost/api/reservations/${reservation.id}`, {
+        method: 'DELETE',
+      }) as never,
+      { params: Promise.resolve({ id: reservation.id }) },
     )
     expect(second.status).toBe(200)
     expect(sendEmail).toHaveBeenCalledTimes(1)

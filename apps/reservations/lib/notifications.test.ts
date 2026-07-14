@@ -20,9 +20,27 @@ import {
   sendReservationCancelledEmail,
 } from './notifications'
 
-const owner = { id: 'u-owner', email: 'owner@example.com', name: 'Olive Owner', isReservationsAdmin: false, status: 'approved' }
-const admin1 = { id: 'u-admin1', email: 'admin1@example.com', name: 'Ada Admin', isReservationsAdmin: true, status: 'approved' }
-const admin2 = { id: 'u-admin2', email: 'admin2@example.com', name: null, isReservationsAdmin: true, status: 'approved' }
+const owner = {
+  id: 'u-owner',
+  email: 'owner@example.com',
+  name: 'Olive Owner',
+  isReservationsAdmin: false,
+  status: 'approved',
+}
+const admin1 = {
+  id: 'u-admin1',
+  email: 'admin1@example.com',
+  name: 'Ada Admin',
+  isReservationsAdmin: true,
+  status: 'approved',
+}
+const admin2 = {
+  id: 'u-admin2',
+  email: 'admin2@example.com',
+  name: null,
+  isReservationsAdmin: true,
+  status: 'approved',
+}
 
 const dates = { startDate: '2027-07-01', endDate: '2027-07-05' }
 
@@ -99,7 +117,12 @@ describe('sendReservationUpdatedEmail', () => {
 
 describe('sendReservationCancelledEmail', () => {
   it('emails the owner with cancelled-by when an admin cancels', async () => {
-    await sendReservationCancelledEmail({ reservationId: 'r1', ownerUserId: owner.id, actorUserId: admin2.id, ...dates })
+    await sendReservationCancelledEmail({
+      reservationId: 'r1',
+      ownerUserId: owner.id,
+      actorUserId: admin2.id,
+      ...dates,
+    })
     const call = vi.mocked(sendEmail).mock.calls[0][0]
     expect(call.to).toBe('owner@example.com')
     expect(call.cc).toEqual(['admin1@example.com', 'admin2@example.com'])
@@ -113,7 +136,12 @@ describe('sendReservationCancelledEmail', () => {
   it('never throws when the identity DB query fails', async () => {
     whereMock.mockRejectedValue(new Error('identity db down'))
     await expect(
-      sendReservationCancelledEmail({ reservationId: 'r1', ownerUserId: owner.id, actorUserId: owner.id, ...dates })
+      sendReservationCancelledEmail({
+        reservationId: 'r1',
+        ownerUserId: owner.id,
+        actorUserId: owner.id,
+        ...dates,
+      }),
     ).resolves.toBeUndefined()
     expect(sendEmail).not.toHaveBeenCalled()
     expect(logger.error).toHaveBeenCalled()

@@ -20,7 +20,16 @@ export function ReservationUpdated(props: {
   changedByName?: string
   calendarUrl: string
 }) {
-  const { ownerName, previousStartDate, previousEndDate, startDate, endDate, nights, changedByName, calendarUrl } = props
+  const {
+    ownerName,
+    previousStartDate,
+    previousEndDate,
+    startDate,
+    endDate,
+    nights,
+    changedByName,
+    calendarUrl,
+  } = props
   return (
     <Html>
       <Head />
