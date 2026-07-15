@@ -95,11 +95,22 @@ h4 {
 *::after {
   box-sizing: border-box;
 }
+html,
+body {
+  /* Root horizontal-overflow guard: no page ever scrolls sideways on any
+     device. Intentional inner scrolling (e.g. wide data tables wrapped in
+     .overflow-x-auto) is unaffected. No position: sticky is used anywhere, so
+     clamping the root here is safe. */
+  overflow-x: hidden;
+  max-width: 100%;
+}
 body {
   margin: 0;
   font-size: 15px;
   line-height: 1.55;
   font-weight: 400;
+  /* Long unbreakable strings (emails, URLs) wrap instead of forcing width. */
+  overflow-wrap: break-word;
 }
 h1,
 h2,
