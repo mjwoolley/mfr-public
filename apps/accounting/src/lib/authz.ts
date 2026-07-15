@@ -1,20 +1,26 @@
 import { auth } from "@/lib/auth";
 import { createPortalStatusGate, canAdminAccounting } from "@mfr/auth";
+import { portalSignInUrl } from "@mfr/ui";
 import { redirect } from "next/navigation";
 
-// Accounting's portal-status gate: no session -> sign-in, pending -> pending
-// page, blocked -> blocked page. Same branch-on-status logic reservations
-// uses (via its own lib/auth/portalStatusGate.ts), just configured with
-// accounting's own paths.
+// The portal is the single sign-in surface: signed-out users are sent there
+// with a callbackUrl that brings them back to accounting afterwards.
+export const ACCOUNTING_SIGN_IN_URL = portalSignInUrl(
+  process.env.APP_BASE_URL ?? "/accounting",
+);
+
+// Accounting's portal-status gate: no session -> portal sign-in, pending ->
+// pending page, blocked -> blocked page. Same branch-on-status logic
+// reservations uses, just configured with accounting's own paths.
 const gatePortalStatus = createPortalStatusGate({
-  loginPath: "/accounting/sign-in",
+  loginPath: ACCOUNTING_SIGN_IN_URL,
   pendingPath: "/accounting/pending",
   blockedPath: "/accounting/blocked",
 });
 
 export async function requireSession() {
   const session = await auth();
-  if (!session?.user) redirect("/accounting/sign-in");
+  if (!session?.user) redirect(ACCOUNTING_SIGN_IN_URL);
   return session;
 }
 

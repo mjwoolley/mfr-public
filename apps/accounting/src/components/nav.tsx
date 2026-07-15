@@ -1,4 +1,4 @@
-import { PortalHeader, AuthStatus } from "@mfr/ui";
+import { PortalHeader, AuthStatus, HOME_URL } from "@mfr/ui";
 import { canAdminAccounting } from "@mfr/auth";
 import { auth, signOut } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -53,7 +53,7 @@ export async function Nav() {
               email={user.email ?? ""}
               onSignOut={async () => {
                 "use server";
-                await signOut({ redirectTo: "/accounting/sign-in" });
+                await signOut({ redirectTo: HOME_URL });
               }}
             />
           </div>

@@ -1,13 +1,16 @@
 import { test, expect } from '@playwright/test'
-import { RESERVATIONS_URL } from '../../playwright.config'
+import { RESERVATIONS_URL, WEB_URL } from '../../playwright.config'
 import { contextFor } from '../session'
 
 test.describe('reservations portal', () => {
-  test('signed-out visitors are redirected to login', async ({ page }) => {
+  test('signed-out visitors are redirected to the portal sign-in', async ({ page }) => {
     await page.goto(`${RESERVATIONS_URL}/reservations/calendar`)
 
-    await expect(page).toHaveURL(/\/reservations\/login/)
-    await expect(page.getByRole('heading', { name: 'Family Cabin Reservations' })).toBeVisible()
+    // Sign-in is centralized on the portal; the gate sends signed-out users
+    // there with a callbackUrl. Requires the reservations app to be built with
+    // NEXT_PUBLIC_HOME_URL=<web url> so the redirect stays local in e2e.
+    await expect(page).toHaveURL(new RegExp(`^${WEB_URL}/sign-in\\?callbackUrl=`))
+    await expect(page.getByRole('heading', { name: 'Miller Family Reunions' })).toBeVisible()
   })
 
   test('pending users are held at the pending page', async ({ browser }) => {

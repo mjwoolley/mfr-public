@@ -32,4 +32,25 @@ test.describe('web portal', () => {
     await expect(page).toHaveURL(`${WEB_URL}/`)
     await context.close()
   })
+
+  test('the site owner can reach User Management', async ({ browser }) => {
+    const context = await contextFor(browser, 'owner')
+    const page = await context.newPage()
+
+    await page.goto(`${WEB_URL}/admin/users`)
+
+    await expect(page.getByRole('heading', { name: 'User management' })).toBeVisible()
+    await context.close()
+  })
+
+  test('a non-owner is redirected away from User Management', async ({ browser }) => {
+    const context = await contextFor(browser, 'admin')
+    const page = await context.newPage()
+
+    await page.goto(`${WEB_URL}/admin/users`)
+
+    // requireSiteOwner bounces a non-owner (even an admin) to the home page.
+    await expect(page).toHaveURL(`${WEB_URL}/`)
+    await context.close()
+  })
 })

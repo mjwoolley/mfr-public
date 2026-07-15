@@ -177,6 +177,14 @@ jobs:
           parent_branch: production
           branch_name: ci-${{ github.run_id }}-${{ github.run_attempt }}-res-id
           api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Create portal DB branch
+        id: portaldb
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_PORTAL }}
+          parent_branch: production
+          branch_name: ci-${{ github.run_id }}-${{ github.run_attempt }}-res-portal
+          api_key: ${{ secrets.NEON_API_KEY }}
       # No reservations schema step — the production-clone branch already has the
       # full schema incl. migration-only constraints (see identity note above).
       # No identity schema step: the CI branch is a full clone of the identity
@@ -189,6 +197,8 @@ jobs:
           TEST_DIRECT_DATABASE_URL: ${{ steps.db.outputs.db_url }}
           TEST_IDENTITY_DATABASE_URL: ${{ steps.iddb.outputs.db_url_pooled }}
           TEST_IDENTITY_DIRECT_DATABASE_URL: ${{ steps.iddb.outputs.db_url }}
+          # Notifications resolve reservations admins from the portal DB.
+          TEST_PORTAL_DATABASE_URL: ${{ steps.portaldb.outputs.db_url_pooled }}
         run: npm run test:integration -w apps/reservations
       - name: Delete reservations DB branch
         if: always()
@@ -203,6 +213,62 @@ jobs:
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID_IDENTITY }}
           branch: ci-${{ github.run_id }}-${{ github.run_attempt }}-res-id
+          api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Delete portal DB branch
+        if: always()
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_PORTAL }}
+          branch: ci-${{ github.run_id }}-${{ github.run_attempt }}-res-portal
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+  integration-web:
+    name: Integration tests (web)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Create portal DB branch
+        id: portaldb
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_PORTAL }}
+          parent_branch: production
+          branch_name: ci-${{ github.run_id }}-${{ github.run_attempt }}-web-portal
+          api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Create identity DB branch
+        id: iddb
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_IDENTITY }}
+          parent_branch: production
+          branch_name: ci-${{ github.run_id }}-${{ github.run_attempt }}-web-id
+          api_key: ${{ secrets.NEON_API_KEY }}
+      # No schema step: both CI branches are full clones of their production
+      # branches (portal_user_roles + identity tables already present).
+      - name: Run integration tests
+        env:
+          TEST_PORTAL_DATABASE_URL: ${{ steps.portaldb.outputs.db_url_pooled }}
+          TEST_IDENTITY_DATABASE_URL: ${{ steps.iddb.outputs.db_url_pooled }}
+        run: npm run test:integration -w apps/web
+      - name: Delete portal DB branch
+        if: always()
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_PORTAL }}
+          branch: ci-${{ github.run_id }}-${{ github.run_attempt }}-web-portal
+          api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Delete identity DB branch
+        if: always()
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_IDENTITY }}
+          branch: ci-${{ github.run_id }}-${{ github.run_attempt }}-web-id
           api_key: ${{ secrets.NEON_API_KEY }}
 
   e2e:
@@ -240,6 +306,14 @@ jobs:
           parent_branch: production
           branch_name: ci-${{ github.run_id }}-${{ github.run_attempt }}-e2e-id
           api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Create portal DB branch
+        id: portal
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_PORTAL }}
+          parent_branch: production
+          branch_name: ci-${{ github.run_id }}-${{ github.run_attempt }}-e2e-portal
+          api_key: ${{ secrets.NEON_API_KEY }}
       - name: Apply accounting migrations
         working-directory: apps/accounting
         env:
@@ -259,6 +333,10 @@ jobs:
           DIRECT_URL: postgres://ci:ci@localhost:5432/ci
           IDENTITY_DATABASE_URL: postgres://ci:ci@localhost:5432/ci
           AUTH_SECRET: ci-dummy-secret-not-used
+          # NEXT_PUBLIC_* are inlined at build time: point HOME_URL at the local
+          # portal so accounting/reservations' centralized sign-in redirect
+          # stays on localhost:3100 in e2e instead of production.
+          NEXT_PUBLIC_HOME_URL: http://localhost:3100
         run: npm run build
       - name: Cache Playwright browsers
         uses: actions/cache@v6
@@ -274,6 +352,8 @@ jobs:
           E2E_ACCOUNTING_DIRECT_URL: ${{ steps.acc.outputs.db_url }}
           E2E_RESERVATIONS_DATABASE_URL: ${{ steps.res.outputs.db_url_pooled }}
           E2E_RESERVATIONS_DIRECT_URL: ${{ steps.res.outputs.db_url }}
+          E2E_PORTAL_DATABASE_URL: ${{ steps.portal.outputs.db_url_pooled }}
+          E2E_PORTAL_DIRECT_URL: ${{ steps.portal.outputs.db_url }}
         run: npx playwright test
       - name: Upload Playwright report
         if: failure()
@@ -301,6 +381,13 @@ jobs:
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID_IDENTITY }}
           branch: ci-${{ github.run_id }}-${{ github.run_attempt }}-e2e-id
+          api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Delete portal DB branch
+        if: always()
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID_PORTAL }}
+          branch: ci-${{ github.run_id }}-${{ github.run_attempt }}-e2e-portal
           api_key: ${{ secrets.NEON_API_KEY }}
 
   gitleaks:
@@ -362,7 +449,8 @@ jobs:
   ci-ok:
     name: CI OK
     runs-on: ubuntu-latest
-    needs: [static, unit, build, integration-accounting, integration-reservations, e2e, gitleaks]
+    needs:
+      [static, unit, build, integration-accounting, integration-reservations, integration-web, e2e, gitleaks]
     if: always()
     steps:
       - name: Check all required jobs succeeded

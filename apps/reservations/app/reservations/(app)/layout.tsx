@@ -1,4 +1,4 @@
-import { PortalHeader, AuthStatus } from '@mfr/ui'
+import { PortalHeader, AuthStatus, HOME_URL } from '@mfr/ui'
 import { canAdminReservations } from '@mfr/auth'
 import { auth, signOut } from '@/lib/auth/config'
 import { gatePortalStatus } from '@/lib/auth/portalStatusGate'
@@ -14,7 +14,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           email={session.user.email ?? ''}
           onSignOut={async () => {
             'use server'
-            await signOut({ redirectTo: '/reservations/login' })
+            await signOut({ redirectTo: HOME_URL })
           }}
         />
       </PortalHeader>

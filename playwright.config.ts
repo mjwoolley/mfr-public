@@ -44,6 +44,8 @@ const sharedEnv = {
   AUTH_GOOGLE_SECRET: 'e2e-google-secret',
   AUTH_TRUST_HOST: 'true',
   IDENTITY_DATABASE_URL: requireEnv('E2E_IDENTITY_DATABASE_URL'),
+  // Every app's session callback reads portal roles from here.
+  PORTAL_DATABASE_URL: requireEnv('E2E_PORTAL_DATABASE_URL'),
 }
 
 export default defineConfig({
@@ -66,7 +68,8 @@ export default defineConfig({
     },
     {
       command: 'npm run start -w apps/reservations -- --port 3101',
-      url: `${RESERVATIONS_URL}/reservations/login`,
+      // login moved to the portal; wait on a public page that returns 200.
+      url: `${RESERVATIONS_URL}/reservations/pending`,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
       env: {
@@ -77,7 +80,8 @@ export default defineConfig({
     },
     {
       command: 'npm run start -w apps/accounting -- --port 3102',
-      url: `${ACCOUNTING_URL}/accounting/sign-in`,
+      // sign-in moved to the portal; wait on a public page that returns 200.
+      url: `${ACCOUNTING_URL}/accounting/pending`,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
       env: {
