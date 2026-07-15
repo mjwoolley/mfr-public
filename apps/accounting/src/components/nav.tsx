@@ -1,4 +1,5 @@
 import { PortalHeader, AuthStatus } from "@mfr/ui";
+import { canAdminAccounting } from "@mfr/auth";
 import { auth, signOut } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getAppSettings } from "@/lib/settings";
@@ -11,6 +12,7 @@ export async function Nav() {
 
   let tabs: NavTab[] = [];
   if (user) {
+    const isAccountingAdmin = canAdminAccounting(user.roles);
     const [settings, pendingCount] = await Promise.all([
       getAppSettings(),
       user.shareholderId
@@ -26,7 +28,7 @@ export async function Nav() {
     ];
     // Contributions is visible to everyone unless the admins-only toggle is
     // set — then only admins see it, marked with a lock.
-    if (settings.contributionsVisibleToAll || user.isAccountingAdmin) {
+    if (settings.contributionsVisibleToAll || isAccountingAdmin) {
       tabs.push({
         href: "/accounting/contributions",
         label: "Contributions",
@@ -37,7 +39,7 @@ export async function Nav() {
       { href: "/accounting/ownership", label: "Ownership" },
       { href: "/accounting/expenses", label: "Expenses" },
     );
-    if (user.isAccountingAdmin) {
+    if (isAccountingAdmin) {
       tabs.push({ href: "/accounting/admin", label: "Admin" });
     }
   }

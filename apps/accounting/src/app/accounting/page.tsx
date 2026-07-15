@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { canAdminAccounting } from "@mfr/auth";
 import { auth } from "@/lib/auth";
 
 export default async function Home() {
@@ -6,7 +7,7 @@ export default async function Home() {
   if (!session?.user) redirect("/accounting/sign-in");
   if (session.user.status === "blocked") redirect("/accounting/blocked");
   if (session.user.status !== "approved") redirect("/accounting/pending");
-  if (session.user.isAccountingAdmin) redirect("/accounting/activity");
+  if (canAdminAccounting(session.user.roles)) redirect("/accounting/activity");
   if (session.user.shareholderId) redirect("/accounting/dashboard");
   redirect("/accounting/unauthorized");
 }

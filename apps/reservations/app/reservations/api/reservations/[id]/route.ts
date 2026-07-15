@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { eq } from 'drizzle-orm'
+import { canAdminReservations } from '@mfr/auth'
 import { db } from '@/lib/db/client'
 import { reservations, bookingRules, blockedDates } from '@/lib/db/schema'
 import { validateReservation, type ExistingReservation } from '@/lib/rules/validateReservation'
@@ -24,7 +25,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const { reservation, allowed } = await loadOwnedReservation(
     id,
     auth.session.user.id,
-    auth.session.user.isReservationsAdmin,
+    canAdminReservations(auth.session.user.roles),
   )
   if (!reservation) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -139,7 +140,7 @@ export async function DELETE(
   const { reservation, allowed } = await loadOwnedReservation(
     id,
     auth.session.user.id,
-    auth.session.user.isReservationsAdmin,
+    canAdminReservations(auth.session.user.roles),
   )
   if (!reservation) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

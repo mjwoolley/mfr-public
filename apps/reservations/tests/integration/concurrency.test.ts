@@ -82,8 +82,7 @@ async function runRaceOnce(dateSuffix: string) {
       user: {
         id: userA.id,
         status: 'approved',
-        isReservationsAdmin: false,
-        isAccountingAdmin: false,
+        roles: { siteOwner: false, siteManager: false, accountingManager: false },
         email: userA.email,
       },
       expires: '2099-01-01',
@@ -93,8 +92,7 @@ async function runRaceOnce(dateSuffix: string) {
       user: {
         id: userB.id,
         status: 'approved',
-        isReservationsAdmin: false,
-        isAccountingAdmin: false,
+        roles: { siteOwner: false, siteManager: false, accountingManager: false },
         email: userB.email,
       },
       expires: '2099-01-01',

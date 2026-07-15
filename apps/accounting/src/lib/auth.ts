@@ -1,5 +1,5 @@
 import NextAuth from "next-auth";
-import { createAuthConfig } from "@mfr/auth";
+import { createAuthConfig, createRolesReaderFromEnv } from "@mfr/auth";
 import { identityDb } from "@/lib/identityDb";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
@@ -16,6 +16,7 @@ export const {
     cookieDomain: process.env.AUTH_COOKIE_DOMAIN,
     sessionCookieName: process.env.AUTH_SESSION_COOKIE_NAME,
     pages: { signIn: "/accounting/sign-in" },
+    getUserRoles: createRolesReaderFromEnv(),
     // Runs on every session read. Portal-wide fields (id, status, admin flags)
     // are attached by the shared config; here we add accounting's own
     // business-DB field: the linked Shareholder. Linking by email happens once

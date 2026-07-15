@@ -13,8 +13,7 @@ const ADMIN_SESSION = {
   user: {
     id: "admin-1",
     status: "approved",
-    isAccountingAdmin: true,
-    isReservationsAdmin: false,
+    roles: { siteOwner: false, siteManager: false, accountingManager: true },
     shareholderId: null,
     email: "admin@example.com",
     name: "Admin",
@@ -27,8 +26,7 @@ const NON_ADMIN_SESSION = {
   user: {
     id: "shareholder-1",
     status: "approved",
-    isAccountingAdmin: false,
-    isReservationsAdmin: false,
+    roles: { siteOwner: false, siteManager: false, accountingManager: false },
     shareholderId: "sh_1",
     email: "shareholder@example.com",
     name: "Not An Admin",

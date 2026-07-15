@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { createPortalStatusGate } from "@mfr/auth";
+import { createPortalStatusGate, canAdminAccounting } from "@mfr/auth";
 import { redirect } from "next/navigation";
 
 // Accounting's portal-status gate: no session -> sign-in, pending -> pending
@@ -33,14 +33,18 @@ export async function requirePortalApproved() {
 /** Admin, or an unlinked-but-allowed account. Redirects unauthorized users away. */
 export async function requireAuthorized() {
   const session = await requirePortalApproved();
-  const { isAccountingAdmin, shareholderId } = session.user;
-  if (!isAccountingAdmin && !shareholderId) redirect("/accounting/unauthorized");
+  if (!canAdminAccounting(session.user.roles) && !session.user.shareholderId) {
+    redirect("/accounting/unauthorized");
+  }
   return session;
 }
 
 export async function requireAdmin() {
   const session = await requirePortalApproved();
-  if (!session.user.isAccountingAdmin) redirect("/accounting/unauthorized");
+  // Accounting admin = the "accounting manager" role (or site owner). Roles are
+  // the source of truth now; the legacy `isAccountingAdmin` column is kept only
+  // as a backfill source until a follow-up cleanup drops it.
+  if (!canAdminAccounting(session.user.roles)) redirect("/accounting/unauthorized");
   return session;
 }
 

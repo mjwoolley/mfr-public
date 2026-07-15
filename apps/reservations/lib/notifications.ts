@@ -1,6 +1,10 @@
 import { createElement } from 'react'
-import { and, eq, or } from 'drizzle-orm'
-import { users } from '@mfr/auth'
+import { and, eq, inArray, or } from 'drizzle-orm'
+import {
+  users,
+  createReservationsAdminIdsReaderFromEnv,
+  type ReservationsAdminIdsReader,
+} from '@mfr/auth'
 import { identityDb } from '@/lib/auth/identityDb'
 import { sendEmail, appUrl } from '@/lib/email'
 import { logger } from '@/lib/logger'
@@ -39,27 +43,41 @@ function nightsBetween(startDate: string, endDate: string) {
   )
 }
 
-// One identity-DB round-trip fetches the owner AND every approved
-// reservations admin; the owner is deduped out of the CC list.
+// "Who is a reservations admin" now lives in the portal DB (site owner or
+// site manager), not the identity `users` table — so first resolve the admin
+// ids from the portal, then one identity-DB round-trip fetches the owner AND
+// those admins (for email/name), keeping only approved ones. The owner is
+// deduped out of the CC list.
+// Built lazily on first use so importing this module doesn't require
+// PORTAL_DATABASE_URL at load time (unit tests that mock it never hit this).
+let _reservationsAdminIds: ReservationsAdminIdsReader | undefined
+function reservationsAdminIds(): Promise<string[]> {
+  _reservationsAdminIds ??= createReservationsAdminIdsReaderFromEnv()
+  return _reservationsAdminIds()
+}
+
 async function getReservationRecipients(ownerUserId: string) {
+  const adminIds = await reservationsAdminIds()
   const rows = await identityDb
     .select({
       id: users.id,
       email: users.email,
       name: users.name,
-      isReservationsAdmin: users.isReservationsAdmin,
       status: users.status,
     })
     .from(users)
     .where(
-      or(
-        eq(users.id, ownerUserId),
-        and(eq(users.isReservationsAdmin, true), eq(users.status, 'approved')),
-      ),
+      adminIds.length
+        ? or(
+            eq(users.id, ownerUserId),
+            and(inArray(users.id, adminIds), eq(users.status, 'approved')),
+          )
+        : eq(users.id, ownerUserId),
     )
+  const adminIdSet = new Set(adminIds)
   const owner = rows.find((r) => r.id === ownerUserId) ?? null
   const admins = rows.filter(
-    (r) => r.isReservationsAdmin && r.status === 'approved' && r.id !== ownerUserId,
+    (r) => adminIdSet.has(r.id) && r.status === 'approved' && r.id !== ownerUserId,
   )
   return { owner, admins }
 }

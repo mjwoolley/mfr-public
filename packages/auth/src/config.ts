@@ -5,6 +5,7 @@ import { DrizzleAdapter } from '@auth/drizzle-adapter'
 import { eq } from 'drizzle-orm'
 import type { IdentityDb } from './db'
 import { users, accounts, sessions, verificationTokens } from './schema'
+import { NO_ROLES, type RolesReader } from './roles'
 import './types'
 
 export interface CreateAuthConfigOptions {
@@ -34,6 +35,13 @@ export interface CreateAuthConfigOptions {
    * shareholderId).
    */
   extendSession?: (session: Session, user: AdapterUser) => Promise<void> | void
+  /**
+   * Resolves the signed-in user's portal roles (from the portal DB's
+   * `portal_user_roles`) so the shared session callback can attach them to
+   * `session.user.roles`. Every app passes `createRolesReaderFromEnv()`; when
+   * omitted (e.g. in unit tests) roles default to NO_ROLES.
+   */
+  getUserRoles?: RolesReader
 }
 
 export function createAuthConfig(opts: CreateAuthConfigOptions): NextAuthConfig {
@@ -83,11 +91,35 @@ export function createAuthConfig(opts: CreateAuthConfigOptions): NextAuthConfig 
         }
       : {}),
     callbacks: {
+      // Keep sign-in returns on-origin, but also allow a `callbackUrl` that
+      // points at another app on the same registrable domain (e.g. accounting
+      // redirecting a signed-out user to the portal's sign-in and back). The
+      // allowed domain is the shared cookie domain (`.millerfamilyreunions.org`
+      // in prod); in local dev, same-hostname (localhost across ports) is
+      // allowed too. Anything else falls back to the app's own origin.
+      async redirect({ url, baseUrl }) {
+        if (url.startsWith('/')) return `${baseUrl}${url}`
+        try {
+          const target = new URL(url)
+          const base = new URL(baseUrl)
+          if (target.origin === base.origin) return url
+          if (target.hostname === base.hostname) return url
+          if (opts.cookieDomain) {
+            const dot = opts.cookieDomain.startsWith('.')
+              ? opts.cookieDomain
+              : `.${opts.cookieDomain}`
+            const bare = dot.slice(1)
+            if (target.hostname === bare || target.hostname.endsWith(dot)) return url
+          }
+        } catch {
+          // fall through to baseUrl on any malformed URL
+        }
+        return baseUrl
+      },
       async session({ session, user }) {
         session.user.id = user.id
         session.user.status = user.status
-        session.user.isReservationsAdmin = user.isReservationsAdmin
-        session.user.isAccountingAdmin = user.isAccountingAdmin
+        session.user.roles = opts.getUserRoles ? await opts.getUserRoles(user.id) : NO_ROLES
         await opts.extendSession?.(session, user)
         return session
       },

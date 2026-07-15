@@ -14,16 +14,14 @@ const reservationsSections: Section[] = [
   { href: '/reservations/admin/booking-rules', label: 'Booking Rules' },
 ]
 
-const usersSection: Section = { href: '/reservations/admin/users', label: 'Users' }
-
 /**
- * The seg-pill sub-nav across the Admin area. The reservations-specific
- * sections only show for reservations admins; the Users approval queue shows
- * for any portal admin (matching the route-group gates underneath).
+ * The seg-pill sub-nav across the Admin area. User management moved to the
+ * portal app, so this now only lists the reservations-specific sections; the
+ * layout already gates the whole area to reservations admins.
  */
-export function AdminSubNav({ isReservationsAdmin }: { isReservationsAdmin: boolean }) {
+export function AdminSubNav() {
   const pathname = usePathname()
-  const sections = isReservationsAdmin ? [...reservationsSections, usersSection] : [usersSection]
+  const sections = reservationsSections
 
   return (
     <div className="seg mb-6 flex-wrap" style={{ background: 'var(--color-surface)' }}>

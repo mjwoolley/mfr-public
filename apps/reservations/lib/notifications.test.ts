@@ -6,6 +6,16 @@ const whereMock = vi.fn()
 vi.mock('@/lib/auth/identityDb', () => ({
   identityDb: { select: () => ({ from: () => ({ where: whereMock }) }) },
 }))
+// "Who is a reservations admin" now comes from the portal DB via @mfr/auth's
+// reader; mock just that export (keeping the real `users` schema + drizzle
+// helpers used to build the identity query) so each test controls the admin
+// id set. The rows returned by whereMock supply email/name; adminIdsMock
+// decides which of those rows count as admins to CC.
+const adminIdsMock = vi.fn<() => Promise<string[]>>()
+vi.mock('@mfr/auth', async (importActual) => {
+  const actual = await importActual<typeof import('@mfr/auth')>()
+  return { ...actual, createReservationsAdminIdsReaderFromEnv: () => adminIdsMock }
+})
 vi.mock('@/lib/email', () => ({
   sendEmail: vi.fn(),
   appUrl: (p: string) => `https://test.example/reservations${p.startsWith('/') ? p : `/${p}`}`,
@@ -20,27 +30,9 @@ import {
   sendReservationCancelledEmail,
 } from './notifications'
 
-const owner = {
-  id: 'u-owner',
-  email: 'owner@example.com',
-  name: 'Olive Owner',
-  isReservationsAdmin: false,
-  status: 'approved',
-}
-const admin1 = {
-  id: 'u-admin1',
-  email: 'admin1@example.com',
-  name: 'Ada Admin',
-  isReservationsAdmin: true,
-  status: 'approved',
-}
-const admin2 = {
-  id: 'u-admin2',
-  email: 'admin2@example.com',
-  name: null,
-  isReservationsAdmin: true,
-  status: 'approved',
-}
+const owner = { id: 'u-owner', email: 'owner@example.com', name: 'Olive Owner', status: 'approved' }
+const admin1 = { id: 'u-admin1', email: 'admin1@example.com', name: 'Ada Admin', status: 'approved' }
+const admin2 = { id: 'u-admin2', email: 'admin2@example.com', name: null, status: 'approved' }
 
 const dates = { startDate: '2027-07-01', endDate: '2027-07-05' }
 
@@ -50,6 +42,8 @@ beforeEach(() => {
   vi.mocked(logger.warn).mockReset()
   whereMock.mockReset()
   whereMock.mockResolvedValue([owner, admin1, admin2])
+  adminIdsMock.mockReset()
+  adminIdsMock.mockResolvedValue([admin1.id, admin2.id])
 })
 
 describe('sendReservationCreatedEmail', () => {
@@ -69,8 +63,8 @@ describe('sendReservationCreatedEmail', () => {
   })
 
   it('does not CC the owner on their own email when the owner is an admin', async () => {
-    const adminOwner = { ...owner, isReservationsAdmin: true }
-    whereMock.mockResolvedValue([adminOwner, admin1])
+    adminIdsMock.mockResolvedValue([owner.id, admin1.id])
+    whereMock.mockResolvedValue([owner, admin1])
     await sendReservationCreatedEmail({ reservationId: 'r1', ownerUserId: owner.id, ...dates })
     const call = vi.mocked(sendEmail).mock.calls[0][0]
     expect(call.to).toBe('owner@example.com')
