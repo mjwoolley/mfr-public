@@ -27,6 +27,9 @@ export default defineConfig({
         },
       },
       {
+        // React plugin so JSX in transitively-imported @mfr/ui components
+        // (via lib/portal.ts) transforms under the node test environment.
+        plugins: [react()],
         resolve: { alias },
         test: {
           name: 'integration',

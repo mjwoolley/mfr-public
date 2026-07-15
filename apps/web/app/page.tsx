@@ -1,242 +1,188 @@
-import { existsSync } from 'node:fs'
-import path from 'node:path'
-import Image from 'next/image'
-import { RidgelineMark, RESERVATIONS_URL, ACCOUNTING_URL } from '@mfr/ui'
+import Link from 'next/link'
+import { ACCOUNTING_URL } from '@mfr/ui'
+import { getPortalSettings, getFundraising, getEvents } from '@/lib/portal'
+import { HomeSlideshow } from './HomeSlideshow'
 
-// The hero photo is provided by the family; until it lands in public/,
-// the layout stands on its own without the framed snapshot.
-const HERO_PHOTO = '/lake-house.jpg'
-const hasPhoto = existsSync(path.join(process.cwd(), 'public', 'lake-house.jpg'))
+// Curated hero slideshow images (public/). First is the real family photo;
+// more can be dropped in and listed here.
+const SLIDES = ['/lake-house.jpg']
 
-function CalendarIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <rect x="3" y="5" width="18" height="16" rx="2" />
-      <path d="M3 9h18" />
-      <path d="M8 3v4M16 3v4" />
-      <path d="M8 14h3M13 14h3M8 17.5h3" />
-    </svg>
-  )
+const usd0 = (n: number) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n)
+
+function eventDateParts(date: string | null) {
+  if (!date) return { mon: '—', day: '', dow: '' }
+  const dt = new Date(`${date}T00:00:00`)
+  if (isNaN(dt.getTime())) return { mon: '—', day: '', dow: '' }
+  return {
+    mon: dt.toLocaleDateString('en-US', { month: 'short' }).toUpperCase(),
+    day: String(dt.getDate()),
+    dow: dt.toLocaleDateString('en-US', { weekday: 'long' }),
+  }
 }
 
-function LedgerIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <path d="M5 3h13a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
-      <path d="M8 3v18" />
-      <path d="M11.5 8h4M11.5 12h4M11.5 16h2.5" />
-    </svg>
-  )
-}
+export default async function Home() {
+  const [settings, fundraising, events] = await Promise.all([
+    getPortalSettings(),
+    getFundraising(),
+    getEvents(),
+  ])
 
-function ArrowIcon() {
-  return (
-    <svg
-      width="17"
-      height="17"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M5 12h14M13 6l6 6-6 6" />
-    </svg>
-  )
-}
+  const raised = fundraising?.raised ?? 0
+  const goal = fundraising?.goal ?? null
+  const year = fundraising?.year ?? settings.reunionYear
+  const pct = goal && goal > 0 ? Math.min(100, Math.round((raised / goal) * 100)) : 0
+  const remaining = goal ? Math.max(0, goal - raised) : 0
+  const goalNote = !goal
+    ? 'Every contribution keeps the cabin going.'
+    : remaining === 0
+      ? 'Goal met — thank you, everyone!'
+      : `${pct}% funded · ${usd0(remaining)} still to go this year`
 
-const apps = [
-  {
-    name: 'Reservations',
-    href: RESERVATIONS_URL,
-    description: 'See the calendar and book your stay at the house.',
-    Icon: CalendarIcon,
-    chipBg: 'var(--color-accent-100)',
-    chipColor: 'var(--color-accent-700)',
-    ctaColor: 'var(--color-accent-700)',
-  },
-  {
-    name: 'Accounting',
-    href: ACCOUNTING_URL,
-    description: "Shares, contributions, and who's paid what.",
-    Icon: LedgerIcon,
-    chipBg: 'var(--color-accent-2-100)',
-    chipColor: 'var(--color-accent-2-700)',
-    ctaColor: 'var(--color-accent-2-700)',
-  },
-]
-
-export default function Home() {
   return (
-    <div className="flex flex-1 flex-col overflow-x-hidden">
-      {/* Hero: headline beside the framed family snapshot */}
-      <section className="mx-auto w-full max-w-5xl px-7 pt-8 pb-5">
-        <div
-          className="flex flex-wrap items-center gap-11"
-          style={{ animation: 'fadeup .5s ease both' }}
-        >
-          <div className="min-w-[300px] flex-[1_1_350px]">
+    <div style={{ animation: 'fadeup .5s ease both' }}>
+      {/* hero */}
+      <section className="mx-auto max-w-5xl px-7 pt-3.5 pb-2">
+        <div className="flex flex-wrap items-start gap-9">
+          <div className="min-w-[300px] flex-[1_1_380px]">
             <div
-              className="text-xs font-bold tracking-[0.22em] uppercase"
-              style={{ color: 'var(--color-accent-700)' }}
+              className="text-xs font-bold uppercase"
+              style={{ letterSpacing: '.22em', color: 'var(--color-accent-700)' }}
             >
               Lake Lure, North Carolina
             </div>
-            <h1
-              className="mt-3.5"
-              style={{ fontSize: 'clamp(46px, 6.4vw, 70px)', lineHeight: 1.02 }}
-            >
-              Our place
+            <h1 className="mt-2 mb-3.5" style={{ fontSize: 'clamp(30px,3.8vw,44px)', lineHeight: 1.05 }}>
+              Fifty summers
               <br />
               on the lake.
             </h1>
             <p
-              className="mt-5 max-w-[420px] text-lg leading-relaxed"
-              style={{ color: 'color-mix(in srgb, var(--color-text) 78%, transparent)' }}
+              className="mb-3"
+              style={{ fontSize: 14.5, lineHeight: 1.55, color: 'color-mix(in srgb, var(--color-text) 82%, transparent)' }}
             >
-              Everything for the Miller family&rsquo;s lake house — plan your stay and keep the
-              books straight, all in one place.
+              For more than 50 years, our family has gathered each Fourth of July at the Miller cabin
+              on Lake Lure, North Carolina. What began as a simple dream by Connie and Ray
+              Miller&mdash;to create a place where their children and future generations could spend
+              time together&mdash;has grown into a cherished tradition spanning multiple generations.
+              Every summer, nearly 40 family members return to this special place to share meals, tell
+              stories, laugh, celebrate, and create new memories. The cabin has become far more than a
+              vacation home; it is where our family&rsquo;s history is remembered and its future is
+              strengthened.
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <a
-                href={RESERVATIONS_URL}
-                className="btn btn-primary px-5 py-3 font-bold"
-                style={{ fontFamily: 'var(--font-body)' }}
-              >
-                Plan a stay
-              </a>
-              <a
-                href={ACCOUNTING_URL}
-                className="btn btn-secondary px-5 py-3 font-bold"
-                style={{ fontFamily: 'var(--font-body)' }}
-              >
-                Open the ledger
-              </a>
-            </div>
+            <p
+              style={{ fontSize: 14.5, lineHeight: 1.55, color: 'color-mix(in srgb, var(--color-text) 82%, transparent)' }}
+            >
+              When Ray Miller passed the cabin on to his twelve grandchildren, he hoped that sharing
+              the responsibility of caring for it would keep the family connected for years to come.
+              His vision has been realized beyond anything he could have imagined. Through countless
+              hours of volunteer work, financial support, and a shared commitment to preserving this
+              place, each generation has helped ensure that the tradition continues. This website
+              celebrates that legacy, the memories we&rsquo;ve made together, and the family bonds that
+              have made the Miller cabin a true home for generations.
+            </p>
           </div>
 
-          {hasPhoto && (
-            <div className="relative flex min-w-[280px] flex-[0_1_400px] justify-center">
-              <div
-                className="absolute rounded-full"
-                style={{
-                  width: 340,
-                  height: 340,
-                  background: 'var(--color-accent-2-200)',
-                  top: -30,
-                  right: -10,
-                }}
-              />
-              <div
-                className="absolute rounded-full"
-                style={{
-                  width: 120,
-                  height: 120,
-                  background: 'var(--color-accent-200)',
-                  bottom: -24,
-                  left: -6,
-                }}
-              />
-              <figure
-                className="relative z-[1] bg-white p-3.5"
-                style={{
-                  borderRadius: 'var(--radius-md)',
-                  boxShadow: 'var(--shadow-lg)',
-                  transform: 'rotate(1.6deg)',
-                  width: 'min(400px, 86vw)',
-                }}
-              >
-                <div
-                  className="washed overflow-hidden"
-                  style={{ borderRadius: 'calc(var(--radius-md) - 6px)' }}
-                >
-                  <Image
-                    src={HERO_PHOTO}
-                    alt="The Miller family gathered on the dock at Lake Lure"
-                    width={1600}
-                    height={1200}
-                    priority
-                    sizes="(min-width: 1024px) 28rem, 24rem"
-                  />
+          <div className="flex min-w-[300px] flex-[0_1_480px] flex-col gap-4">
+            <HomeSlideshow images={SLIDES} albumUrl={settings.highlightsUrl} />
+
+            {/* live fundraising goal card */}
+            <div className="card elev-sm bg-white" style={{ padding: '16px 18px 15px' }}>
+              <div className="flex flex-wrap items-baseline gap-2.5">
+                <div className="text-[11px] uppercase" style={{ letterSpacing: '.06em', color: 'var(--color-neutral-600)' }}>
+                  {year} goal
                 </div>
-                <figcaption
-                  className="px-1 pt-3 pb-1 text-center text-xs"
-                  style={{ color: 'var(--color-neutral-600)' }}
-                >
-                  The whole crew, on the dock
-                </figcaption>
-              </figure>
+                <div style={{ fontFamily: 'var(--font-heading)', fontSize: 22, lineHeight: 1 }}>
+                  {usd0(raised)}{' '}
+                  <span style={{ fontSize: 14, color: 'var(--color-neutral-600)' }}>
+                    of {goal ? usd0(goal) : '—'}
+                  </span>
+                </div>
+                {settings.venmoUrl && (
+                  <a
+                    href={settings.venmoUrl}
+                    target="_blank"
+                    rel="noopener"
+                    className="btn btn-primary ml-auto"
+                    style={{ fontFamily: 'var(--font-body)', fontWeight: 700, padding: '7px 14px', fontSize: 13 }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 7c4 0 6 3.5 6 8 2-3 3-6.5 3-9" />
+                      <path d="M15 5c1.5 0 2.5 1.2 2.5 3.5 0 3-2 6.5-4 9.5" />
+                    </svg>
+                    Venmo
+                  </a>
+                )}
+              </div>
+              <div className="mt-3 overflow-hidden" style={{ height: 12, borderRadius: 999, background: 'var(--color-neutral-200)' }}>
+                <div style={{ height: '100%', width: `${pct}%`, background: 'var(--color-accent-2-500)', borderRadius: 999, transition: 'width .5s ease' }} />
+              </div>
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2.5">
+                <span style={{ fontSize: 13, color: 'var(--color-neutral-700)' }}>{goalNote}</span>
+                <a href={ACCOUNTING_URL} style={{ fontSize: 12.5, fontWeight: 600 }}>
+                  Full ledger &rarr;
+                </a>
+              </div>
             </div>
-          )}
+          </div>
         </div>
       </section>
 
-      {/* Ridgeline divider — the portal's mark, quietly repeated */}
-      <div className="flex flex-col items-center gap-2.5 pt-11 pb-2">
-        <RidgelineMark className="h-10 w-10" style={{ color: 'var(--color-accent-2)' }} />
-      </div>
-
-      {/* App cards */}
-      <section id="apps" className="mx-auto w-full max-w-[900px] px-7 pt-3 pb-5">
-        <h2
-          className="text-center text-[15px] font-bold tracking-[0.02em]"
-          style={{
-            fontFamily: 'var(--font-body)',
-            color: 'var(--color-neutral-700)',
-          }}
-        >
-          Two things to do here
-        </h2>
-        <div className="mt-5 grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(280px,1fr))]">
-          {apps.map(({ name, href, description, Icon, chipBg, chipColor, ctaColor }) => (
-            <a
-              key={name}
-              href={href}
-              className="appcard card elev-sm bg-white p-7 text-inherit no-underline"
-              style={{ gap: 0 }}
-            >
-              <span
-                className="flex h-14 w-14 items-center justify-center rounded-full"
-                style={{ background: chipBg, color: chipColor }}
-              >
-                <Icon className="h-7 w-7" />
-              </span>
-              <h3 className="mt-5 text-2xl">{name}</h3>
-              <p
-                className="mt-2 text-[15px] leading-relaxed"
-                style={{ color: 'color-mix(in srgb, var(--color-text) 70%, transparent)' }}
-              >
-                {description}
-              </p>
-              <span
-                className="appcta mt-5 inline-flex items-center gap-[7px] font-bold"
-                style={{ color: ctaColor }}
-              >
-                Open {name}
-                <ArrowIcon />
-              </span>
-            </a>
-          ))}
+      {/* upcoming events */}
+      <section className="mx-auto max-w-5xl px-7 pt-4.5 pb-1.5">
+        <div className="mb-3.5 flex flex-wrap items-baseline gap-3">
+          <h2 className="m-0 text-[22px]">Upcoming events</h2>
+          <Link href="/admin" className="ml-auto" style={{ fontSize: 13, fontWeight: 600 }}>
+            Manage events
+          </Link>
+        </div>
+        <div className="card elev-sm bg-white" style={{ padding: '6px 10px' }}>
+          {events.length === 0 && (
+            <div className="py-5 text-center" style={{ color: 'var(--color-neutral-600)', fontSize: 14 }}>
+              Nothing on the calendar yet.{' '}
+              <Link href="/admin" style={{ fontWeight: 700 }}>
+                Add an event
+              </Link>
+              .
+            </div>
+          )}
+          {events.map((ev) => {
+            const { mon, day, dow } = eventDateParts(ev.date)
+            const when = [dow, ev.time].filter(Boolean).join(' · ') || 'Date to be set'
+            return (
+              <div key={ev.id} className="flex items-center gap-4" style={{ padding: '14px 12px', borderRadius: 12 }}>
+                <div className="shrink-0 text-center" style={{ width: 58, lineHeight: 1.05 }}>
+                  <div className="text-[11px] font-extrabold uppercase" style={{ letterSpacing: '.08em', color: 'var(--color-accent-700)' }}>
+                    {mon}
+                  </div>
+                  <div style={{ fontFamily: 'var(--font-heading)', fontSize: 26 }}>{day}</div>
+                </div>
+                <div className="self-stretch" style={{ width: 1, background: 'var(--color-neutral-200)' }} />
+                <div className="min-w-0 flex-1">
+                  <div style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.35 }}>
+                    {ev.description || 'Untitled event'}
+                  </div>
+                  <div className="mt-0.5" style={{ fontSize: 13, color: 'var(--color-neutral-600)' }}>
+                    {when}
+                  </div>
+                </div>
+                {ev.meetingLink && (
+                  <a
+                    href={ev.meetingLink}
+                    target="_blank"
+                    rel="noopener"
+                    className="btn btn-secondary shrink-0"
+                    style={{ fontFamily: 'var(--font-body)', fontWeight: 700 }}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M15 10l5-3v10l-5-3z" />
+                      <rect x="3" y="6" width="12" height="12" rx="2" />
+                    </svg>
+                    Join
+                  </a>
+                )}
+              </div>
+            )
+          })}
         </div>
       </section>
     </div>

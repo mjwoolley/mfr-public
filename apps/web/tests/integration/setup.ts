@@ -14,7 +14,7 @@ export default async function setup() {
   }
 
   const portalSql = postgres(portalUrl, { prepare: false })
-  await portalSql`TRUNCATE TABLE portal_user_roles RESTART IDENTITY CASCADE`
+  await portalSql`TRUNCATE TABLE portal_user_roles, portal_settings, portal_photo_albums, portal_events, portal_meal_rsvps RESTART IDENTITY CASCADE`
   await portalSql.end()
 
   const identitySql = postgres(identityUrl, { prepare: false })
