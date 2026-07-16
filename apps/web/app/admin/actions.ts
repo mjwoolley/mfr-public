@@ -110,7 +110,8 @@ export async function addEvent(): Promise<ActionResult> {
 
 const eventSchema = z.object({
   id: z.string().uuid(),
-  date: z.string().trim().optional(),
+  startDate: z.string().trim().optional(),
+  endDate: z.string().trim().optional(),
   time: z.string().trim().optional(),
   description: z.string().trim().optional(),
   meetingLink: z.string().trim().optional(),
@@ -121,11 +122,20 @@ export async function updateEvent(input: z.input<typeof eventSchema>): Promise<A
   const parsed = eventSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Invalid input' }
   const { id, ...fields } = parsed.data
+  const startDate = fields.startDate || null
+  const endDate = fields.endDate || null
+  // A range needs its end on/after its start; ignore a stray end otherwise.
+  if (startDate && endDate && endDate < startDate) {
+    return { error: 'End date must be on or after the start date.' }
+  }
+  // A time only applies to a single day — clear it when a range is set.
+  const isRange = !!(startDate && endDate)
   await portalDb
     .update(portalEvents)
     .set({
-      date: fields.date || null,
-      time: fields.time ?? '',
+      startDate,
+      endDate,
+      time: isRange ? '' : (fields.time ?? ''),
       description: fields.description ?? '',
       meetingLink: fields.meetingLink || null,
     })

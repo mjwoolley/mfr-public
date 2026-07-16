@@ -38,12 +38,6 @@ export default async function RootLayout({
     <html lang="en" className={`${caprasimo.variable} ${figtree.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <PortalHeader homeHref="/">
-          <PortalNav
-            reservationsUrl={RESERVATIONS_URL}
-            accountingUrl={ACCOUNTING_URL}
-            chatUrl={settings.chatUrl || 'https://chat.google.com/'}
-            isAdmin={isAdmin}
-          />
           {session?.user ? (
             <AuthStatus
               email={session.user.email ?? ''}
@@ -62,6 +56,12 @@ export default async function RootLayout({
             </a>
           )}
         </PortalHeader>
+        <PortalNav
+          reservationsUrl={RESERVATIONS_URL}
+          accountingUrl={ACCOUNTING_URL}
+          chatUrl={settings.chatUrl || 'https://chat.google.com/'}
+          isAdmin={isAdmin}
+        />
         <main className="flex w-full flex-1 flex-col">{children}</main>
         <footer>
           <div

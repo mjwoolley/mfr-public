@@ -241,18 +241,24 @@ function AlbumRow({
 
 // ── Upcoming events ──────────────────────────────────────────────────────────
 
-export function EventsEditor({
-  events,
-}: {
-  events: { id: string; date: string | null; time: string; description: string; meetingLink: string | null }[]
-}) {
+interface EventItem {
+  id: string
+  startDate: string | null
+  endDate: string | null
+  time: string
+  description: string
+  meetingLink: string | null
+}
+
+export function EventsEditor({ events }: { events: EventItem[] }) {
   const { pending, error, run } = useAction()
   return (
     <div className="card elev-sm bg-white" style={{ padding: '24px 24px 22px', gridColumn: '1 / -1' }}>
       <h2 className="m-0 text-[22px]">Upcoming events</h2>
       <p className="mt-2" style={{ fontSize: 14.5, lineHeight: 1.55, color: 'var(--color-neutral-700)' }}>
-        A short list shown on the home page. Add a date, time, a one-line description, and an optional
-        Zoom or Teams link for calls.
+        A short list shown on the home page. Each event is either a single day (with an optional
+        time) or a multi-day range — set an end date to make it a range. Add a one-line description
+        and an optional Zoom or Teams link for calls.
       </p>
       <div className="mt-4.5 flex flex-col gap-3.5">
         {events.map((ev) => (
@@ -278,27 +284,51 @@ function EventRow({
   run,
   pending,
 }: {
-  event: { id: string; date: string | null; time: string; description: string; meetingLink: string | null }
+  event: EventItem
   run: (fn: () => Promise<ActionResult>) => void
   pending: boolean
 }) {
-  const [date, setDate] = useState(event.date ?? '')
+  const [startDate, setStartDate] = useState(event.startDate ?? '')
+  const [endDate, setEndDate] = useState(event.endDate ?? '')
   const [time, setTime] = useState(event.time)
   const [description, setDescription] = useState(event.description)
   const [link, setLink] = useState(event.meetingLink ?? '')
 
+  // A time only applies to a single day; a date range clears/disables it.
+  const isRange = !!(startDate && endDate)
+
   const save = () =>
-    run(() => updateEvent({ id: event.id, date, time, description, meetingLink: link }))
+    run(() =>
+      updateEvent({
+        id: event.id,
+        startDate,
+        endDate,
+        time: isRange ? '' : time,
+        description,
+        meetingLink: link,
+      }),
+    )
 
   return (
     <div className="flex flex-wrap items-end gap-2.5 pb-3.5" style={{ borderBottom: '1px solid var(--color-neutral-200)' }}>
-      <label style={{ ...labelStyle, flex: '1 1 140px' }}>
-        Date
-        <input style={inputStyle} type="date" value={date} onChange={(e) => setDate(e.target.value)} onBlur={save} />
+      <label style={{ ...labelStyle, flex: '1 1 130px' }}>
+        Start date
+        <input style={inputStyle} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} onBlur={save} />
+      </label>
+      <label style={{ ...labelStyle, flex: '1 1 130px' }}>
+        End date <span style={{ fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>(blank = single day)</span>
+        <input style={inputStyle} type="date" min={startDate || undefined} value={endDate} onChange={(e) => setEndDate(e.target.value)} onBlur={save} />
       </label>
       <label style={{ ...labelStyle, flex: '1 1 120px' }}>
         Time
-        <input style={inputStyle} value={time} placeholder="7:00 PM ET" onChange={(e) => setTime(e.target.value)} onBlur={save} />
+        <input
+          style={{ ...inputStyle, opacity: isRange ? 0.45 : 1 }}
+          value={isRange ? '' : time}
+          disabled={isRange}
+          placeholder={isRange ? 'Single day only' : '7:00 PM ET'}
+          onChange={(e) => setTime(e.target.value)}
+          onBlur={save}
+        />
       </label>
       <label style={{ ...labelStyle, flex: '3 1 220px' }}>
         Description

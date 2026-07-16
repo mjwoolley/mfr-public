@@ -74,7 +74,8 @@ export default async function AdminPage() {
         <EventsEditor
           events={events.map((e) => ({
             id: e.id,
-            date: e.date,
+            startDate: e.startDate,
+            endDate: e.endDate,
             time: e.time,
             description: e.description,
             meetingLink: e.meetingLink,

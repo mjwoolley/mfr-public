@@ -1,11 +1,13 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
+import { requireApproved } from '@/lib/authz'
 import { getPhotoAlbums, getPortalSettings } from '@/lib/portal'
 
 export const metadata: Metadata = { title: 'Photos' }
 
 export default async function PhotosPage() {
+  await requireApproved()
   const [albums, settings] = await Promise.all([getPhotoAlbums(), getPortalSettings()])
 
   return (

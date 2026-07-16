@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { ACCOUNTING_URL } from '@mfr/ui'
+import { auth } from '@/lib/auth'
 import { getPortalSettings, getFundraising, getEvents } from '@/lib/portal'
 import { HomeSlideshow } from './HomeSlideshow'
 
@@ -21,12 +22,38 @@ function eventDateParts(date: string | null) {
   }
 }
 
+// "Jul 1" for a valid date, else null.
+function shortDate(date: string | null) {
+  if (!date) return null
+  const dt = new Date(`${date}T00:00:00`)
+  if (isNaN(dt.getTime())) return null
+  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+// The secondary line under an event: a range ("Jul 1 – Jul 5") for a multi-day
+// event, otherwise the weekday and optional time for a single day.
+function eventWhen(ev: { startDate: string | null; endDate: string | null; time: string }) {
+  if (ev.endDate) {
+    const start = shortDate(ev.startDate)
+    const end = shortDate(ev.endDate)
+    if (start && end) return `${start} – ${end}`
+  }
+  const { dow } = eventDateParts(ev.startDate)
+  return [dow, ev.time].filter(Boolean).join(' · ') || 'Date to be set'
+}
+
 export default async function Home() {
-  const [settings, fundraising, events] = await Promise.all([
-    getPortalSettings(),
-    getFundraising(),
-    getEvents(),
-  ])
+  // Home is public, but the goal card and Upcoming events are member content —
+  // only signed-in visitors see them (and only they trigger the accounting/DB
+  // reads behind them). Signed-out visitors get the generic hero + a sign-in
+  // prompt.
+  const session = await auth()
+  const signedIn = !!session?.user
+
+  const settings = await getPortalSettings()
+  const [fundraising, events] = signedIn
+    ? await Promise.all([getFundraising(), getEvents()])
+    : [null, [] as Awaited<ReturnType<typeof getEvents>>]
 
   const raised = fundraising?.raised ?? 0
   const goal = fundraising?.goal ?? null
@@ -85,7 +112,30 @@ export default async function Home() {
           <div className="flex min-w-[300px] flex-[0_1_480px] flex-col gap-4">
             <HomeSlideshow images={SLIDES} albumUrl={settings.highlightsUrl} />
 
+            {!signedIn && (
+              /* signed-out: generic prompt in place of the member-only goal card */
+              <div className="card elev-sm bg-white text-center" style={{ padding: '22px 20px' }}>
+                <div style={{ fontFamily: 'var(--font-heading)', fontSize: 20 }}>
+                  There&rsquo;s more inside
+                </div>
+                <p
+                  className="mx-auto mt-2 mb-3.5 max-w-sm"
+                  style={{ fontSize: 14, lineHeight: 1.55, color: 'var(--color-neutral-700)' }}
+                >
+                  Sign in to see this year&rsquo;s goal, upcoming events, meals, photos and documents.
+                </p>
+                <Link
+                  href="/sign-in"
+                  className="btn btn-primary"
+                  style={{ fontFamily: 'var(--font-body)', fontWeight: 700 }}
+                >
+                  Sign in
+                </Link>
+              </div>
+            )}
+
             {/* live fundraising goal card */}
+            {signedIn && (
             <div className="card elev-sm bg-white" style={{ padding: '16px 18px 15px' }}>
               <div className="flex flex-wrap items-baseline gap-2.5">
                 <div className="text-[11px] uppercase" style={{ letterSpacing: '.06em', color: 'var(--color-neutral-600)' }}>
@@ -123,11 +173,13 @@ export default async function Home() {
                 </a>
               </div>
             </div>
+            )}
           </div>
         </div>
       </section>
 
-      {/* upcoming events */}
+      {/* upcoming events (member-only) */}
+      {signedIn && (
       <section className="mx-auto max-w-5xl px-7 pt-4.5 pb-1.5">
         <div className="mb-3.5 flex flex-wrap items-baseline gap-3">
           <h2 className="m-0 text-[22px]">Upcoming events</h2>
@@ -146,8 +198,8 @@ export default async function Home() {
             </div>
           )}
           {events.map((ev) => {
-            const { mon, day, dow } = eventDateParts(ev.date)
-            const when = [dow, ev.time].filter(Boolean).join(' · ') || 'Date to be set'
+            const { mon, day } = eventDateParts(ev.startDate)
+            const when = eventWhen(ev)
             return (
               <div key={ev.id} className="flex items-center gap-4" style={{ padding: '14px 12px', borderRadius: 12 }}>
                 <div className="shrink-0 text-center" style={{ width: 58, lineHeight: 1.05 }}>
@@ -185,6 +237,7 @@ export default async function Home() {
           })}
         </div>
       </section>
+      )}
     </div>
   )
 }

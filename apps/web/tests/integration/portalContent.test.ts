@@ -101,21 +101,57 @@ describe('photo albums', () => {
 })
 
 describe('events', () => {
-  it('adds, edits, and removes an event', async () => {
+  it('adds, edits a single-day event, and removes it', async () => {
     vi.mocked(auth).mockResolvedValue(managerSession() as never)
     await addEvent()
     const [ev] = await portalDb.select().from(portalEvents)
     expect(ev).toBeTruthy()
 
-    await updateEvent({ id: ev.id, date: '2027-07-04', time: 'At dusk', description: 'Fireworks', meetingLink: '' })
+    await updateEvent({ id: ev.id, startDate: '2027-07-04', time: 'At dusk', description: 'Fireworks', meetingLink: '' })
     const [updated] = await portalDb.select().from(portalEvents).where(eq(portalEvents.id, ev.id))
     expect(updated.description).toBe('Fireworks')
-    expect(updated.date).toBe('2027-07-04')
+    expect(updated.startDate).toBe('2027-07-04')
+    expect(updated.endDate).toBeNull()
+    expect(updated.time).toBe('At dusk')
     expect(updated.meetingLink).toBeNull()
 
     await removeEvent({ id: ev.id })
     const rows = await portalDb.select().from(portalEvents).where(eq(portalEvents.id, ev.id))
     expect(rows).toHaveLength(0)
+  })
+
+  it('stores a multi-day range and clears the (single-day-only) time', async () => {
+    vi.mocked(auth).mockResolvedValue(managerSession() as never)
+    await addEvent()
+    const rows = await portalDb.select().from(portalEvents)
+    const ev = rows[rows.length - 1]
+
+    const res = await updateEvent({
+      id: ev.id,
+      startDate: '2027-07-01',
+      endDate: '2027-07-05',
+      time: 'ignored on a range',
+      description: 'Reunion week',
+    })
+    expect(res).toEqual({ ok: true })
+    const [updated] = await portalDb.select().from(portalEvents).where(eq(portalEvents.id, ev.id))
+    expect(updated.startDate).toBe('2027-07-01')
+    expect(updated.endDate).toBe('2027-07-05')
+    expect(updated.time).toBe('')
+
+    await removeEvent({ id: ev.id })
+  })
+
+  it('rejects a range whose end precedes its start', async () => {
+    vi.mocked(auth).mockResolvedValue(managerSession() as never)
+    await addEvent()
+    const rows = await portalDb.select().from(portalEvents)
+    const ev = rows[rows.length - 1]
+
+    const res = await updateEvent({ id: ev.id, startDate: '2027-07-05', endDate: '2027-07-01' })
+    expect(res).toMatchObject({ error: expect.stringMatching(/on or after/) })
+
+    await removeEvent({ id: ev.id })
   })
 })
 

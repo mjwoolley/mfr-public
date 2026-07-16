@@ -48,10 +48,15 @@ export const portalPhotoAlbums = pgTable('portal_photo_albums', {
 })
 export type PortalPhotoAlbumRow = typeof portalPhotoAlbums.$inferSelect
 
-/** Upcoming events shown on the home page (sorted by date). */
+/**
+ * Upcoming events shown on the home page (sorted by start date). An event is
+ * either a single day (with an optional `time`) or a multi-day range
+ * (`endDate` set). `endDate` is inclusive; leave it null for a single day.
+ */
 export const portalEvents = pgTable('portal_events', {
   id: uuid('id').defaultRandom().primaryKey(),
-  date: date('date', { mode: 'string' }),
+  startDate: date('start_date', { mode: 'string' }),
+  endDate: date('end_date', { mode: 'string' }),
   time: text('time').notNull().default(''),
   description: text('description').notNull().default(''),
   meetingLink: text('meeting_link'),

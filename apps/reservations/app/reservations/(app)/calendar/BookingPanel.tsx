@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { ModalDialog } from '@mfr/ui'
 import { validateReservation, type ExistingReservation } from '@/lib/rules/validateReservation'
-import { nightsBetween } from '@/lib/rules/dateHelpers'
+import { addDays, nightsBetween } from '@/lib/rules/dateHelpers'
 import { useReservationMutations } from './useReservationMutations'
 import type { ReservationRow, BlockedDateRow, BookingRulesRow } from './useCalendarData'
 
@@ -98,13 +98,17 @@ export function BookingPanel({
           />
         </div>
         <div className="field flex-1">
-          <label htmlFor="booking-check-out">Check-out</label>
+          {/* Displayed as the inclusive last night (endDate − 1) to match the
+              calendar; storage stays half-open, so a change maps back to the
+              exclusive checkout date (last night + 1). */}
+          <label htmlFor="booking-last-night">Last night</label>
           <input
-            id="booking-check-out"
+            id="booking-last-night"
             className="input"
             type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
+            min={startDate}
+            value={endDate ? addDays(endDate, -1) : ''}
+            onChange={(e) => setEndDate(e.target.value ? addDays(e.target.value, 1) : '')}
           />
         </div>
       </div>

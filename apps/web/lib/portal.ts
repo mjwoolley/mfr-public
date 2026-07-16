@@ -39,8 +39,15 @@ export interface Fundraising {
  * the home card can degrade gracefully. */
 export async function getFundraising(): Promise<Fundraising | null> {
   try {
+    // On staging, the accounting deployment sits behind Vercel Deployment
+    // Protection, which 401s server-to-server fetches. When ACCOUNTING_BYPASS_SECRET
+    // is set (staging Preview env only) send the bypass header so the request is
+    // authorized; in production, where protection is off, the env is unset and
+    // no header is sent — a plain public fetch.
+    const bypass = process.env.ACCOUNTING_BYPASS_SECRET
     const res = await fetch(`${ACCOUNTING_URL}/api/contributions/current-year`, {
       next: { revalidate: 60 },
+      ...(bypass ? { headers: { 'x-vercel-protection-bypass': bypass } } : {}),
     })
     if (!res.ok) return null
     return (await res.json()) as Fundraising
@@ -58,7 +65,7 @@ export async function getPhotoAlbums() {
 // ── Events ───────────────────────────────────────────────────────────────────
 
 export async function getEvents() {
-  return portalDb.select().from(portalEvents).orderBy(asc(portalEvents.date))
+  return portalDb.select().from(portalEvents).orderBy(asc(portalEvents.startDate))
 }
 
 // ── Meals ────────────────────────────────────────────────────────────────────
