@@ -3,18 +3,22 @@ import { WEB_URL } from '../../playwright.config'
 import { contextFor } from '../session'
 
 test.describe('web portal', () => {
-  test('landing page renders the hero and portal links', async ({ page }) => {
+  test('landing page renders the hero and nav tab links', async ({ page }) => {
     await page.goto(WEB_URL)
 
     await expect(page.getByText('Lake Lure, North Carolina', { exact: true })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Open Reservations' })).toHaveAttribute(
+    // The cross-app links live in the shared tab-bar nav now (the old app
+    // cards are gone), and a signed-out visitor gets the generic sign-in
+    // prompt instead of the member-only goal card.
+    await expect(page.getByRole('link', { name: 'Reservations', exact: true })).toHaveAttribute(
       'href',
       'https://reservations.millerfamilyreunions.org/reservations',
     )
-    await expect(page.getByRole('link', { name: 'Open Accounting' })).toHaveAttribute(
+    await expect(page.getByRole('link', { name: 'Accounting', exact: true })).toHaveAttribute(
       'href',
       'https://accounting.millerfamilyreunions.org/accounting',
     )
+    await expect(page.getByText(/Sign in to see this year/)).toBeVisible()
   })
 
   test('sign-in page offers Google sign-in when signed out', async ({ page }) => {
@@ -54,15 +58,25 @@ test.describe('web portal', () => {
     await context.close()
   })
 
-  test('the Photos page lists albums by year (public)', async ({ page }) => {
+  test('Photos redirects a signed-out visitor to sign-in', async ({ page }) => {
+    await page.goto(`${WEB_URL}/photos`)
+    await expect(page).toHaveURL(new RegExp(`^${WEB_URL}/sign-in`))
+  })
+
+  test('a signed-in member sees the Photos albums by year', async ({ browser }) => {
+    const context = await contextFor(browser, 'member')
+    const page = await context.newPage()
     await page.goto(`${WEB_URL}/photos`)
     await expect(page.getByRole('heading', { name: 'Photos, year by year.' })).toBeVisible()
     await expect(page.getByText('2026', { exact: true }).first()).toBeVisible()
+    await context.close()
   })
 
-  test('Documents is locked for signed-out visitors', async ({ page }) => {
+  test('Documents redirects a signed-out visitor to sign-in', async ({ page }) => {
+    // Every gated tab funnels to the single portal sign-in screen — the old
+    // inline "locked" prompt is gone.
     await page.goto(`${WEB_URL}/documents`)
-    await expect(page.getByText('Sign in to view family documents')).toBeVisible()
+    await expect(page).toHaveURL(new RegExp(`^${WEB_URL}/sign-in`))
   })
 
   test('a signed-in member sees the Documents folder', async ({ browser }) => {
@@ -82,7 +96,8 @@ test.describe('web portal', () => {
     const context = await contextFor(browser, 'member')
     const page = await context.newPage()
     await page.goto(`${WEB_URL}/meals`)
-    await expect(page.getByRole('heading', { name: "Who's here for which meals?" })).toBeVisible()
+    // The heading uses a typographic apostrophe (&rsquo;) — match it exactly.
+    await expect(page.getByRole('heading', { name: 'Who’s here for which meals?' })).toBeVisible()
     await context.close()
   })
 

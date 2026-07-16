@@ -53,7 +53,9 @@ test.describe('reservations portal', () => {
     await page.goto(`${RESERVATIONS_URL}/reservations/my-reservations`)
 
     await expect(page.getByRole('heading', { name: 'My reservations' })).toBeVisible()
-    await expect(page.getByRole('button', { name: /May 10 → May 12/ })).toBeVisible()
+    // Ranges display the inclusive last night (checkout − 1): a May 10 → May 12
+    // (checkout) stay reads as its two nights, May 10 → May 11.
+    await expect(page.getByRole('button', { name: /May 10 → May 11/ })).toBeVisible()
     await context.close()
   })
 
@@ -70,7 +72,11 @@ test.describe('reservations portal', () => {
   test('non-admins cannot use the admin API', async ({ browser }) => {
     const context = await contextFor(browser, 'member')
 
-    const response = await context.request.get(`${RESERVATIONS_URL}/reservations/api/admin/users`)
+    // /api/admin/users was removed with PR1 (the portal owns user management);
+    // booking-rules is the surviving role-gated admin API.
+    const response = await context.request.get(
+      `${RESERVATIONS_URL}/reservations/api/admin/booking-rules`,
+    )
 
     expect(response.status()).toBe(403)
     await context.close()
