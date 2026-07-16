@@ -20,15 +20,14 @@ function session(overrides: {
   isAccountingAdmin?: boolean;
   shareholderId?: string | null;
 }) {
+  const { status = "approved", isAccountingAdmin = false, shareholderId = null } = overrides;
   return {
     user: {
       id: "u1",
-      status: "approved",
-      isAccountingAdmin: false,
-      isReservationsAdmin: false,
-      shareholderId: null,
+      status,
+      roles: { siteOwner: false, siteManager: false, accountingManager: isAccountingAdmin },
+      shareholderId,
       email: "user@example.com",
-      ...overrides,
     },
     expires: "2099-01-01",
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -60,7 +59,7 @@ describe("requireAuthorized()", () => {
   it("resolves for an admin, even without a linked shareholder", async () => {
     vi.mocked(auth).mockResolvedValue(session({ isAccountingAdmin: true, shareholderId: null }));
     const s = await requireAuthorized();
-    expect(s.user.isAccountingAdmin).toBe(true);
+    expect(s.user.roles.accountingManager).toBe(true);
   });
 
   it("resolves for a linked shareholder who is not an admin", async () => {
@@ -85,7 +84,7 @@ describe("requireAdmin()", () => {
   it("resolves for an admin", async () => {
     vi.mocked(auth).mockResolvedValue(session({ isAccountingAdmin: true }));
     const s = await requireAdmin();
-    expect(s.user.isAccountingAdmin).toBe(true);
+    expect(s.user.roles.accountingManager).toBe(true);
   });
 
   it("redirects a non-admin away from admin/* (including admin/shareholders and admin/shareholders/[id]/edit)", async () => {

@@ -35,8 +35,7 @@ const ADMIN_SESSION = {
   user: {
     id: "admin-1",
     status: "approved",
-    isAccountingAdmin: true,
-    isReservationsAdmin: false,
+    roles: { siteOwner: false, siteManager: false, accountingManager: true },
     shareholderId: null,
     email: "admin@example.com",
     name: "Admin",
@@ -165,6 +164,111 @@ describe("updateShareholder", () => {
       fd({ shareholderId: holder.id, name: "Renamed Holder", email: other.email! }),
     );
     expect(collision?.error).toMatch(/already exists/);
+  });
+});
+
+describe("auto-link to an existing login by email (staging fix #7)", () => {
+  it("links a newly created shareholder to a matching identity user", async () => {
+    vi.mocked(auth).mockResolvedValue(ADMIN_SESSION);
+
+    const email = `autolink-${Date.now()}@example.com`;
+    const [identityUser] = await testIdentityDb
+      .insert(users)
+      .values({ email, status: "approved" })
+      .returning();
+    createdUserIds.push(identityUser.id);
+
+    const name = `Auto Linked ${Date.now()}`;
+    // Success path ends in redirect(), which throws — expected control-flow signal.
+    await expect(createShareholder(undefined, fd({ name, email }))).rejects.toThrow();
+
+    const created = await testDb.shareholder.findFirst({ where: { name } });
+    expect(created?.userId).toBe(identityUser.id);
+    createdShareholderIds.push(created!.id);
+  });
+
+  it("matches the identity email case-insensitively", async () => {
+    vi.mocked(auth).mockResolvedValue(ADMIN_SESSION);
+
+    const lower = `mixedcase-${Date.now()}@example.com`;
+    const [identityUser] = await testIdentityDb
+      .insert(users)
+      .values({ email: lower, status: "approved" })
+      .returning();
+    createdUserIds.push(identityUser.id);
+
+    const name = `Mixed Case ${Date.now()}`;
+    // The form submits an upper-cased address; the action normalizes to lower
+    // and the lookup is case-insensitive, so it still links.
+    await expect(
+      createShareholder(undefined, fd({ name, email: lower.toUpperCase() })),
+    ).rejects.toThrow();
+
+    const created = await testDb.shareholder.findFirst({ where: { name } });
+    expect(created?.userId).toBe(identityUser.id);
+    createdShareholderIds.push(created!.id);
+  });
+
+  it("leaves userId null when no identity user has that email", async () => {
+    vi.mocked(auth).mockResolvedValue(ADMIN_SESSION);
+
+    const name = `No Match ${Date.now()}`;
+    await expect(
+      createShareholder(undefined, fd({ name, email: `nomatch-${Date.now()}@example.com` })),
+    ).rejects.toThrow();
+
+    const created = await testDb.shareholder.findFirst({ where: { name } });
+    expect(created?.userId).toBeNull();
+    createdShareholderIds.push(created!.id);
+  });
+
+  it("links on edit when the email changes to a matching identity user", async () => {
+    vi.mocked(auth).mockResolvedValue(ADMIN_SESSION);
+
+    const holder = await testDb.shareholder.create({
+      data: { name: "Edit Link Target", email: `before-${Date.now()}@example.com` },
+    });
+    createdShareholderIds.push(holder.id);
+
+    const newEmail = `after-${Date.now()}@example.com`;
+    const [identityUser] = await testIdentityDb
+      .insert(users)
+      .values({ email: newEmail, status: "approved" })
+      .returning();
+    createdUserIds.push(identityUser.id);
+
+    const res = await updateShareholder(
+      undefined,
+      fd({ shareholderId: holder.id, name: holder.name, email: newEmail }),
+    );
+    expect(res?.error).toBeUndefined();
+    const linked = await testDb.shareholder.findUnique({ where: { id: holder.id } });
+    expect(linked?.userId).toBe(identityUser.id);
+  });
+
+  it("returns a friendly error when the matched login is already linked elsewhere", async () => {
+    vi.mocked(auth).mockResolvedValue(ADMIN_SESSION);
+
+    const email = `taken-${Date.now()}@example.com`;
+    const [identityUser] = await testIdentityDb
+      .insert(users)
+      .values({ email, status: "approved" })
+      .returning();
+    createdUserIds.push(identityUser.id);
+
+    // First shareholder claims the login by email.
+    const first = await testDb.shareholder.create({
+      data: { name: "First Claimant", email, userId: identityUser.id },
+    });
+    createdShareholderIds.push(first.id);
+
+    // A second create with the SAME email would try to link the same login →
+    // Shareholder.userId is @unique, so it fails friendly. (The email uniqueness
+    // check fires first here, which is also a friendly error.)
+    const result = await createShareholder(undefined, fd({ name: "Second Claimant", email }));
+    expect(result?.error).toMatch(/already/i);
+    const dupe = await testDb.shareholder.findFirst({ where: { name: "Second Claimant" } });
+    expect(dupe).toBeNull();
   });
 });
 

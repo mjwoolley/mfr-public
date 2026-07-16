@@ -1,9 +1,30 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma, TransactionType } from "@/generated/prisma/client";
-import { fiscalYear } from "@/lib/fiscalYear";
+import { fiscalYear, currentFiscalYear, fiscalYearRange } from "@/lib/fiscalYear";
 
 const { Decimal } = Prisma;
 type Decimal = Prisma.Decimal;
+
+/**
+ * Total dollars contributed in the current fiscal year ($1 = 1 share, so the
+ * share sum is the dollar amount). Extracted from the dashboard's inline
+ * aggregate so the portal's fundraising API can reuse the exact same query.
+ */
+export async function getRaisedThisYear(): Promise<{ year: number; raised: number }> {
+  const year = currentFiscalYear();
+  const { start, end } = fiscalYearRange(year);
+  const aggregate = await prisma.ledgerEntry.aggregate({
+    where: {
+      transaction: {
+        type: TransactionType.CONTRIBUTION,
+        createdAt: { gte: start, lt: end },
+        deleted: false,
+      },
+    },
+    _sum: { shares: true },
+  });
+  return { year, raised: Number(aggregate._sum.shares ?? 0) };
+}
 
 export async function getShareholderBalance(shareholderId: string): Promise<Decimal> {
   const result = await prisma.ledgerEntry.aggregate({

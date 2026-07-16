@@ -63,8 +63,7 @@ describe("integration test harness", () => {
       user: {
         id: "u1",
         status: "approved",
-        isAccountingAdmin: true,
-        isReservationsAdmin: false,
+        roles: { siteOwner: false, siteManager: false, accountingManager: true },
         shareholderId: null,
         email: "admin@example.com",
       },
@@ -73,7 +72,7 @@ describe("integration test harness", () => {
     } as any);
 
     const session = await requireAdmin();
-    expect(session.user.isAccountingAdmin).toBe(true);
+    expect(session.user.roles.accountingManager).toBe(true);
   });
 
   it("requireAdmin() redirects (throws) for a mocked non-admin session", async () => {
@@ -81,8 +80,7 @@ describe("integration test harness", () => {
       user: {
         id: "u2",
         status: "approved",
-        isAccountingAdmin: false,
-        isReservationsAdmin: false,
+        roles: { siteOwner: false, siteManager: false, accountingManager: false },
         shareholderId: null,
         email: "user@example.com",
       },

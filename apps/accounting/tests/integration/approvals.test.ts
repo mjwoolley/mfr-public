@@ -26,8 +26,7 @@ function shareholderSession(shareholderId: string) {
     user: {
       id: `user-for-${shareholderId}`,
       status: "approved",
-      isAccountingAdmin: false,
-      isReservationsAdmin: false,
+      roles: { siteOwner: false, siteManager: false, accountingManager: false },
       shareholderId,
       email: "shareholder@example.com",
     },
@@ -40,8 +39,7 @@ const ADMIN_SESSION = {
   user: {
     id: "admin-1",
     status: "approved",
-    isAccountingAdmin: true,
-    isReservationsAdmin: false,
+    roles: { siteOwner: false, siteManager: false, accountingManager: true },
     shareholderId: null,
     email: "admin@example.com",
     name: "Admin",

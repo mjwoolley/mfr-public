@@ -1,4 +1,5 @@
 import type { DefaultSession } from 'next-auth'
+import type { UserRoles } from './roles'
 
 declare module 'next-auth' {
   // The portal-wide session-user fields, shared by every mfr app. Declared as a
@@ -8,8 +9,12 @@ declare module 'next-auth' {
   interface AppSessionUser {
     id: string
     status: 'pending' | 'approved' | 'blocked'
-    isReservationsAdmin: boolean
-    isAccountingAdmin: boolean
+    // Portal roles, resolved from the portal DB by the shared session callback.
+    // The single source of truth for authorization across all three apps. The
+    // legacy `isReservationsAdmin`/`isAccountingAdmin` identity columns still
+    // exist (see schema / AdapterUser) as a backfill source but are no longer
+    // read anywhere — a follow-up cleanup drops them.
+    roles: UserRoles
   }
 
   interface Session {

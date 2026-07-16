@@ -1,9 +1,15 @@
-import { describe, it, expect, afterEach, beforeAll, vi } from 'vitest'
+import { describe, it, expect, afterEach, afterAll, beforeAll, vi } from 'vitest'
 import { eq } from 'drizzle-orm'
+import postgres from 'postgres'
 import { testDb } from './testDb'
 import { testIdentityDb } from './testIdentityDb'
 import { reservations, bookingRules, activityLog } from '../../lib/db/schema'
 import { users } from '@mfr/auth'
+
+// Portal roles live in the mfr-portal test branch; notifications resolve
+// reservations admins from here. vitest.config points PORTAL_DATABASE_URL at
+// the test branch, so the reader and this seeding client hit the same DB.
+const portalSql = postgres(process.env.PORTAL_DATABASE_URL ?? '', { prepare: false })
 
 // Same auth seam as reservations.test.ts (also prevents lib/auth/config's
 // top-level NextAuth() from opening a second real postgres client).
@@ -32,8 +38,11 @@ function mockSessionFor(user: {
     user: {
       id: user.id,
       status: 'approved',
-      isReservationsAdmin: user.isReservationsAdmin ?? false,
-      isAccountingAdmin: false,
+      roles: {
+        siteOwner: false,
+        siteManager: user.isReservationsAdmin ?? false,
+        accountingManager: false,
+      },
       email: user.email ?? undefined,
     },
     expires: '2099-01-01',
@@ -51,6 +60,15 @@ async function makeUser(suffix: string, overrides: Partial<typeof users.$inferIn
     })
     .returning()
   createdUserIds.push(user.id)
+  // A reservations admin is now a portal site-manager (or owner) — seed the
+  // portal role so the notifications recipient query recognizes them.
+  if (overrides.isReservationsAdmin) {
+    await portalSql`
+      INSERT INTO portal_user_roles (identity_user_id, is_site_manager)
+      VALUES (${user.id}, true)
+      ON CONFLICT (identity_user_id) DO UPDATE SET is_site_manager = true
+    `
+  }
   return user
 }
 
@@ -88,8 +106,13 @@ afterEach(async () => {
     await testDb.delete(activityLog).where(eq(activityLog.actorUserId, userId))
     await testDb.delete(reservations).where(eq(reservations.userId, userId))
     await testIdentityDb.delete(users).where(eq(users.id, userId))
+    await portalSql`DELETE FROM portal_user_roles WHERE identity_user_id = ${userId}`
   }
   createdUserIds.length = 0
+})
+
+afterAll(async () => {
+  await portalSql.end()
 })
 
 describe('reservation notification emails', () => {

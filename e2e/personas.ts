@@ -7,15 +7,23 @@
  */
 export const SESSION_EXPIRES = new Date('2030-01-01T00:00:00Z')
 
+export interface PersonaRoles {
+  siteOwner: boolean
+  siteManager: boolean
+  accountingManager: boolean
+}
+
 export interface Persona {
   id: string
   email: string
   name: string
   status: 'pending' | 'approved' | 'blocked'
-  isReservationsAdmin: boolean
-  isAccountingAdmin: boolean
+  /** Portal roles seeded into portal_user_roles; the source of authorization. */
+  roles: PersonaRoles
   sessionToken: string
 }
+
+const NO_ROLES: PersonaRoles = { siteOwner: false, siteManager: false, accountingManager: false }
 
 export const personas = {
   /** Approved family member; linked to the seeded accounting Shareholder. */
@@ -24,19 +32,27 @@ export const personas = {
     email: 'member@e2e.test',
     name: 'E2E Member',
     status: 'approved',
-    isReservationsAdmin: false,
-    isAccountingAdmin: false,
+    roles: NO_ROLES,
     sessionToken: 'e2e-session-member',
   },
-  /** Approved admin of both portals. */
+  /** Approved admin of both portals: site manager (reservations) + accounting
+   * manager. Not a site owner, so cannot reach user management. */
   admin: {
     id: '22222222-2222-4222-8222-222222222222',
     email: 'admin@e2e.test',
     name: 'E2E Admin',
     status: 'approved',
-    isReservationsAdmin: true,
-    isAccountingAdmin: true,
+    roles: { siteOwner: false, siteManager: true, accountingManager: true },
     sessionToken: 'e2e-session-admin',
+  },
+  /** Site owner — full power, including user management. */
+  owner: {
+    id: '55555555-5555-4555-8555-555555555555',
+    email: 'owner@e2e.test',
+    name: 'E2E Owner',
+    status: 'approved',
+    roles: { siteOwner: true, siteManager: false, accountingManager: false },
+    sessionToken: 'e2e-session-owner',
   },
   /** Signed up but not yet approved. */
   pending: {
@@ -44,8 +60,7 @@ export const personas = {
     email: 'pending@e2e.test',
     name: 'E2E Pending',
     status: 'pending',
-    isReservationsAdmin: false,
-    isAccountingAdmin: false,
+    roles: NO_ROLES,
     sessionToken: 'e2e-session-pending',
   },
   /** Approved, but neither an admin nor a linked shareholder. */
@@ -54,8 +69,7 @@ export const personas = {
     email: 'outsider@e2e.test',
     name: 'E2E Outsider',
     status: 'approved',
-    isReservationsAdmin: false,
-    isAccountingAdmin: false,
+    roles: NO_ROLES,
     sessionToken: 'e2e-session-outsider',
   },
 } satisfies Record<string, Persona>

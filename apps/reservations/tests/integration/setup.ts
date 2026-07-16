@@ -23,4 +23,14 @@ export default async function setup() {
   const identitySql = postgres(identityConnectionString, { prepare: false })
   await identitySql`TRUNCATE TABLE sessions, accounts, verification_tokens, users RESTART IDENTITY CASCADE`
   await identitySql.end()
+
+  // Portal roles (mfr-portal test branch) drive which users notifications CC as
+  // reservations admins — reset it too.
+  const portalConnectionString = process.env.TEST_PORTAL_DATABASE_URL
+  if (!portalConnectionString) {
+    throw new Error('TEST_PORTAL_DATABASE_URL is not set')
+  }
+  const portalSql = postgres(portalConnectionString, { prepare: false })
+  await portalSql`TRUNCATE TABLE portal_user_roles RESTART IDENTITY CASCADE`
+  await portalSql.end()
 }

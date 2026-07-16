@@ -58,6 +58,8 @@ export default defineConfig({
           env: {
             DATABASE_URL: process.env.TEST_DATABASE_URL,
             IDENTITY_DATABASE_URL: process.env.TEST_IDENTITY_DATABASE_URL,
+            // Notifications resolve reservations admins from the portal DB.
+            PORTAL_DATABASE_URL: process.env.TEST_PORTAL_DATABASE_URL,
           },
         },
       },

@@ -1,12 +1,15 @@
 import { test, expect } from '@playwright/test'
-import { ACCOUNTING_URL } from '../../playwright.config'
+import { ACCOUNTING_URL, WEB_URL } from '../../playwright.config'
 import { contextFor } from '../session'
 
 test.describe('accounting portal', () => {
-  test('signed-out visitors are redirected to sign-in', async ({ page }) => {
+  test('signed-out visitors are redirected to the portal sign-in', async ({ page }) => {
     await page.goto(`${ACCOUNTING_URL}/accounting`)
 
-    await expect(page).toHaveURL(/\/accounting\/sign-in/)
+    // Sign-in is centralized on the portal; the gate redirects here with a
+    // callbackUrl. Requires the accounting app to be built with
+    // NEXT_PUBLIC_HOME_URL=<web url> so the redirect stays local in e2e.
+    await expect(page).toHaveURL(new RegExp(`^${WEB_URL}/sign-in\\?callbackUrl=`))
   })
 
   test('pending users are held at the pending page', async ({ browser }) => {

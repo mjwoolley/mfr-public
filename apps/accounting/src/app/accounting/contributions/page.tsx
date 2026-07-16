@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { canAdminAccounting } from "@mfr/auth";
 import { requireAuthorized } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { getAllShareholderBalances } from "@/lib/ledger";
@@ -28,7 +29,7 @@ export default async function ContributionsPage() {
   // shareholders don't get this tab (the nav already hides it; this covers
   // direct URLs).
   const settings = await getAppSettings();
-  if (!settings.contributionsVisibleToAll && !session.user.isAccountingAdmin) {
+  if (!settings.contributionsVisibleToAll && !canAdminAccounting(session.user.roles)) {
     redirect("/accounting/dashboard");
   }
 

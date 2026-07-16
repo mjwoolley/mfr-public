@@ -1,3 +1,4 @@
+import { canAdminReservations } from '@mfr/auth'
 import { requireApprovedUser } from './requireApprovedUser'
 import type { AuthResult } from './requireUser'
 
@@ -11,7 +12,7 @@ function jsonError(status: number, error: string): Response {
 export async function requireReservationsAdmin(): Promise<AuthResult> {
   const result = await requireApprovedUser()
   if (!result.ok) return result
-  if (!result.session.user.isReservationsAdmin) {
+  if (!canAdminReservations(result.session.user.roles)) {
     return { ok: false, response: jsonError(403, 'Forbidden') }
   }
   return result

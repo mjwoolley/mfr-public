@@ -1,28 +1,25 @@
 import { redirect } from 'next/navigation'
+import { canAdminReservations } from '@mfr/auth'
 import { auth } from '@/lib/auth/config'
 import { AdminSubNav } from './AdminSubNav'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
 
-  // app/(app)/layout.tsx (the parent layout) already guarantees an
-  // approved session reaches this point. This gate is deliberately relaxed
-  // to either admin type — reservations-admin OR accounting-admin — because
-  // the shared Users approval queue (admin/users) lives directly under this
-  // layout and both admin types need to reach it. The reservations-specific
-  // sections (blocked-dates, booking-rules, reservations) live under the
-  // nested (reservations-admin) route group, which applies its own
-  // additional, tighter isReservationsAdmin-only gate on top of this one.
-  // Every /api/admin/* route still independently enforces its own
+  // app/(app)/layout.tsx (the parent layout) already guarantees an approved
+  // session reaches this point. The reservations Admin area is now
+  // reservations-admin only (site owner or site manager) — user management
+  // moved to the portal app, so accounting-only admins no longer have anything
+  // to do here. Every /api/admin/* route still independently enforces its own
   // server-side check regardless of what this UI-level gate does.
-  if (!session?.user?.isReservationsAdmin && !session?.user?.isAccountingAdmin) {
+  if (!session?.user || !canAdminReservations(session.user.roles)) {
     redirect('/reservations/calendar')
   }
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pt-7 pb-16 sm:px-7">
       <h1 className="mb-4 text-4xl">Admin</h1>
-      <AdminSubNav isReservationsAdmin={session.user.isReservationsAdmin} />
+      <AdminSubNav />
       {children}
     </div>
   )

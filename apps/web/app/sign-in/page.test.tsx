@@ -24,10 +24,12 @@ describe('sign-in page', () => {
     redirectMock.mockClear()
   })
 
+  const props = (callbackUrl?: string) => ({ searchParams: Promise.resolve({ callbackUrl }) })
+
   it('renders the Google sign-in form when signed out', async () => {
     authMock.mockResolvedValue(null)
 
-    const html = renderToStaticMarkup(await SignInPage())
+    const html = renderToStaticMarkup(await SignInPage(props()))
 
     expect(html).toContain('Miller Family Reunions')
     expect(html).toContain('Sign in with Google')
@@ -37,7 +39,15 @@ describe('sign-in page', () => {
   it('redirects home when already signed in', async () => {
     authMock.mockResolvedValue({ user: { id: 'u1', email: 'alice@example.com' } })
 
-    await expect(SignInPage()).rejects.toThrow('NEXT_REDIRECT:/')
+    await expect(SignInPage(props())).rejects.toThrow('NEXT_REDIRECT:/')
     expect(redirectMock).toHaveBeenCalledWith('/')
+  })
+
+  it('redirects an already-signed-in user to the callbackUrl when present', async () => {
+    authMock.mockResolvedValue({ user: { id: 'u1', email: 'alice@example.com' } })
+
+    const target = 'https://accounting.millerfamilyreunions.org/accounting'
+    await expect(SignInPage(props(target))).rejects.toThrow(`NEXT_REDIRECT:${target}`)
+    expect(redirectMock).toHaveBeenCalledWith(target)
   })
 })

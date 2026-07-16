@@ -1,13 +1,16 @@
 import { test, expect } from '@playwright/test'
-import { RESERVATIONS_URL } from '../../playwright.config'
+import { RESERVATIONS_URL, WEB_URL } from '../../playwright.config'
 import { contextFor } from '../session'
 
 test.describe('reservations portal', () => {
-  test('signed-out visitors are redirected to login', async ({ page }) => {
+  test('signed-out visitors are redirected to the portal sign-in', async ({ page }) => {
     await page.goto(`${RESERVATIONS_URL}/reservations/calendar`)
 
-    await expect(page).toHaveURL(/\/reservations\/login/)
-    await expect(page.getByRole('heading', { name: 'Family Cabin Reservations' })).toBeVisible()
+    // Sign-in is centralized on the portal; the gate sends signed-out users
+    // there with a callbackUrl. Requires the reservations app to be built with
+    // NEXT_PUBLIC_HOME_URL=<web url> so the redirect stays local in e2e.
+    await expect(page).toHaveURL(new RegExp(`^${WEB_URL}/sign-in\\?callbackUrl=`))
+    await expect(page.getByRole('heading', { name: 'Miller Family Reunions' })).toBeVisible()
   })
 
   test('pending users are held at the pending page', async ({ browser }) => {
@@ -50,7 +53,9 @@ test.describe('reservations portal', () => {
     await page.goto(`${RESERVATIONS_URL}/reservations/my-reservations`)
 
     await expect(page.getByRole('heading', { name: 'My reservations' })).toBeVisible()
-    await expect(page.getByRole('button', { name: /May 10 → May 12/ })).toBeVisible()
+    // Ranges display the inclusive last night (checkout − 1): a May 10 → May 12
+    // (checkout) stay reads as its two nights, May 10 → May 11.
+    await expect(page.getByRole('button', { name: /May 10 → May 11/ })).toBeVisible()
     await context.close()
   })
 
@@ -67,7 +72,11 @@ test.describe('reservations portal', () => {
   test('non-admins cannot use the admin API', async ({ browser }) => {
     const context = await contextFor(browser, 'member')
 
-    const response = await context.request.get(`${RESERVATIONS_URL}/reservations/api/admin/users`)
+    // /api/admin/users was removed with PR1 (the portal owns user management);
+    // booking-rules is the surviving role-gated admin API.
+    const response = await context.request.get(
+      `${RESERVATIONS_URL}/reservations/api/admin/booking-rules`,
+    )
 
     expect(response.status()).toBe(403)
     await context.close()

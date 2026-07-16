@@ -3,9 +3,26 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { ilike } from "drizzle-orm";
+import { users } from "@mfr/auth";
 import { prisma } from "@/lib/prisma";
+import { identityDb } from "@/lib/identityDb";
 import { requireAdmin } from "@/lib/authz";
 import { Prisma } from "@/generated/prisma/client";
+
+// Looks up an identity-DB user id by exact (case-insensitive) email, so a newly
+// created/edited shareholder can be linked to their login straight away — the
+// same identityDb/users pattern the shareholder-search route uses. Returns null
+// when no user has that email. (`extendSession` in lib/auth.ts is the reverse
+// fallback: it links by email at sign-in when no link exists yet.)
+async function findIdentityUserIdByEmail(email: string): Promise<string | null> {
+  const [row] = await identityDb
+    .select({ id: users.id })
+    .from(users)
+    .where(ilike(users.email, email))
+    .limit(1);
+  return row?.id ?? null;
+}
 
 // Empty string (an omitted optional email in the form) becomes `null`, not
 // `""` — Postgres's unique constraint on `email` allows any number of NULLs,
@@ -51,9 +68,22 @@ export async function createShareholder(
     }
   }
 
-  await prisma.shareholder.create({
-    data: { name, email },
-  });
+  // If an identity user already exists with this email, link them on create so
+  // the shareholder doesn't have to be linked by hand afterward.
+  const userId = email ? await findIdentityUserIdByEmail(email) : null;
+
+  try {
+    await prisma.shareholder.create({
+      data: { name, email, userId },
+    });
+  } catch (err) {
+    // Shareholder.userId is @unique — the matched login may already belong to a
+    // different shareholder. Fail friendly rather than with a raw Prisma error.
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      return { error: "That login is already linked to a different shareholder" };
+    }
+    throw err;
+  }
 
   revalidatePath("/accounting/admin/shareholders");
   redirect("/accounting/admin/shareholders");
@@ -83,6 +113,11 @@ export async function updateShareholder(
 
   const { shareholderId, name, email } = parsed.data;
 
+  const current = await prisma.shareholder.findUnique({ where: { id: shareholderId } });
+  if (!current) {
+    return { error: "Shareholder not found" };
+  }
+
   if (email) {
     const existing = await prisma.shareholder.findUnique({ where: { email } });
     if (existing && existing.id !== shareholderId) {
@@ -90,10 +125,26 @@ export async function updateShareholder(
     }
   }
 
-  await prisma.shareholder.update({
-    where: { id: shareholderId },
-    data: { name, email },
-  });
+  // When the email changes to one that matches an identity user, link that
+  // login now. Only re-link on an actual change so a manual link is preserved,
+  // and never clear an existing link just because the new email has no user.
+  let userId = current.userId;
+  if (email && email !== current.email) {
+    const found = await findIdentityUserIdByEmail(email);
+    if (found) userId = found;
+  }
+
+  try {
+    await prisma.shareholder.update({
+      where: { id: shareholderId },
+      data: { name, email, userId },
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      return { error: "That login is already linked to a different shareholder" };
+    }
+    throw err;
+  }
 
   revalidatePath("/accounting/admin/shareholders");
   revalidatePath(`/accounting/admin/shareholders/${shareholderId}/edit`);

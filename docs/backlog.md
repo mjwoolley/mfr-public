@@ -114,16 +114,18 @@ with the cheap version and only go deeper if it's worth it:
 **Open questions:** one shared space vs per-topic; whether deep integration is
 worth the OAuth/API scope cost versus just a link; who administers the space.
 
-### 4. Google Photos integration + member photo gallery
+### 4. Member photo gallery (in-site uploads) — future
+
+**Shipped (portal `/photos`):** the config-driven link version — a per-year grid
+of Google Photos album links (managed in Admin) plus a home-page highlights album
+link and slideshow. What remains is the full in-site gallery below.
 
 **Problem.** Reunion and lake-house photos live scattered across people's
-phones and a shared Google Photos album; there's no gallery on the site and no
-easy way for members to contribute pictures.
+phones and a shared Google Photos album; the links are one click away now, but
+there's still no in-site gallery members can contribute to directly.
 
-**Desired behavior.** A photos area in the portal:
+**Desired behavior (remaining):**
 
-- **Minimum:** a link to the shared Google Photos album (config-driven), so the
-  album is always one click away.
 - **Full feature:** an in-site **photo gallery members can upload to**. Signed-in
   members upload photos; everyone can browse them in a gallery/grid with
   lightbox view. Consider a captions field and sort-by-date.

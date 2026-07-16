@@ -10,3 +10,4 @@ node_modules/
 .husky/_/
 test-results/
 playwright-report/
+.env*

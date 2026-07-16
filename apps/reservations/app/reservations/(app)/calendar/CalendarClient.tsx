@@ -119,7 +119,7 @@ export function CalendarClient({ userId }: CalendarClientProps) {
   const selectionLabel = !selectionStart
     ? ''
     : selectionEnd
-      ? `Selected: ${niceDate(selectionStart)} → ${niceDate(selectionEnd)}  (${nightsBetween(selectionStart, selectionEnd)} night${nightsBetween(selectionStart, selectionEnd) === 1 ? '' : 's'})`
+      ? `Selected: ${niceDate(selectionStart)} → ${niceDate(addDays(selectionEnd, -1))}  (${nightsBetween(selectionStart, selectionEnd)} night${nightsBetween(selectionStart, selectionEnd) === 1 ? '' : 's'})`
       : `Check-in ${niceDate(selectionStart)} — now pick a check-out date`
 
   return (

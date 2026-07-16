@@ -14,3 +14,11 @@ export const RESERVATIONS_URL =
 
 export const ACCOUNTING_URL =
   process.env.NEXT_PUBLIC_ACCOUNTING_URL ?? 'https://accounting.millerfamilyreunions.org/accounting'
+
+// The portal is the single sign-in surface: accounting and reservations send
+// signed-out users here, with `callbackUrl` set to where they should land
+// after signing in (validated cross-origin by @mfr/auth's redirect callback).
+export function portalSignInUrl(callbackUrl?: string): string {
+  const base = `${HOME_URL}/sign-in`
+  return callbackUrl ? `${base}?callbackUrl=${encodeURIComponent(callbackUrl)}` : base
+}
