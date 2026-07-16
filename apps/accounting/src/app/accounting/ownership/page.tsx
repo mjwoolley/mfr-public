@@ -18,9 +18,9 @@ export default async function OwnershipPage() {
         {rows.length === 1 ? "" : "s"}.
       </p>
 
-      <div className="card elev-sm bg-white px-5 pt-2 pb-1">
+      <div className="card elev-sm bg-white px-4 pt-2 pb-1 sm:px-5">
         <div className="overflow-x-auto">
-          <table className="table min-w-[420px]">
+          <table className="table">
             <thead>
               <tr>
                 <th>Shareholder</th>

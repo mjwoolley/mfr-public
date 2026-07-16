@@ -21,6 +21,28 @@ test.describe('web portal', () => {
     await expect(page.getByText(/Sign in to see this year/)).toBeVisible()
   })
 
+  test('nav collapses to a hamburger menu on a mobile viewport', async ({ browser }) => {
+    const context = await contextFor(browser, 'member')
+    const page = await context.newPage()
+    await page.setViewportSize({ width: 375, height: 812 })
+    await page.goto(WEB_URL)
+
+    // Tab links are hidden until the Menu button opens the panel.
+    const menuButton = page.getByRole('button', { name: 'Menu' })
+    await expect(menuButton).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Photos', exact: true })).toBeHidden()
+
+    await menuButton.click()
+    await expect(menuButton).toHaveAttribute('aria-expanded', 'true')
+    await expect(page.getByRole('link', { name: 'Photos', exact: true })).toBeVisible()
+
+    // Navigating via a menu link closes the panel again.
+    await page.getByRole('link', { name: 'Photos', exact: true }).click()
+    await expect(page).toHaveURL(`${WEB_URL}/photos`)
+    await expect(page.getByRole('link', { name: 'Photos', exact: true })).toBeHidden()
+    await context.close()
+  })
+
   test('sign-in page offers Google sign-in when signed out', async ({ page }) => {
     await page.goto(`${WEB_URL}/sign-in`)
 

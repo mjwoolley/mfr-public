@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { ResponsiveNav } from '@mfr/ui'
 import type { CSSProperties, ReactNode } from 'react'
 
 interface PortalNavProps {
@@ -80,37 +81,35 @@ export function PortalNav({ reservationsUrl, accountingUrl, chatUrl, isAdmin }: 
   }
 
   return (
-    <nav style={{ borderBottom: '1px solid var(--color-divider)' }}>
-      <div className="mx-auto flex max-w-5xl items-center gap-5 overflow-x-auto px-4 sm:px-7">
-        {internal('/', 'Home')}
-        <a href={reservationsUrl} className={`${tabBase} font-semibold`} style={inactiveStyle}>
-          Reservations
-        </a>
-        <a href={accountingUrl} className={`${tabBase} font-semibold`} style={inactiveStyle}>
-          Accounting
-        </a>
-        {internal('/photos', 'Photos')}
-        {internal('/meals', 'Meals')}
-        {internal('/documents', 'Documents')}
-        <a
-          href={chatUrl}
-          target="_blank"
-          rel="noopener"
-          className={`${tabBase} font-semibold`}
-          style={inactiveStyle}
-        >
-          Family Chat
-          <ExtArrow />
-        </a>
-        {isAdmin &&
-          internal(
-            '/admin',
-            <>
-              <GearIcon />
-              Admin
-            </>,
-          )}
-      </div>
-    </nav>
+    <ResponsiveNav>
+      {internal('/', 'Home')}
+      <a href={reservationsUrl} className={`${tabBase} font-semibold`} style={inactiveStyle}>
+        Reservations
+      </a>
+      <a href={accountingUrl} className={`${tabBase} font-semibold`} style={inactiveStyle}>
+        Accounting
+      </a>
+      {internal('/photos', 'Photos')}
+      {internal('/meals', 'Meals')}
+      {internal('/documents', 'Documents')}
+      <a
+        href={chatUrl}
+        target="_blank"
+        rel="noopener"
+        className={`${tabBase} font-semibold`}
+        style={inactiveStyle}
+      >
+        Family Chat
+        <ExtArrow />
+      </a>
+      {isAdmin &&
+        internal(
+          '/admin',
+          <>
+            <GearIcon />
+            Admin
+          </>,
+        )}
+    </ResponsiveNav>
   )
 }
