@@ -37,7 +37,11 @@ const managerSession = () => ({
   expires: '2099-01-01',
 })
 const memberSession = (id: string) => ({
-  user: { id, status: 'approved', roles: { siteOwner: false, siteManager: false, accountingManager: false } },
+  user: {
+    id,
+    status: 'approved',
+    roles: { siteOwner: false, siteManager: false, accountingManager: false },
+  },
   expires: '2099-01-01',
 })
 
@@ -54,9 +58,16 @@ afterEach(() => vi.mocked(auth).mockReset())
 describe('reunion schedule + links', () => {
   it('a content admin saves the schedule (upserts the singleton)', async () => {
     vi.mocked(auth).mockResolvedValue(managerSession() as never)
-    const res = await saveSchedule({ reunionYear: 2027, reunionStart: '2027-07-01', reunionEnd: '2027-07-05' })
+    const res = await saveSchedule({
+      reunionYear: 2027,
+      reunionStart: '2027-07-01',
+      reunionEnd: '2027-07-05',
+    })
     expect(res).toEqual({ ok: true })
-    const [row] = await portalDb.select().from(portalSettings).where(eq(portalSettings.id, 'singleton'))
+    const [row] = await portalDb
+      .select()
+      .from(portalSettings)
+      .where(eq(portalSettings.id, 'singleton'))
     expect(row.reunionYear).toBe(2027)
     expect(row.reunionStart).toBe('2027-07-01')
   })
@@ -69,7 +80,10 @@ describe('reunion schedule + links', () => {
       venmoUrl: 'https://venmo.example/v',
       chatUrl: 'https://chat.example/c',
     })
-    const [row] = await portalDb.select().from(portalSettings).where(eq(portalSettings.id, 'singleton'))
+    const [row] = await portalDb
+      .select()
+      .from(portalSettings)
+      .where(eq(portalSettings.id, 'singleton'))
     expect(row.driveUrl).toBe('https://drive.example/d')
   })
 
@@ -95,7 +109,10 @@ describe('photo albums', () => {
     expect(afterEdit.url).toBe('https://photos.example/2099')
 
     await removeAlbum({ id: target.id })
-    rows = await portalDb.select().from(portalPhotoAlbums).where(eq(portalPhotoAlbums.id, target.id))
+    rows = await portalDb
+      .select()
+      .from(portalPhotoAlbums)
+      .where(eq(portalPhotoAlbums.id, target.id))
     expect(rows).toHaveLength(0)
   })
 })
@@ -107,7 +124,13 @@ describe('events', () => {
     const [ev] = await portalDb.select().from(portalEvents)
     expect(ev).toBeTruthy()
 
-    await updateEvent({ id: ev.id, startDate: '2027-07-04', time: 'At dusk', description: 'Fireworks', meetingLink: '' })
+    await updateEvent({
+      id: ev.id,
+      startDate: '2027-07-04',
+      time: 'At dusk',
+      description: 'Fireworks',
+      meetingLink: '',
+    })
     const [updated] = await portalDb.select().from(portalEvents).where(eq(portalEvents.id, ev.id))
     expect(updated.description).toBe('Fireworks')
     expect(updated.startDate).toBe('2027-07-04')
@@ -164,14 +187,26 @@ describe('meals', () => {
     let rows = await portalDb
       .select()
       .from(portalMealRsvps)
-      .where(and(eq(portalMealRsvps.identityUserId, user.id), eq(portalMealRsvps.dayIndex, 2), eq(portalMealRsvps.meal, 'L')))
+      .where(
+        and(
+          eq(portalMealRsvps.identityUserId, user.id),
+          eq(portalMealRsvps.dayIndex, 2),
+          eq(portalMealRsvps.meal, 'L'),
+        ),
+      )
     expect(rows).toHaveLength(1)
 
     await toggleMeal({ dayIndex: 2, meal: 'L' })
     rows = await portalDb
       .select()
       .from(portalMealRsvps)
-      .where(and(eq(portalMealRsvps.identityUserId, user.id), eq(portalMealRsvps.dayIndex, 2), eq(portalMealRsvps.meal, 'L')))
+      .where(
+        and(
+          eq(portalMealRsvps.identityUserId, user.id),
+          eq(portalMealRsvps.dayIndex, 2),
+          eq(portalMealRsvps.meal, 'L'),
+        ),
+      )
     expect(rows).toHaveLength(0)
   })
 

@@ -46,7 +46,11 @@ export function MealsToggles({
     (state: YourDay[], { index, meal }: { index: number; meal: 'L' | 'D' }) =>
       state.map((d) =>
         d.index === index
-          ? { ...d, lunch: meal === 'L' ? !d.lunch : d.lunch, dinner: meal === 'D' ? !d.dinner : d.dinner }
+          ? {
+              ...d,
+              lunch: meal === 'L' ? !d.lunch : d.lunch,
+              dinner: meal === 'D' ? !d.dinner : d.dinner,
+            }
           : d,
       ),
   )
@@ -58,7 +62,8 @@ export function MealsToggles({
     })
   }
 
-  const total = optimistic.reduce((n, d) => n + (d.lunch ? 1 : 0) + (d.dinner ? 1 : 0), 0) || userTotal
+  const total =
+    optimistic.reduce((n, d) => n + (d.lunch ? 1 : 0) + (d.dinner ? 1 : 0), 0) || userTotal
 
   return (
     <div className="card elev-sm bg-white" style={{ padding: '22px 22px 20px' }}>
@@ -71,7 +76,9 @@ export function MealsToggles({
           {userInitials}
         </span>
         <div>
-          <div style={{ fontFamily: 'var(--font-heading)', fontSize: 20, lineHeight: 1.1 }}>Your meals</div>
+          <div style={{ fontFamily: 'var(--font-heading)', fontSize: 20, lineHeight: 1.1 }}>
+            Your meals
+          </div>
           <div style={{ fontSize: 13, color: 'var(--color-neutral-600)' }}>
             {userName} &middot; {total === 1 ? '1 meal marked' : `${total} meals marked`}
           </div>
@@ -80,7 +87,11 @@ export function MealsToggles({
 
       <div className="mt-4 flex flex-col gap-2.5">
         {optimistic.map((d) => (
-          <div key={d.index} className="flex items-center gap-3" style={{ padding: '10px 4px', borderTop: '1px solid var(--color-neutral-200)' }}>
+          <div
+            key={d.index}
+            className="flex items-center gap-3"
+            style={{ padding: '10px 4px', borderTop: '1px solid var(--color-neutral-200)' }}
+          >
             <div style={{ minWidth: 74 }}>
               <div style={{ fontWeight: 700, fontSize: 15 }}>{d.dow}</div>
               <div style={{ fontSize: 12, color: 'var(--color-neutral-600)' }}>{d.date}</div>

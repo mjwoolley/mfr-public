@@ -43,5 +43,4 @@ describe('authorization gates', () => {
     const response = await postReservation(request as never)
     expect(response.status).toBe(401)
   })
-
 })

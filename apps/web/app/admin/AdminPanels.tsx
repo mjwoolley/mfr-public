@@ -50,14 +50,32 @@ function useAction() {
 
 function TrashIcon() {
   return (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="17"
+      height="17"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13" />
     </svg>
   )
 }
 function PlusIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M12 5v14M5 12h14" />
     </svg>
   )
@@ -83,27 +101,50 @@ export function ScheduleForm({
   return (
     <div className="card elev-sm bg-white" style={{ padding: '24px 24px 22px' }}>
       <h2 className="m-0 text-[22px]">Reunion schedule</h2>
-      <p className="mt-2" style={{ fontSize: 14.5, lineHeight: 1.55, color: 'var(--color-neutral-700)' }}>
+      <p
+        className="mt-2"
+        style={{ fontSize: 14.5, lineHeight: 1.55, color: 'var(--color-neutral-700)' }}
+      >
         Set the year and date range for the gathering. The Meals page builds a lunch and dinner slot
         for every day in this range.
       </p>
       <div className="mt-4.5 flex flex-wrap gap-3.5">
         <label style={{ ...labelStyle, flex: '0 0 100px' }}>
           Year
-          <input style={inputStyle} type="number" value={year} onChange={(e) => setYear(e.target.value)} />
+          <input
+            style={inputStyle}
+            type="number"
+            value={year}
+            onChange={(e) => setYear(e.target.value)}
+          />
         </label>
         <label style={{ ...labelStyle, flex: '1 1 130px' }}>
           First day
-          <input style={inputStyle} type="date" value={start} onChange={(e) => setStart(e.target.value)} />
+          <input
+            style={inputStyle}
+            type="date"
+            value={start}
+            onChange={(e) => setStart(e.target.value)}
+          />
         </label>
         <label style={{ ...labelStyle, flex: '1 1 130px' }}>
           Last day
-          <input style={inputStyle} type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
+          <input
+            style={inputStyle}
+            type="date"
+            value={end}
+            onChange={(e) => setEnd(e.target.value)}
+          />
         </label>
       </div>
       <div className="mt-4.5 pt-4" style={{ borderTop: '1px solid var(--color-neutral-200)' }}>
-        <div className="text-xs font-bold uppercase" style={{ letterSpacing: '.04em', color: 'var(--color-neutral-600)' }}>
-          {days.length ? `${days.length} days · ${days.length * 2} meal slots` : 'Set a valid date range'}
+        <div
+          className="text-xs font-bold uppercase"
+          style={{ letterSpacing: '.04em', color: 'var(--color-neutral-600)' }}
+        >
+          {days.length
+            ? `${days.length} days · ${days.length * 2} meal slots`
+            : 'Set a valid date range'}
         </div>
         <div className="mt-2.5 flex flex-wrap gap-2">
           {days.map((d) => (
@@ -118,7 +159,9 @@ export function ScheduleForm({
           className="btn btn-primary"
           disabled={pending}
           style={{ fontFamily: 'var(--font-body)', fontWeight: 700 }}
-          onClick={() => run(() => saveSchedule({ reunionYear: year, reunionStart: start, reunionEnd: end }))}
+          onClick={() =>
+            run(() => saveSchedule({ reunionYear: year, reunionStart: start, reunionEnd: end }))
+          }
         >
           Save schedule
         </button>
@@ -150,14 +193,22 @@ export function LinksForm({
   const field = (lbl: string, val: string, set: (s: string) => void, ph: string) => (
     <label style={labelStyle}>
       {lbl}
-      <input style={inputStyle} value={val} onChange={(e) => set(e.target.value)} placeholder={ph} />
+      <input
+        style={inputStyle}
+        value={val}
+        onChange={(e) => set(e.target.value)}
+        placeholder={ph}
+      />
     </label>
   )
 
   return (
     <div className="card elev-sm bg-white" style={{ padding: '24px 24px 22px' }}>
       <h2 className="m-0 text-[22px]">Links &amp; sharing</h2>
-      <p className="mt-2" style={{ fontSize: 14.5, lineHeight: 1.55, color: 'var(--color-neutral-700)' }}>
+      <p
+        className="mt-2"
+        style={{ fontSize: 14.5, lineHeight: 1.55, color: 'var(--color-neutral-700)' }}
+      >
         The shared links family members use — the home slideshow&rsquo;s highlights album, the Drive
         documents folder, the family Venmo, and the Family Chat space.
       </p>
@@ -172,7 +223,9 @@ export function LinksForm({
           className="btn btn-primary"
           disabled={pending}
           style={{ fontFamily: 'var(--font-body)', fontWeight: 700 }}
-          onClick={() => run(() => saveLinks({ highlightsUrl: h, driveUrl: d, venmoUrl: v, chatUrl: c }))}
+          onClick={() =>
+            run(() => saveLinks({ highlightsUrl: h, driveUrl: d, venmoUrl: v, chatUrl: c }))
+          }
         >
           Save links
         </button>
@@ -189,7 +242,10 @@ export function AlbumsEditor({ albums }: { albums: { id: string; year: number; u
   return (
     <div className="card elev-sm bg-white" style={{ padding: '24px 24px 22px' }}>
       <h2 className="m-0 text-[22px]">Photo albums</h2>
-      <p className="mt-2" style={{ fontSize: 14.5, lineHeight: 1.55, color: 'var(--color-neutral-700)' }}>
+      <p
+        className="mt-2"
+        style={{ fontSize: 14.5, lineHeight: 1.55, color: 'var(--color-neutral-700)' }}
+      >
         Each year has its own Google&nbsp;Photos album. Paste the share link for each year; leave it
         blank until you&rsquo;ve created it.
       </p>
@@ -224,7 +280,9 @@ function AlbumRow({
   const [url, setUrl] = useState(album.url)
   return (
     <div className="flex items-center gap-2.5">
-      <span style={{ fontFamily: 'var(--font-heading)', fontSize: 19, minWidth: 52 }}>{album.year}</span>
+      <span style={{ fontFamily: 'var(--font-heading)', fontSize: 19, minWidth: 52 }}>
+        {album.year}
+      </span>
       <input
         style={{ ...inputStyle, flex: 1 }}
         value={url}
@@ -232,7 +290,12 @@ function AlbumRow({
         onChange={(e) => setUrl(e.target.value)}
         onBlur={() => url !== album.url && run(() => setAlbumUrl({ id: album.id, url }))}
       />
-      <button className="btn btn-icon shrink-0" title="Remove year" disabled={pending} onClick={() => run(() => removeAlbum({ id: album.id }))}>
+      <button
+        className="btn btn-icon shrink-0"
+        title="Remove year"
+        disabled={pending}
+        onClick={() => run(() => removeAlbum({ id: album.id }))}
+      >
         <TrashIcon />
       </button>
     </div>
@@ -253,9 +316,15 @@ interface EventItem {
 export function EventsEditor({ events }: { events: EventItem[] }) {
   const { pending, error, run } = useAction()
   return (
-    <div className="card elev-sm bg-white" style={{ padding: '24px 24px 22px', gridColumn: '1 / -1' }}>
+    <div
+      className="card elev-sm bg-white"
+      style={{ padding: '24px 24px 22px', gridColumn: '1 / -1' }}
+    >
       <h2 className="m-0 text-[22px]">Upcoming events</h2>
-      <p className="mt-2" style={{ fontSize: 14.5, lineHeight: 1.55, color: 'var(--color-neutral-700)' }}>
+      <p
+        className="mt-2"
+        style={{ fontSize: 14.5, lineHeight: 1.55, color: 'var(--color-neutral-700)' }}
+      >
         A short list shown on the home page. Each event is either a single day (with an optional
         time) or a multi-day range — set an end date to make it a range. Add a one-line description
         and an optional Zoom or Teams link for calls.
@@ -310,14 +379,33 @@ function EventRow({
     )
 
   return (
-    <div className="flex flex-wrap items-end gap-2.5 pb-3.5" style={{ borderBottom: '1px solid var(--color-neutral-200)' }}>
+    <div
+      className="flex flex-wrap items-end gap-2.5 pb-3.5"
+      style={{ borderBottom: '1px solid var(--color-neutral-200)' }}
+    >
       <label style={{ ...labelStyle, flex: '1 1 130px' }}>
         Start date
-        <input style={inputStyle} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} onBlur={save} />
+        <input
+          style={inputStyle}
+          type="date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+          onBlur={save}
+        />
       </label>
       <label style={{ ...labelStyle, flex: '1 1 130px' }}>
-        End date <span style={{ fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>(blank = single day)</span>
-        <input style={inputStyle} type="date" min={startDate || undefined} value={endDate} onChange={(e) => setEndDate(e.target.value)} onBlur={save} />
+        End date{' '}
+        <span style={{ fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>
+          (blank = single day)
+        </span>
+        <input
+          style={inputStyle}
+          type="date"
+          min={startDate || undefined}
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+          onBlur={save}
+        />
       </label>
       <label style={{ ...labelStyle, flex: '1 1 120px' }}>
         Time
@@ -332,13 +420,30 @@ function EventRow({
       </label>
       <label style={{ ...labelStyle, flex: '3 1 220px' }}>
         Description
-        <input style={inputStyle} value={description} placeholder="What’s happening" onChange={(e) => setDescription(e.target.value)} onBlur={save} />
+        <input
+          style={inputStyle}
+          value={description}
+          placeholder="What’s happening"
+          onChange={(e) => setDescription(e.target.value)}
+          onBlur={save}
+        />
       </label>
       <label style={{ ...labelStyle, flex: '3 1 220px' }}>
         Zoom / Teams link (optional)
-        <input style={inputStyle} value={link} placeholder="https://zoom.us/j/…" onChange={(e) => setLink(e.target.value)} onBlur={save} />
+        <input
+          style={inputStyle}
+          value={link}
+          placeholder="https://zoom.us/j/…"
+          onChange={(e) => setLink(e.target.value)}
+          onBlur={save}
+        />
       </label>
-      <button className="btn btn-icon shrink-0" title="Remove event" disabled={pending} onClick={() => run(() => removeEvent({ id: event.id }))}>
+      <button
+        className="btn btn-icon shrink-0"
+        title="Remove event"
+        disabled={pending}
+        onClick={() => run(() => removeEvent({ id: event.id }))}
+      >
         <TrashIcon />
       </button>
     </div>

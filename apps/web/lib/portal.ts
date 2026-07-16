@@ -22,7 +22,10 @@ export async function getPortalSettings(): Promise<PortalSettingsRow> {
     .onConflictDoNothing()
     .returning()
   if (row) return row
-  const [existing] = await portalDb.select().from(portalSettings).where(eq(portalSettings.id, 'singleton'))
+  const [existing] = await portalDb
+    .select()
+    .from(portalSettings)
+    .where(eq(portalSettings.id, 'singleton'))
   return existing
 }
 
@@ -128,11 +131,15 @@ export interface MealsView {
 export async function getMealsView(currentUserId: string): Promise<MealsView> {
   const settings = await getPortalSettings()
   const days = buildDays(settings.reunionStart, settings.reunionEnd)
-  const [attendees, rsvps] = await Promise.all([getAttendees(), portalDb.select().from(portalMealRsvps)])
+  const [attendees, rsvps] = await Promise.all([
+    getAttendees(),
+    portalDb.select().from(portalMealRsvps),
+  ])
 
   // presence set keyed "userId:indexMeal", e.g. "abc:3L"
   const has = new Set(rsvps.map((r) => `${r.identityUserId}:${r.dayIndex}${r.meal}`))
-  const on = (userId: string, index: number, meal: 'L' | 'D') => has.has(`${userId}:${index}${meal}`)
+  const on = (userId: string, index: number, meal: 'L' | 'D') =>
+    has.has(`${userId}:${index}${meal}`)
 
   const your = days.map((d) => ({
     index: d.index,
@@ -176,7 +183,9 @@ export async function getMealsView(currentUserId: string): Promise<MealsView> {
   }))
 
   const userTotal = your.reduce((n, d) => n + (d.lunch ? 1 : 0) + (d.dinner ? 1 : 0), 0)
-  const rangeLabel = days.length ? `${days[0].date} – ${days[days.length - 1].date}` : 'Dates to be set'
+  const rangeLabel = days.length
+    ? `${days[0].date} – ${days[days.length - 1].date}`
+    : 'Dates to be set'
 
   return { days, rangeLabel, your, headcount, peakLabel: peak.label, roster, userTotal }
 }

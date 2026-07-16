@@ -21,11 +21,19 @@ import { portalDb } from '@/lib/portalDb'
 import { portalUserRoles } from '@/lib/db/schema'
 
 const ownerSession = (id: string) => ({
-  user: { id, status: 'approved', roles: { siteOwner: true, siteManager: false, accountingManager: false } },
+  user: {
+    id,
+    status: 'approved',
+    roles: { siteOwner: true, siteManager: false, accountingManager: false },
+  },
   expires: '2099-01-01',
 })
 const memberSession = (id: string) => ({
-  user: { id, status: 'approved', roles: { siteOwner: false, siteManager: false, accountingManager: false } },
+  user: {
+    id,
+    status: 'approved',
+    roles: { siteOwner: false, siteManager: false, accountingManager: false },
+  },
   expires: '2099-01-01',
 })
 
@@ -74,9 +82,9 @@ describe('user management actions', () => {
     vi.mocked(auth).mockResolvedValue(memberSession(randomUUID()) as never)
     const target = await makeUser('approved')
 
-    await expect(setUserRole({ userId: target.id, role: 'siteManager', value: true })).rejects.toThrow(
-      /REDIRECT/,
-    )
+    await expect(
+      setUserRole({ userId: target.id, role: 'siteManager', value: true }),
+    ).rejects.toThrow(/REDIRECT/)
   })
 
   it("won't let an owner change their own account status (lockout guard)", async () => {

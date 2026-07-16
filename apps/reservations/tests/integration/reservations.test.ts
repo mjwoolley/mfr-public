@@ -42,7 +42,11 @@ function mockSessionFor(user: {
     user: {
       id: user.id,
       status: 'approved',
-      roles: { siteOwner: false, siteManager: user.isReservationsAdmin ?? false, accountingManager: false },
+      roles: {
+        siteOwner: false,
+        siteManager: user.isReservationsAdmin ?? false,
+        accountingManager: false,
+      },
       email: user.email ?? undefined,
     },
     expires: '2099-01-01',

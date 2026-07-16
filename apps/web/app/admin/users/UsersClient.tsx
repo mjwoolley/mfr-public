@@ -81,14 +81,19 @@ export function UsersClient({
               <span className={`tag ${STATUS_TAG[u.status]} ml-auto`}>{u.status}</span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t pt-4" style={{ borderColor: 'var(--color-neutral-200)' }}>
+            <div
+              className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t pt-4"
+              style={{ borderColor: 'var(--color-neutral-200)' }}
+            >
               <div className="flex items-center gap-2">
                 <span className="text-muted text-xs font-bold tracking-wide uppercase">Access</span>
                 <button
                   type="button"
                   className="btn btn-secondary"
                   disabled={rowBusy || isSelf || u.status === 'approved'}
-                  onClick={() => run(u.id, () => setUserStatus({ userId: u.id, status: 'approved' }))}
+                  onClick={() =>
+                    run(u.id, () => setUserStatus({ userId: u.id, status: 'approved' }))
+                  }
                 >
                   Approve
                 </button>
@@ -96,7 +101,9 @@ export function UsersClient({
                   type="button"
                   className="btn btn-secondary"
                   disabled={rowBusy || isSelf || u.status === 'blocked'}
-                  onClick={() => run(u.id, () => setUserStatus({ userId: u.id, status: 'blocked' }))}
+                  onClick={() =>
+                    run(u.id, () => setUserStatus({ userId: u.id, status: 'blocked' }))
+                  }
                 >
                   Block
                 </button>
@@ -113,7 +120,9 @@ export function UsersClient({
                       type="button"
                       aria-pressed={on}
                       disabled={rowBusy || lockSelfOwner}
-                      onClick={() => run(u.id, () => setUserRole({ userId: u.id, role: key, value: !on }))}
+                      onClick={() =>
+                        run(u.id, () => setUserRole({ userId: u.id, role: key, value: !on }))
+                      }
                       className="btn"
                       style={
                         on

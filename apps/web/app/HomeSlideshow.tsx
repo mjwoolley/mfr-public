@@ -24,12 +24,26 @@ export function HomeSlideshow({ images, albumUrl }: { images: string[]; albumUrl
     <div className="relative flex justify-center">
       <div
         className="absolute z-0"
-        style={{ width: 340, height: 340, borderRadius: 999, background: 'var(--color-accent-2-200)', top: -20, right: -12 }}
+        style={{
+          width: 340,
+          height: 340,
+          borderRadius: 999,
+          background: 'var(--color-accent-2-200)',
+          top: -20,
+          right: -12,
+        }}
         aria-hidden
       />
       <div
         className="absolute z-0"
-        style={{ width: 120, height: 120, borderRadius: 999, background: 'var(--color-accent-200)', bottom: 24, left: -8 }}
+        style={{
+          width: 120,
+          height: 120,
+          borderRadius: 999,
+          background: 'var(--color-accent-200)',
+          bottom: 24,
+          left: -8,
+        }}
         aria-hidden
       />
       <figure
@@ -44,7 +58,11 @@ export function HomeSlideshow({ images, albumUrl }: { images: string[]; albumUrl
       >
         <div
           className="washed relative w-full overflow-hidden"
-          style={{ aspectRatio: '4 / 3', borderRadius: 'calc(var(--radius-md) - 6px)', background: 'var(--color-neutral-200)' }}
+          style={{
+            aspectRatio: '4 / 3',
+            borderRadius: 'calc(var(--radius-md) - 6px)',
+            background: 'var(--color-neutral-200)',
+          }}
         >
           {images.map((src, i) => (
             <div
@@ -52,12 +70,24 @@ export function HomeSlideshow({ images, albumUrl }: { images: string[]; albumUrl
               className="absolute inset-0"
               style={{ opacity: i === slide ? 1 : 0, transition: 'opacity 1s ease' }}
             >
-              <Image src={src} alt="Miller family at the lake" fill sizes="470px" style={{ objectFit: 'cover' }} priority={i === 0} />
+              <Image
+                src={src}
+                alt="Miller family at the lake"
+                fill
+                sizes="470px"
+                style={{ objectFit: 'cover' }}
+                priority={i === 0}
+              />
             </div>
           ))}
         </div>
-        <figcaption className="flex items-center justify-between gap-2.5" style={{ padding: '11px 4px 2px' }}>
-          <span style={{ fontSize: 12, color: 'var(--color-neutral-600)' }}>From the family album</span>
+        <figcaption
+          className="flex items-center justify-between gap-2.5"
+          style={{ padding: '11px 4px 2px' }}
+        >
+          <span style={{ fontSize: 12, color: 'var(--color-neutral-600)' }}>
+            From the family album
+          </span>
           {images.length > 1 && (
             <span className="flex gap-1.5">
               {images.map((src, i) => (
@@ -89,7 +119,16 @@ export function HomeSlideshow({ images, albumUrl }: { images: string[]; albumUrl
             style={{ margin: '2px 4px 0', fontSize: 12, fontWeight: 600 }}
           >
             Open the highlights album
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <path d="M7 17 L17 7" />
               <path d="M8 7h9v9" />
             </svg>

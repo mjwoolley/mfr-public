@@ -6,11 +6,15 @@ import postgres from 'postgres'
 export default async function setup() {
   const portalUrl = process.env.TEST_PORTAL_DATABASE_URL
   if (!portalUrl) {
-    throw new Error('TEST_PORTAL_DATABASE_URL is not set — integration tests must run against the portal test branch')
+    throw new Error(
+      'TEST_PORTAL_DATABASE_URL is not set — integration tests must run against the portal test branch',
+    )
   }
   const identityUrl = process.env.TEST_IDENTITY_DATABASE_URL
   if (!identityUrl) {
-    throw new Error('TEST_IDENTITY_DATABASE_URL is not set — integration tests need the identity test branch')
+    throw new Error(
+      'TEST_IDENTITY_DATABASE_URL is not set — integration tests need the identity test branch',
+    )
   }
 
   const portalSql = postgres(portalUrl, { prepare: false })

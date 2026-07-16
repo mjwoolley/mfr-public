@@ -23,9 +23,9 @@ AuthStatus) and render `<PortalNav>` below the header. Internal links
 role-gated.
 
 **2. Sign-in screen** (`apps/web/app/sign-in/page.tsx`). Multicolor Google "G" glyph +
-"Sign in with Google"; below it a note: *"You must have a Google account to sign in to
+"Sign in with Google"; below it a note: _"You must have a Google account to sign in to
 this website. [Click here] to register for a Google account. You do not have to use
-Gmail as your email service to sign up for a Google account."* — **Click here** →
+Gmail as your email service to sign up for a Google account."_ — **Click here** →
 `https://accounts.google.com/signup`. Keep the `callbackUrl` redirect behavior.
 
 **3. Gate every tab; one sign-in screen.** Add `requireApproved()` (from
@@ -54,9 +54,10 @@ RENAME COLUMN date TO start_date; ADD COLUMN end_date date`). Update
 `apps/web/lib/db/schema.ts`; `getEvents` sort by `start_date` (`lib/portal.ts`);
 `EventsEditor` in `apps/web/app/admin/AdminPanels.tsx` (fields: Start date, End date
 [optional — "blank = single day"], Time [single-day only], Description, Zoom/Teams link)
-+ `updateEvent` schema/action in `apps/web/app/admin/actions.ts`; home render in
-`page.tsx` — single-day → date badge + "dow · time"; multi-day → date badge (start) +
-range "Jul 1 – Jul 5".
+
+- `updateEvent` schema/action in `apps/web/app/admin/actions.ts`; home render in
+  `page.tsx` — single-day → date badge + "dow · time"; multi-day → date badge (start) +
+  range "Jul 1 – Jul 5".
 
 ### Accounting
 
@@ -64,10 +65,11 @@ range "Jul 1 – Jul 5".
 (`apps/accounting/src/actions/shareholders.ts`). In `createShareholder` (and
 `updateShareholder` when the email changes), after normalizing email, query the identity
 DB for a matching user and set `userId` immediately — reusing the `identityDb` + `users`
-+ case-insensitive-email pattern from
-`apps/accounting/src/app/accounting/api/admin/shareholder-search/route.ts`, wrapped in the
-same P2002 catch as `linkShareholderToUser`. `extendSession` in
-`apps/accounting/src/lib/auth.ts` stays as the reverse-order fallback.
+
+- case-insensitive-email pattern from
+  `apps/accounting/src/app/accounting/api/admin/shareholder-search/route.ts`, wrapped in the
+  same P2002 catch as `linkShareholderToUser`. `extendSession` in
+  `apps/accounting/src/lib/auth.ts` stays as the reverse-order fallback.
 
 ### Reservations
 
@@ -79,6 +81,7 @@ selection label in `CalendarClient.tsx` (~line 122), and the checkout display in
 unchanged (all correct). Update the affected display tests.
 
 ## Tests & verification
+
 - Update web `page.test.tsx` (mock session; goal/events only when signed in) and
   `tests/integration/portalContent.test.ts` (event start/end). Add an accounting
   integration test for link-on-create. Update reservations display-helper tests.
@@ -90,6 +93,7 @@ unchanged (all correct). Update the affected display tests.
   inclusively, create-a-shareholder links an existing user.
 
 ## Needs the user (infra)
+
 - Enable Protection Bypass for Automation on the accounting Vercel project and provide/set
   its secret as `ACCOUNTING_BYPASS_SECRET` on web's staging env (for fix #5). I can set the
   env var via the Vercel CLI once the secret exists.
@@ -114,7 +118,7 @@ the home for **user management + a new role system** (everything not specific to
 reservations or accounting):
 
 - **Site Owner** — full power over everything, including user management.
-- **Site Manager** — all functions *except* accounting admin and user management
+- **Site Manager** — all functions _except_ accounting admin and user management
   (i.e. portal content admin **and** reservations admin).
 - **Accounting Manager** — the capability to enter contributions/expenses (today's
   `isAccountingAdmin`).
@@ -134,16 +138,16 @@ identity-DB session + shared cookie domain (`AUTH_COOKIE_DOMAIN`).
 
 ### Decisions (locked in)
 
-| Decision | Choice |
-|---|---|
-| Delivery | **Two PRs** — (1) roles + centralized auth, (2) portal features + redesign. |
-| Portal data layer | **New dedicated Neon project** for `apps/web`, **Drizzle** ORM (matches web's `identityDb` + reservations). |
-| Roles storage | **Portal DB** `portal_user_roles`, keyed by identity user id (cross-DB, no FK). |
-| Site Manager scope | Portal content admin **+** reservations admin (all but accounting admin & user management). |
-| Roles → apps | Loaded in the **shared `@mfr/auth` session callback** → `session.user.roles`; accounting & reservations authz switch to reading them. |
-| Sign-in | **Portal is the one sign-in UI.** Accounting/reservations drop their sign-in pages; signed-out users redirect to `PORTAL/sign-in?callbackUrl=<original>`. Each app keeps a NextAuth instance only to *read* the shared session (required for DB-session gating). |
-| Live fundraising total | Accounting read API `/accounting/api/contributions/current-year` → `{ year, raised, goal }`; web fetches it. (PR 2) |
-| Google Photos/Drive | **Match the prototype** — external album links + curated static slideshow; Documents = Drive iframe behind a server-side sign-in gate. (PR 2) |
+| Decision               | Choice                                                                                                                                                                                                                                                           |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Delivery               | **Two PRs** — (1) roles + centralized auth, (2) portal features + redesign.                                                                                                                                                                                      |
+| Portal data layer      | **New dedicated Neon project** for `apps/web`, **Drizzle** ORM (matches web's `identityDb` + reservations).                                                                                                                                                      |
+| Roles storage          | **Portal DB** `portal_user_roles`, keyed by identity user id (cross-DB, no FK).                                                                                                                                                                                  |
+| Site Manager scope     | Portal content admin **+** reservations admin (all but accounting admin & user management).                                                                                                                                                                      |
+| Roles → apps           | Loaded in the **shared `@mfr/auth` session callback** → `session.user.roles`; accounting & reservations authz switch to reading them.                                                                                                                            |
+| Sign-in                | **Portal is the one sign-in UI.** Accounting/reservations drop their sign-in pages; signed-out users redirect to `PORTAL/sign-in?callbackUrl=<original>`. Each app keeps a NextAuth instance only to _read_ the shared session (required for DB-session gating). |
+| Live fundraising total | Accounting read API `/accounting/api/contributions/current-year` → `{ year, raised, goal }`; web fetches it. (PR 2)                                                                                                                                              |
+| Google Photos/Drive    | **Match the prototype** — external album links + curated static slideshow; Documents = Drive iframe behind a server-side sign-in gate. (PR 2)                                                                                                                    |
 
 > ⚠️ Every app's `AGENTS.md`: "This is NOT the Next.js you know… read the relevant guide
 > in `node_modules/next/dist/docs/` before writing any code." Do that before writing
@@ -167,12 +171,12 @@ portal_user_roles (
 
 Derived capabilities used by gates:
 
-| Capability | Rule |
-|---|---|
-| Portal content admin (schedule/albums/events/meals mgmt) | `siteOwner \|\| siteManager` |
-| User management | `siteOwner` only |
-| Reservations admin | `siteOwner \|\| siteManager` |
-| Accounting admin (enter contributions/expenses) | `siteOwner \|\| accountingManager` |
+| Capability                                               | Rule                               |
+| -------------------------------------------------------- | ---------------------------------- |
+| Portal content admin (schedule/albums/events/meals mgmt) | `siteOwner \|\| siteManager`       |
+| User management                                          | `siteOwner` only                   |
+| Reservations admin                                       | `siteOwner \|\| siteManager`       |
+| Accounting admin (enter contributions/expenses)          | `siteOwner \|\| accountingManager` |
 
 ---
 
@@ -194,6 +198,7 @@ make the portal the one place you sign in. Independently shippable and verifiabl
 a plain (not-yet-redesigned) User Management page so roles are actually manageable.
 
 ### 1.1 Portal DB (minimal) + shared roles access
+
 - Stand up the new Neon project (portal) with `dev`/`test`/`production`/`staging`
   branches. Add `apps/web/lib/portalDb.ts` (Drizzle client singleton, mirroring
   [`apps/web/lib/identityDb.ts`](apps/web/lib/identityDb.ts)) and
@@ -205,6 +210,7 @@ a plain (not-yet-redesigned) User Management page so roles are actually manageab
   **push schema to `production`/`test`/`staging` manually** (CI runs no Drizzle step).
 
 ### 1.2 `@mfr/auth`: attach roles + centralize sign-in
+
 - Add a `rolesDb` option to `createAuthConfig` and a `getUserRoles(userId)` helper in
   `packages/auth` (reads `portal_user_roles`, returns
   `{ siteOwner, siteManager, accountingManager }` defaulting all-false when no row).
@@ -217,6 +223,7 @@ a plain (not-yet-redesigned) User Management page so roles are actually manageab
   accounting/reservations page they came from.
 
 ### 1.3 Backfill + seed
+
 - Backfill `portal_user_roles` from the existing identity columns:
   `is_accounting_manager = isAccountingAdmin`, `is_site_manager = isReservationsAdmin`.
 - Seed one initial **Site Owner** (`mwoolley2@gmail.com`).
@@ -224,6 +231,7 @@ a plain (not-yet-redesigned) User Management page so roles are actually manageab
   net); do not drop.
 
 ### 1.4 Switch app gates to roles
+
 - Accounting: `requireAdmin` in
   [`apps/accounting/src/lib/authz.ts`](apps/accounting/src/lib/authz.ts:41) →
   `roles.accountingManager || roles.siteOwner`.
@@ -236,6 +244,7 @@ a plain (not-yet-redesigned) User Management page so roles are actually manageab
   (owner||manager), `requireSiteOwner`.
 
 ### 1.5 Canonical sign-in
+
 - Enhance the portal sign-in page (`apps/web/app/sign-in/page.tsx`) to honor a
   `callbackUrl` query param and pass it to `signIn`.
 - Point accounting's and reservations' `createPortalStatusGate` `loginPath` at
@@ -244,7 +253,8 @@ a plain (not-yet-redesigned) User Management page so roles are actually manageab
   `/api/auth/[...nextauth]` handler (needed to read the session).
 
 ### 1.6 User Management page (plain, functional)
-- `apps/web/app/admin/users/page.tsx`, gated `requireSiteOwner`, using the *current*
+
+- `apps/web/app/admin/users/page.tsx`, gated `requireSiteOwner`, using the _current_
   layout/nav (redesign is PR 2). Lists identity users (`status`, name/email) joined with
   `portal_user_roles`; toggles for approve/block and the three role flags.
 - Server actions `apps/web/app/admin/users/actions.ts` (`"use server"`, zod, gate-first,
@@ -254,6 +264,7 @@ a plain (not-yet-redesigned) User Management page so roles are actually manageab
   (`ActionState`, `safeParse`, `useActionState`).
 
 ### 1.7 Tests (PR 1)
+
 - **Unit** (`apps/web`): capability helpers (owner/manager/accountingManager → gate
   outcomes).
 - **Integration** (new web harness, mirroring `apps/accounting/tests/integration/`
@@ -282,8 +293,10 @@ Goal: recreate the handoff — nav rework, reworked Home, and the Photos/Meals/D
 Admin pages, on top of PR 1's roles/auth. Builds on the portal DB and `session.user.roles`.
 
 ### 2.1 Portal DB feature tables + data access
+
 Add to `apps/web/lib/db/schema.ts` (upsert-read singleton pattern like accounting's
 `AppSettings`):
+
 - **`portal_settings`** (singleton): `reunion_year`, `reunion_start`, `reunion_end`,
   `highlights_url`, `drive_url`, `venmo_url`, `chat_url`.
 - **`portal_photo_albums`**: `id`, `year` (unique), `url`.
@@ -300,6 +313,7 @@ first/last from identity `name` by splitting on the last space; fall back to ema
 simplification, structured names a later refinement).
 
 ### 2.2 Accounting read API (live fundraising)
+
 - Extract the current-year aggregate (inlined in
   `apps/accounting/src/app/accounting/dashboard/page.tsx` lines 24-57) into
   `getRaisedThisYear()` in
@@ -310,11 +324,13 @@ simplification, structured names a later refinement).
   signed-out visitors). Web fetches it server-side via `ACCOUNTING_URL` with revalidate.
 
 ### 2.3 Server actions for portal content
+
 `apps/web/app/admin/actions.ts` (`"use server"`, zod, `requirePortalContentAdmin`
 first, `revalidatePath`): settings (year/dates/urls), album add/remove/edit, event
 add/remove/edit, and the Meals `toggle` action (`requireApproved`).
 
 ### 2.4 Nav & layout
+
 - Rework [`apps/web/app/layout.tsx`](apps/web/app/layout.tsx): keep the `PortalHeader`
   shell, replace the inline `<nav>` with a client `apps/web/app/PortalNav.tsx`
   (`'use client'`, `usePathname()`) — pattern from
@@ -325,13 +341,14 @@ add/remove/edit, and the Meals `toggle` action (`requireApproved`).
   bold**. External URLs from `@mfr/ui` (`RESERVATIONS_URL`/`ACCOUNTING_URL`).
 
 ### 2.5 Pages (port `Home.dc.html` markup; it already uses Organic classes/vars verbatim)
+
 - **Home** [`apps/web/app/page.tsx`](apps/web/app/page.tsx): remove app cards, hero CTA
   buttons, ridgeline divider (README §2). Two-col hero: left = kicker + "Fifty summers on
   the lake." + two verbatim story paragraphs (lines 64-67); right = new client
   `HomeSlideshow.tsx` (auto-crossfade ~4.8s, dots, curated static images in `public/`
   starting with `public/lake-house.jpg`, "Open the highlights album" → `highlightsUrl`)
-  + goal card (server-fetch the accounting API; progress bar, Venmo button, "Full ledger
-  →"). Below: Upcoming events from `portal_events`, ascending by date, Join buttons.
+  - goal card (server-fetch the accounting API; progress bar, Venmo button, "Full ledger
+    →"). Below: Upcoming events from `portal_events`, ascending by date, Join buttons.
 - **Photos** `apps/web/app/photos/page.tsx`: intro + highlights button + responsive grid
   of per-year album cards (View / Add photos when linked; "Add link" → Admin when not).
 - **Meals** `apps/web/app/meals/page.tsx`: **sign-in gated** (`requireApproved`). Days
@@ -350,6 +367,7 @@ add/remove/edit, and the Meals `toggle` action (`requireApproved`).
   `apps/accounting/src/app/accounting/admin/settings-cards.tsx`.
 
 ### 2.6 Tests (PR 2)
+
 - **Unit**: `buildDays`, roster sort, goal math; extend `apps/web/app/page.test.tsx`.
 - **Integration**: settings/album/event CRUD; meal toggle persists; invalid input →
   `{ error }`.
@@ -386,6 +404,7 @@ shipped).
 ## Verification (per `docs/workflow.md`, run for each PR on its own branch)
 
 Branch first (never push to `main`). For each PR:
+
 1. `npm run typecheck && npm run lint && npm run test` (unit, no DB).
 2. Local run against Neon `dev`: `npm run dev:web` (+ `:accounting`/`:reservations` as
    needed).

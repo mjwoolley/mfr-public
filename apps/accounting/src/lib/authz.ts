@@ -5,9 +5,7 @@ import { redirect } from "next/navigation";
 
 // The portal is the single sign-in surface: signed-out users are sent there
 // with a callbackUrl that brings them back to accounting afterwards.
-export const ACCOUNTING_SIGN_IN_URL = portalSignInUrl(
-  process.env.APP_BASE_URL ?? "/accounting",
-);
+export const ACCOUNTING_SIGN_IN_URL = portalSignInUrl(process.env.APP_BASE_URL ?? "/accounting");
 
 // Accounting's portal-status gate: no session -> portal sign-in, pending ->
 // pending page, blocked -> blocked page. Same branch-on-status logic

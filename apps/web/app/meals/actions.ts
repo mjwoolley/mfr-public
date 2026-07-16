@@ -30,7 +30,10 @@ export async function toggleMeal(input: z.input<typeof toggleSchema>): Promise<A
     eq(portalMealRsvps.dayIndex, dayIndex),
     eq(portalMealRsvps.meal, meal),
   )
-  const existing = await portalDb.select({ id: portalMealRsvps.id }).from(portalMealRsvps).where(where)
+  const existing = await portalDb
+    .select({ id: portalMealRsvps.id })
+    .from(portalMealRsvps)
+    .where(where)
   if (existing.length) {
     await portalDb.delete(portalMealRsvps).where(where)
   } else {

@@ -31,7 +31,12 @@ import {
 } from './notifications'
 
 const owner = { id: 'u-owner', email: 'owner@example.com', name: 'Olive Owner', status: 'approved' }
-const admin1 = { id: 'u-admin1', email: 'admin1@example.com', name: 'Ada Admin', status: 'approved' }
+const admin1 = {
+  id: 'u-admin1',
+  email: 'admin1@example.com',
+  name: 'Ada Admin',
+  status: 'approved',
+}
 const admin2 = { id: 'u-admin2', email: 'admin2@example.com', name: null, status: 'approved' }
 
 const dates = { startDate: '2027-07-01', endDate: '2027-07-05' }

@@ -1,4 +1,5 @@
 import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
 import path from "node:path";
 
 const alias = {
@@ -6,6 +7,11 @@ const alias = {
 };
 
 export default defineConfig({
+  // React plugin so JSX in transitively-imported @mfr/ui components (the
+  // barrel re-exports .tsx files; lib/authz.ts pulls it in via
+  // portalSignInUrl) transforms under the node test environment — same
+  // rationale as apps/web/vitest.config.ts.
+  plugins: [react()],
   resolve: { alias },
   test: {
     environment: "node",
@@ -17,6 +23,7 @@ export default defineConfig({
     },
     projects: [
       {
+        plugins: [react()],
         resolve: { alias },
         test: {
           name: "unit",
@@ -26,6 +33,7 @@ export default defineConfig({
         },
       },
       {
+        plugins: [react()],
         resolve: { alias },
         test: {
           name: "integration",
