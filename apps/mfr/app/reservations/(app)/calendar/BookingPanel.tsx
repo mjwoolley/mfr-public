@@ -16,6 +16,13 @@ interface BookingPanelProps {
   isAdmin: boolean
   /** When set, the dialog edits this reservation instead of creating one. */
   editReservationId?: string
+  /**
+   * Admin-only: when provided on a CREATE dialog, the admin picks which member
+   * the reservation is for from this list, and its id is validated + submitted
+   * as the reservation owner. Omitted on the member-facing dialog, where the
+   * reservation is always for `userId` (the signed-in member).
+   */
+  members?: { id: string; name: string | null }[]
   initialStart: string
   initialEnd: string
   reservations: ReservationRow[]
@@ -35,6 +42,7 @@ export function BookingPanel({
   userId,
   isAdmin,
   editReservationId,
+  members,
   initialStart,
   initialEnd,
   reservations,
@@ -51,6 +59,13 @@ export function BookingPanel({
 
   const isEdit = Boolean(editReservationId)
 
+  // Admin "book for a member" mode: pick the owner from `members`. The chosen
+  // id drives validation (their yearly cap) and is submitted as the owner.
+  const showMemberPicker = Boolean(members) && !isEdit
+  const [selectedUserId, setSelectedUserId] = useState('')
+  const memberMissing = showMemberPicker && !selectedUserId
+  const ownerUserId = showMemberPicker ? selectedUserId : userId
+
   const validation = useMemo(() => {
     const existing: ExistingReservation[] = reservations.map((r) => ({
       id: r.id,
@@ -60,7 +75,7 @@ export function BookingPanel({
       status: r.status,
     }))
     return validateReservation({
-      userId,
+      userId: ownerUserId,
       startDate,
       endDate,
       excludeReservationId: editReservationId,
@@ -75,7 +90,7 @@ export function BookingPanel({
       today: todayISO(),
     })
   }, [
-    userId,
+    ownerUserId,
     isAdmin,
     startDate,
     endDate,
@@ -92,7 +107,7 @@ export function BookingPanel({
     setSubmitError(null)
     const result = isEdit
       ? await updateReservation(editReservationId!, startDate, endDate)
-      : await createReservation(startDate, endDate)
+      : await createReservation(startDate, endDate, showMemberPicker ? selectedUserId : undefined)
     setSubmitting(false)
     if (!result.ok) {
       setSubmitError(result.error ?? 'Something went wrong.')
@@ -103,6 +118,24 @@ export function BookingPanel({
 
   return (
     <ModalDialog title={isEdit ? 'Edit reservation' : 'New reservation'} onClose={onClose}>
+      {showMemberPicker && (
+        <div className="field mb-3">
+          <label htmlFor="booking-member">Member</label>
+          <select
+            id="booking-member"
+            className="input"
+            value={selectedUserId}
+            onChange={(e) => setSelectedUserId(e.target.value)}
+          >
+            <option value="">Select a member…</option>
+            {members!.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name ?? 'Unnamed member'}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <div className="flex gap-3">
         <div className="field flex-1">
           <label htmlFor="booking-check-in">Check-in</label>
@@ -128,12 +161,15 @@ export function BookingPanel({
           />
         </div>
       </div>
-      {nights > 0 && validation.valid && (
+      {memberMissing && (
+        <div className="text-muted text-[13px] font-semibold">Choose a member to book for.</div>
+      )}
+      {!memberMissing && nights > 0 && validation.valid && (
         <div className="text-sm font-semibold" style={{ color: 'var(--color-accent-2-700)' }}>
           {nights} night{nights === 1 ? '' : 's'} at the cabin
         </div>
       )}
-      {!validation.valid && (
+      {!memberMissing && !validation.valid && (
         <div className="text-[13px] font-semibold" style={{ color: 'var(--color-accent-800)' }}>
           {validation.reason}
         </div>
@@ -151,7 +187,7 @@ export function BookingPanel({
           type="button"
           className="btn btn-primary"
           onClick={handleSubmit}
-          disabled={!validation.valid || submitting}
+          disabled={!validation.valid || submitting || memberMissing}
         >
           {submitting
             ? isEdit

@@ -81,8 +81,31 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const userId = auth.session.user.id
+  const actorUserId = auth.session.user.id
+  const isReservationsAdmin = canAdminReservations(auth.session.user.roles)
   const { startDate, endDate } = body
+
+  // The reservation owner. Members always book for themselves; a reservations
+  // admin may pass a different `userId` to book on a member's behalf. Verify the
+  // target exists and is approved so admins can't create rows for unknown or
+  // non-member users.
+  let userId = actorUserId
+  if (typeof body.userId === 'string' && body.userId !== actorUserId) {
+    if (!isReservationsAdmin) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+    const [target] = await identityDb
+      .select({ id: users.id, status: users.status })
+      .from(users)
+      .where(eq(users.id, body.userId))
+    if (!target || target.status !== 'approved') {
+      return NextResponse.json(
+        { error: 'That member could not be found or is not approved.' },
+        { status: 400 },
+      )
+    }
+    userId = target.id
+  }
 
   const [rules] = await db.select().from(bookingRules).where(eq(bookingRules.id, 1))
   if (!rules) {
@@ -114,7 +137,7 @@ export async function POST(request: NextRequest) {
       maxConsecutiveNights: rules.maxConsecutiveNights,
       maxNightsPerUserPerYear: rules.maxNightsPerUserPerYear,
     },
-    isAdmin: canAdminReservations(auth.session.user.roles),
+    isAdmin: isReservationsAdmin,
     today: todayISO(),
   })
 
@@ -131,8 +154,14 @@ export async function POST(request: NextRequest) {
 
       await logActivity(tx, {
         eventType: 'reservation_created',
-        actorUserId: userId,
-        metadata: { reservationId: reservation.id, startDate, endDate },
+        actorUserId,
+        metadata: {
+          reservationId: reservation.id,
+          startDate,
+          endDate,
+          // Present only when an admin booked on a member's behalf.
+          ...(userId !== actorUserId ? { userId } : {}),
+        },
       })
 
       return reservation

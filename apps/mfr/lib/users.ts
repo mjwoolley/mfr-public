@@ -1,4 +1,4 @@
-import { asc } from 'drizzle-orm'
+import { asc, eq } from 'drizzle-orm'
 import { users } from '@mfr/auth'
 import { identityDb } from '@/lib/identityDb'
 import { portalDb } from '@/lib/portalDb'
@@ -40,4 +40,22 @@ export async function listUsersWithRoles(): Promise<UserWithRoles[]> {
       accountingManager: r?.isAccountingManager ?? false,
     }
   })
+}
+
+export interface ApprovedMember {
+  id: string
+  name: string | null
+}
+
+/**
+ * Approved members, id + name, ordered by name — the picker an admin uses to
+ * book a reservation on someone's behalf. Only approved users are bookable
+ * (the reservations POST route re-checks this server-side).
+ */
+export async function listApprovedMembers(): Promise<ApprovedMember[]> {
+  return identityDb
+    .select({ id: users.id, name: users.name })
+    .from(users)
+    .where(eq(users.status, 'approved'))
+    .orderBy(asc(users.name))
 }

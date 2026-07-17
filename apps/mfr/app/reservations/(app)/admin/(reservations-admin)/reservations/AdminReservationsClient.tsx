@@ -9,9 +9,22 @@ import { useCalendarData, type ReservationRow } from '../../../calendar/useCalen
 import { useReservationMutations } from '../../../calendar/useReservationMutations'
 import { niceRange, nightsLabel } from '../../../calendar/formatDates'
 import { reservationTone } from '../../../calendar/tones'
+import { addDays, todayISO } from '@/lib/reservations/rules/dateHelpers'
 
-export function AdminReservationsClient({ adminUserId }: { adminUserId: string }) {
+interface Member {
+  id: string
+  name: string | null
+}
+
+export function AdminReservationsClient({
+  adminUserId,
+  members,
+}: {
+  adminUserId: string
+  members: Member[]
+}) {
   const [editing, setEditing] = useState<ReservationRow | null>(null)
+  const [creating, setCreating] = useState(false)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [rowError, setRowError] = useState<{ id: string; message: string } | null>(null)
   const { reservations, blockedDates, bookingRules, isLoading, error } = useCalendarData()
@@ -42,7 +55,18 @@ export function AdminReservationsClient({ adminUserId }: { adminUserId: string }
 
   return (
     <div>
-      <p className="text-muted mb-4 text-sm">View, edit, or cancel any family reservation.</p>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <p className="text-muted text-sm">
+          View, edit, cancel, or create a reservation for any family member.
+        </p>
+        <button
+          type="button"
+          className="btn btn-primary flex-none"
+          onClick={() => setCreating(true)}
+        >
+          New reservation
+        </button>
+      </div>
       {sorted.length === 0 && (
         <div
           className="text-muted p-12 text-center text-[15px]"
@@ -100,6 +124,22 @@ export function AdminReservationsClient({ adminUserId }: { adminUserId: string }
           )
         })}
       </div>
+
+      {creating && bookingRules && (
+        <BookingPanel
+          // adminUserId is only a fallback; the member picker supplies the owner.
+          userId={adminUserId}
+          isAdmin
+          members={members}
+          initialStart={todayISO()}
+          initialEnd={addDays(todayISO(), 1)}
+          reservations={reservations}
+          blockedDates={blockedDates}
+          bookingRules={bookingRules}
+          onClose={() => setCreating(false)}
+          onSubmitted={() => setCreating(false)}
+        />
+      )}
 
       {editing && (
         <BookingPanel
