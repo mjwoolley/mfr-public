@@ -36,17 +36,19 @@ export default defineConfig({
       ...(process.env.COVERAGE_UNIT_ONLY
         ? {} // unit-only local run: merged thresholds would spuriously fail
         : {
-            // Baseline measured 2026-07-16 (merged unit+integration run).
-            // emails/ floors sit below the usual ~100% because v8 merge
-            // timing makes their measured coverage fluctuate between runs.
+            // Measured 2026-07-16 after the phase-2 test campaign (lib
+            // 93/88/98/93, routes 91/81/90/88 — the remaining route gaps are
+            // defensive 500 fallbacks). Floors = measured − 2. emails/ floors
+            // sit below the usual ~100% because v8 merge timing makes their
+            // measured coverage fluctuate between runs.
             thresholds: {
-              'lib/**/*.ts': { lines: 93, branches: 87, functions: 97, statements: 92 },
+              'lib/**/*.ts': { lines: 91, branches: 85, functions: 95, statements: 90 },
               'emails/**/*.tsx': { lines: 50, branches: 50, functions: 50, statements: 50 },
               'app/reservations/api/**/route.ts': {
-                lines: 68,
-                branches: 62,
-                functions: 64,
-                statements: 64,
+                lines: 88,
+                branches: 78,
+                functions: 88,
+                statements: 85,
               },
             },
           }),
