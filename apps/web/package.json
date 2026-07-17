@@ -9,8 +9,10 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run --project unit",
-    "test:coverage": "vitest run --project unit --coverage",
+    "test:coverage": "vitest run --coverage",
+    "test:coverage:unit": "COVERAGE_UNIT_ONLY=1 vitest run --project unit --coverage",
     "test:integration": "vitest run --project integration --passWithNoTests",
+    "test:mutation": "stryker run",
     "db:push": "drizzle-kit push"
   },
   "lint-staged": {

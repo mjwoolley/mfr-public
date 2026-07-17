@@ -24,23 +24,30 @@ the family seeing it.
    - Formatting is automatic: the pre-commit hook (husky + lint-staged) runs
      prettier and `eslint --fix` on staged files. `npm run format` fixes the
      whole repo manually.
+   - `npm run test:coverage:unit` — honest coverage without a database (every
+     source file counts, untested ones at 0%; thresholds are skipped because
+     the enforced floors assume the merged unit+integration run).
    - For riskier changes, run what CI will run anyway (fail fast locally):
      `npm run test:integration` (real queries against the `test` Neon branch)
-     and `npm run build`.
+     and `npm run build`. `npm run test:coverage` in an app runs the full
+     merged unit+integration coverage with threshold enforcement — exactly
+     what CI checks (needs the `TEST_*` env vars).
+   - See [Coverage policy & mutation testing](#coverage-policy--mutation-testing)
+     for what the thresholds mean and when to bump them.
 
 4. **Push the branch and open a PR.** `git push -u origin fix/whatever`, then
    `gh pr create`. CI runs on the PR:
 
-   | Job                     | What it does                                                                                                                                                             |
-   | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-   | Format, lint, typecheck | `prettier --check`, eslint, `tsc --noEmit` across all workspaces                                                                                                         |
-   | Unit tests + coverage   | vitest in every workspace; coverage table in the job summary (report-only, no thresholds)                                                                                |
-   | Build (×3)              | `next build` for each app with dummy DB env                                                                                                                              |
-   | Integration (×2)        | Creates **ephemeral Neon branches** cloned from `production` (own identity branch each), runs the suite, deletes branches (accounting also runs `prisma migrate deploy`) |
-   | E2E (Playwright)        | Ephemeral branches for all 3 DBs, builds and boots all 3 apps, runs 14 browser smoke tests                                                                               |
-   | Secret scan             | gitleaks over full history                                                                                                                                               |
-   | Semgrep / npm audit     | Advisory only — never block a merge                                                                                                                                      |
-   | **CI OK**               | The single required status check; merge is blocked until it's green                                                                                                      |
+   | Job                     | What it does                                                                                                                                                            |
+   | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | Format, lint, typecheck | `prettier --check`, eslint, `tsc --noEmit` across all workspaces                                                                                                        |
+   | Unit tests + coverage   | fast unit runs for the three apps + coverage **with ratchet thresholds** for `packages/ui` / `packages/auth`                                                            |
+   | Build (×3)              | `next build` for each app with dummy DB env                                                                                                                             |
+   | Integration (×3)        | Creates **ephemeral Neon branches** cloned from `production`, runs the app's merged unit+integration coverage and **enforces its ratchet thresholds**, deletes branches |
+   | E2E (Playwright)        | Ephemeral branches for all 3 DBs, builds and boots all 3 apps, runs 14 browser smoke tests                                                                              |
+   | Secret scan             | gitleaks over full history                                                                                                                                              |
+   | Semgrep / npm audit     | Advisory only — never block a merge                                                                                                                                     |
+   | **CI OK**               | The single required status check; merge is blocked until it's green                                                                                                     |
 
 5. **Test it on staging before merging — this is the default, not an extra.**
    While CI runs on the PR, deploy the branch to staging and exercise it on the
@@ -197,6 +204,56 @@ the one you were working on. (CI builds and e2e-tests all three on every PR.)
 - When copying Neon connection strings, always pick the branch explicitly:
   `production` for Vercel env vars, `dev` for local env files. The Neon
   console and CLI default to the `dev` branch (it's the project default).
+
+## Coverage policy & mutation testing
+
+### Honest coverage
+
+Every vitest config sets explicit `coverage.include` globs, so **all source
+files count toward coverage — untested files show up at 0%** instead of being
+invisible (vitest's default only counts files a test happens to import).
+`test:coverage` in the three apps runs the unit **and** integration projects
+in one go and reports one merged number (this is what CI enforces; it needs
+the `TEST_*` env vars). `test:coverage:unit` is the no-database variant for
+quick local runs; it skips thresholds since unit-only numbers sit below the
+merged floors. Reports: terminal table + `coverage/index.html` per workspace.
+
+### The ratchet
+
+Coverage thresholds live in each workspace's `vitest.config.ts` and are a
+**floor, not a target**: they started at the measured baseline (2026-07-16)
+and only move up. CI fails any PR that drops below them.
+
+- Thresholds apply only to the **logic subset**: `lib/`, API route handlers,
+  server actions, emails, and all of `packages/ui` / `packages/auth`.
+  Pages/layouts/client components are _measured and reported_ but not
+  thresholded — the e2e suite is responsible for those.
+- **When you add tests, bump the relevant thresholds in the same PR** (round
+  down to whole numbers, leave a couple points of slack below the new
+  measured value). The long-term target is **90%** on the logic subset.
+- If a refactor legitimately lowers a percentage (e.g. deleting well-covered
+  code), either add a test or lower the floor in the same PR and say why in
+  the PR description.
+
+### Mutation testing (StrykerJS)
+
+Mutation testing measures whether the tests would actually _fail_ if the
+logic changed — a much stronger signal than line coverage. It is
+**report-only** and never gates a merge.
+
+- `npm run test:mutation -w <workspace>` — run locally for reservations,
+  accounting, web, or `packages/auth`. Repeat runs are fast thanks to
+  Stryker's incremental file (`reports/stryker-incremental.json`).
+- The apps use `vitest.stryker.config.ts` (flat, unit-only) so mutation runs
+  never touch a database.
+- The **`mutation.yml` workflow** runs the full sweep weekly (Mondays 06:00
+  UTC, or `gh workflow run mutation.yml`): scores land in the job summary,
+  browsable HTML reports in the artifacts.
+- Low scores mostly mean _uncovered code_ (`NoCoverage` mutants) — the same
+  gap the coverage ratchet tracks. `Survived` mutants on covered code are
+  the interesting ones: they point at weak assertions.
+- Baseline scores 2026-07-16: reservations 40.7%, accounting 26.6%,
+  web 10.4%, auth 33.1%.
 
 ## E2E tests (Playwright)
 

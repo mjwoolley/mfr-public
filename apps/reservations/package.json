@@ -9,9 +9,11 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run --project unit",
-    "test:coverage": "vitest run --project unit --coverage",
+    "test:coverage": "vitest run --coverage",
+    "test:coverage:unit": "COVERAGE_UNIT_ONLY=1 vitest run --project unit --coverage",
     "test:watch": "vitest",
-    "test:integration": "vitest run --project integration --passWithNoTests"
+    "test:integration": "vitest run --project integration --passWithNoTests",
+    "test:mutation": "stryker run"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

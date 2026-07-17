@@ -13,7 +13,9 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:coverage:unit": "vitest run --coverage",
+    "test:mutation": "stryker run"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
