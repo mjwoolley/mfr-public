@@ -23,13 +23,18 @@ export default defineConfig({
       // by tests unless include globs are set, in which case every matching
       // file is reported (untested files show up at 0%).
       include: ["src/**/*.{ts,tsx}"],
+      // Segment-anchored (**/dir/**) rather than bare relative globs: vitest
+      // matches coverage excludes against ABSOLUTE paths with picomatch
+      // `contains: true`, so a bare `tests/**` silently excludes EVERY file
+      // when the checkout path itself contains the substring `tests/` (e.g.
+      // a worktree named accounting-tests) — coverage reports 0/0.
       exclude: [
-        "src/generated/**",
-        "tests/**",
+        "**/src/generated/**",
+        "**/tests/**",
         "**/*.test.{ts,tsx}",
         "**/*.d.ts",
         "**/*.config.*",
-        ".next/**",
+        "**/.next/**",
       ],
       // Thresholds are a ratchet floor on the logic subset only (glob keys,
       // matched relative to this directory). Pages/layouts/client components
