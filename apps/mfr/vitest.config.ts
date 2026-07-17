@@ -91,6 +91,24 @@ export default defineConfig({
           },
         },
       },
+      {
+        // Accounting integration suite (the Prisma->Drizzle safety net). Runs
+        // against the unified `test` branch: the accounting business client
+        // (db) reads DATABASE_URL and the identity client reads
+        // IDENTITY_DATABASE_URL — both point at the one test branch now.
+        plugins: [react()],
+        resolve: { alias },
+        test: {
+          name: 'accounting-integration',
+          environment: 'node',
+          include: ['tests/accounting-integration/**/*.test.ts'],
+          globalSetup: ['tests/accounting-integration/setup.ts'],
+          env: {
+            DATABASE_URL: process.env.TEST_DATABASE_URL,
+            IDENTITY_DATABASE_URL: process.env.TEST_IDENTITY_DATABASE_URL,
+          },
+        },
+      },
     ],
   },
 })

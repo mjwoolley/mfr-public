@@ -1,248 +1,252 @@
-import { describe, it, expect, afterEach, vi } from "vitest";
-import { testDb } from "./testDb";
+import { describe, it, expect, afterEach, vi } from 'vitest'
+import { testDb } from './testDb'
 
 // Same reasoning as harness.test.ts / shareholders.test.ts for mocking
 // @/lib/auth: requireShareholder()/requireAdmin() call auth() from
 // @/lib/auth, whose top-level NextAuth(...) call would otherwise
 // instantiate real next-auth machinery that doesn't resolve under plain
 // Vitest.
-vi.mock("@/lib/accounting/auth", () => ({ auth: vi.fn() }));
+vi.mock('@/lib/accounting/auth', () => ({ auth: vi.fn() }))
 
 // revalidatePath() throws a "static generation store missing" invariant
 // when called outside a real Next.js request — mock it out so only the
 // actions' own logic is under test (same as shareholders.test.ts).
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
 // Avoid real SES network calls from createCorrection's notification emails.
-vi.mock("@/lib/accounting/email", () => ({ sendEmail: vi.fn(), appUrl: (p: string) => p }));
+vi.mock('@/lib/accounting/email', () => ({ sendEmail: vi.fn(), appUrl: (p: string) => p }))
 
-import { auth } from "@/lib/accounting/auth";
-import { confirmTransaction, disputeTransaction, resolveDispute } from "@/actions/accounting/approvals";
-import { createCorrection } from "@/actions/accounting/corrections";
-import { ApprovalStatus, TransactionType } from "@/generated/prisma/client";
+import { auth } from '@/lib/accounting/auth'
+import {
+  confirmTransaction,
+  disputeTransaction,
+  resolveDispute,
+} from '@/actions/accounting/approvals'
+import { createCorrection } from '@/actions/accounting/corrections'
+import { ApprovalStatus, TransactionType } from '@/lib/accounting/enums'
 
 function shareholderSession(shareholderId: string) {
   return {
     user: {
       id: `user-for-${shareholderId}`,
-      status: "approved",
+      status: 'approved',
       roles: { siteOwner: false, siteManager: false, accountingManager: false },
       shareholderId,
-      email: "shareholder@example.com",
+      email: 'shareholder@example.com',
     },
-    expires: "2099-01-01",
+    expires: '2099-01-01',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any;
+  } as any
 }
 
 const ADMIN_SESSION = {
   user: {
-    id: "admin-1",
-    status: "approved",
+    id: 'admin-1',
+    status: 'approved',
     roles: { siteOwner: false, siteManager: false, accountingManager: true },
     shareholderId: null,
-    email: "admin@example.com",
-    name: "Admin",
+    email: 'admin@example.com',
+    name: 'Admin',
   },
-  expires: "2099-01-01",
+  expires: '2099-01-01',
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-} as any;
+} as any
 
 function fd(fields: Record<string, string>) {
-  const f = new FormData();
-  for (const [k, v] of Object.entries(fields)) f.set(k, v);
-  return f;
+  const f = new FormData()
+  for (const [k, v] of Object.entries(fields)) f.set(k, v)
+  return f
 }
 
-const createdShareholderIds: string[] = [];
-const createdTransactionIds: string[] = [];
+const createdShareholderIds: string[] = []
+const createdTransactionIds: string[] = []
 
 async function makeShareholderWithPendingApproval(namePrefix: string) {
   const shareholder = await testDb.shareholder.create({
     data: { name: `${namePrefix} ${Date.now()}-${Math.random()}`, email: null },
-  });
-  createdShareholderIds.push(shareholder.id);
+  })
+  createdShareholderIds.push(shareholder.id)
 
   const transaction = await testDb.transaction.create({
     data: {
       type: TransactionType.CONTRIBUTION,
-      createdById: "admin-1",
-      createdByName: "Admin",
-      entries: { create: { shareholderId: shareholder.id, shares: "100" } },
+      createdById: 'admin-1',
+      createdByName: 'Admin',
+      entries: { create: { shareholderId: shareholder.id, shares: '100' } },
       approvals: { create: { shareholderId: shareholder.id } },
     },
     include: { approvals: true },
-  });
-  createdTransactionIds.push(transaction.id);
+  })
+  createdTransactionIds.push(transaction.id)
 
-  return { shareholder, transaction, approval: transaction.approvals[0] };
+  return { shareholder, transaction, approval: transaction.approvals[0] }
 }
 
 afterEach(async () => {
-  vi.mocked(auth).mockReset();
+  vi.mocked(auth).mockReset()
   for (const id of createdTransactionIds) {
-    await testDb.transaction.delete({ where: { id } }).catch(() => {});
+    await testDb.transaction.delete({ where: { id } }).catch(() => {})
   }
-  createdTransactionIds.length = 0;
+  createdTransactionIds.length = 0
   for (const id of createdShareholderIds) {
-    await testDb.shareholder.delete({ where: { id } }).catch(() => {});
+    await testDb.shareholder.delete({ where: { id } }).catch(() => {})
   }
-  createdShareholderIds.length = 0;
-});
+  createdShareholderIds.length = 0
+})
 
-describe("confirmTransaction", () => {
+describe('confirmTransaction', () => {
   it("transitions the owning shareholder's own PENDING approval to CONFIRMED", async () => {
-    const { shareholder, approval } = await makeShareholderWithPendingApproval("Confirmer");
-    vi.mocked(auth).mockResolvedValue(shareholderSession(shareholder.id));
+    const { shareholder, approval } = await makeShareholderWithPendingApproval('Confirmer')
+    vi.mocked(auth).mockResolvedValue(shareholderSession(shareholder.id))
 
-    await confirmTransaction(approval.id);
+    await confirmTransaction(approval.id)
 
     const updated = await testDb.transactionApproval.findUniqueOrThrow({
       where: { id: approval.id },
-    });
-    expect(updated.status).toBe(ApprovalStatus.CONFIRMED);
-    expect(updated.confirmedAt).not.toBeNull();
-  });
+    })
+    expect(updated.status).toBe(ApprovalStatus.CONFIRMED)
+    expect(updated.confirmedAt).not.toBeNull()
+  })
 
   it("does not let a different shareholder confirm someone else's approval (self-scoping)", async () => {
-    const { shareholder, approval } = await makeShareholderWithPendingApproval("Owner");
+    const { shareholder, approval } = await makeShareholderWithPendingApproval('Owner')
     const intruder = await testDb.shareholder.create({
       data: { name: `Intruder ${Date.now()}`, email: null },
-    });
-    createdShareholderIds.push(intruder.id);
+    })
+    createdShareholderIds.push(intruder.id)
 
-    vi.mocked(auth).mockResolvedValue(shareholderSession(intruder.id));
-    await confirmTransaction(approval.id);
+    vi.mocked(auth).mockResolvedValue(shareholderSession(intruder.id))
+    await confirmTransaction(approval.id)
 
     const stillPending = await testDb.transactionApproval.findUniqueOrThrow({
       where: { id: approval.id },
-    });
-    expect(stillPending.status).toBe(ApprovalStatus.PENDING);
-    expect(stillPending.confirmedAt).toBeNull();
-    void shareholder;
-  });
-});
+    })
+    expect(stillPending.status).toBe(ApprovalStatus.PENDING)
+    expect(stillPending.confirmedAt).toBeNull()
+    void shareholder
+  })
+})
 
-describe("disputeTransaction", () => {
+describe('disputeTransaction', () => {
   it("sets status/disputedAt/disputeReason together on the owner's own PENDING approval", async () => {
-    const { shareholder, approval } = await makeShareholderWithPendingApproval("Disputer");
-    vi.mocked(auth).mockResolvedValue(shareholderSession(shareholder.id));
+    const { shareholder, approval } = await makeShareholderWithPendingApproval('Disputer')
+    vi.mocked(auth).mockResolvedValue(shareholderSession(shareholder.id))
 
-    await disputeTransaction(approval.id, "This amount looks wrong");
+    await disputeTransaction(approval.id, 'This amount looks wrong')
 
     const updated = await testDb.transactionApproval.findUniqueOrThrow({
       where: { id: approval.id },
-    });
-    expect(updated.status).toBe(ApprovalStatus.DISPUTED);
-    expect(updated.disputedAt).not.toBeNull();
-    expect(updated.disputeReason).toBe("This amount looks wrong");
-  });
+    })
+    expect(updated.status).toBe(ApprovalStatus.DISPUTED)
+    expect(updated.disputedAt).not.toBeNull()
+    expect(updated.disputeReason).toBe('This amount looks wrong')
+  })
 
-  it("rejects an empty/whitespace-only reason", async () => {
-    const { shareholder, approval } = await makeShareholderWithPendingApproval("EmptyReason");
-    vi.mocked(auth).mockResolvedValue(shareholderSession(shareholder.id));
+  it('rejects an empty/whitespace-only reason', async () => {
+    const { shareholder, approval } = await makeShareholderWithPendingApproval('EmptyReason')
+    vi.mocked(auth).mockResolvedValue(shareholderSession(shareholder.id))
 
-    await expect(disputeTransaction(approval.id, "   ")).rejects.toThrow(/reason/i);
+    await expect(disputeTransaction(approval.id, '   ')).rejects.toThrow(/reason/i)
 
     const unchanged = await testDb.transactionApproval.findUniqueOrThrow({
       where: { id: approval.id },
-    });
-    expect(unchanged.status).toBe(ApprovalStatus.PENDING);
-  });
+    })
+    expect(unchanged.status).toBe(ApprovalStatus.PENDING)
+  })
 
   it("does not let a different shareholder dispute someone else's approval (self-scoping)", async () => {
-    const { shareholder, approval } = await makeShareholderWithPendingApproval("Owner2");
+    const { shareholder, approval } = await makeShareholderWithPendingApproval('Owner2')
     const intruder = await testDb.shareholder.create({
       data: { name: `Intruder2 ${Date.now()}`, email: null },
-    });
-    createdShareholderIds.push(intruder.id);
+    })
+    createdShareholderIds.push(intruder.id)
 
-    vi.mocked(auth).mockResolvedValue(shareholderSession(intruder.id));
-    await disputeTransaction(approval.id, "Not mine to dispute");
+    vi.mocked(auth).mockResolvedValue(shareholderSession(intruder.id))
+    await disputeTransaction(approval.id, 'Not mine to dispute')
 
     const stillPending = await testDb.transactionApproval.findUniqueOrThrow({
       where: { id: approval.id },
-    });
-    expect(stillPending.status).toBe(ApprovalStatus.PENDING);
-    expect(stillPending.disputeReason).toBeNull();
-    void shareholder;
-  });
-});
+    })
+    expect(stillPending.status).toBe(ApprovalStatus.PENDING)
+    expect(stillPending.disputeReason).toBeNull()
+    void shareholder
+  })
+})
 
-describe("resolveDispute — admin-only", () => {
-  it("rejects a non-admin caller", async () => {
-    const { shareholder, approval } = await makeShareholderWithPendingApproval("NonAdminResolve");
-    vi.mocked(auth).mockResolvedValue(shareholderSession(shareholder.id));
-    await disputeTransaction(approval.id, "Needs a look");
+describe('resolveDispute — admin-only', () => {
+  it('rejects a non-admin caller', async () => {
+    const { shareholder, approval } = await makeShareholderWithPendingApproval('NonAdminResolve')
+    vi.mocked(auth).mockResolvedValue(shareholderSession(shareholder.id))
+    await disputeTransaction(approval.id, 'Needs a look')
 
     // Now attempt to resolve as the same (non-admin) shareholder session.
-    await expect(resolveDispute(approval.id)).rejects.toThrow();
+    await expect(resolveDispute(approval.id)).rejects.toThrow()
 
     const stillDisputed = await testDb.transactionApproval.findUniqueOrThrow({
       where: { id: approval.id },
-    });
-    expect(stillDisputed.status).toBe(ApprovalStatus.DISPUTED);
-    expect(stillDisputed.resolvedAt).toBeNull();
-  });
+    })
+    expect(stillDisputed.status).toBe(ApprovalStatus.DISPUTED)
+    expect(stillDisputed.resolvedAt).toBeNull()
+  })
 
-  it("allows an admin to mark a dispute resolved without a correction (false alarm)", async () => {
-    const { shareholder, approval } = await makeShareholderWithPendingApproval("FalseAlarm");
-    vi.mocked(auth).mockResolvedValue(shareholderSession(shareholder.id));
-    await disputeTransaction(approval.id, "Turned out to be fine");
+  it('allows an admin to mark a dispute resolved without a correction (false alarm)', async () => {
+    const { shareholder, approval } = await makeShareholderWithPendingApproval('FalseAlarm')
+    vi.mocked(auth).mockResolvedValue(shareholderSession(shareholder.id))
+    await disputeTransaction(approval.id, 'Turned out to be fine')
 
-    vi.mocked(auth).mockResolvedValue(ADMIN_SESSION);
-    await resolveDispute(approval.id);
+    vi.mocked(auth).mockResolvedValue(ADMIN_SESSION)
+    await resolveDispute(approval.id)
 
     const resolved = await testDb.transactionApproval.findUniqueOrThrow({
       where: { id: approval.id },
-    });
-    expect(resolved.status).toBe(ApprovalStatus.DISPUTED);
-    expect(resolved.resolvedAt).not.toBeNull();
-    expect(resolved.resolutionTransactionId).toBeNull();
-  });
-});
+    })
+    expect(resolved.status).toBe(ApprovalStatus.DISPUTED)
+    expect(resolved.resolvedAt).not.toBeNull()
+    expect(resolved.resolutionTransactionId).toBeNull()
+  })
+})
 
-describe("full dispute -> correction -> resolved lifecycle", () => {
-  it("keeps status DISPUTED (never reverts to CONFIRMED) with resolvedAt and resolutionTransactionId set", async () => {
+describe('full dispute -> correction -> resolved lifecycle', () => {
+  it('keeps status DISPUTED (never reverts to CONFIRMED) with resolvedAt and resolutionTransactionId set', async () => {
     const { shareholder, transaction, approval } =
-      await makeShareholderWithPendingApproval("Lifecycle");
+      await makeShareholderWithPendingApproval('Lifecycle')
 
     // 1. Shareholder disputes the original transaction.
-    vi.mocked(auth).mockResolvedValue(shareholderSession(shareholder.id));
-    await disputeTransaction(approval.id, "Amount is off by $50");
+    vi.mocked(auth).mockResolvedValue(shareholderSession(shareholder.id))
+    await disputeTransaction(approval.id, 'Amount is off by $50')
 
     const disputed = await testDb.transactionApproval.findUniqueOrThrow({
       where: { id: approval.id },
-    });
-    expect(disputed.status).toBe(ApprovalStatus.DISPUTED);
+    })
+    expect(disputed.status).toBe(ApprovalStatus.DISPUTED)
 
     // 2. Admin issues a correction referencing the original transaction.
-    vi.mocked(auth).mockResolvedValue(ADMIN_SESSION);
+    vi.mocked(auth).mockResolvedValue(ADMIN_SESSION)
     const correctionResult = await createCorrection(
       undefined,
       fd({
         originalTransactionId: transaction.id,
-        description: "Fixing the disputed amount",
-        [`amount_${shareholder.id}`]: "-50",
+        description: 'Fixing the disputed amount',
+        [`amount_${shareholder.id}`]: '-50',
       }),
-    );
-    expect(correctionResult?.success).toBe(true);
+    )
+    expect(correctionResult?.success).toBe(true)
 
     const correction = await testDb.transaction.findFirstOrThrow({
       where: { correctsTransactionId: transaction.id },
-    });
-    createdTransactionIds.push(correction.id);
+    })
+    createdTransactionIds.push(correction.id)
 
     // 3. Admin marks the dispute resolved, referencing the correction.
-    await resolveDispute(approval.id, correction.id);
+    await resolveDispute(approval.id, correction.id)
 
     // 4. Final state: DISPUTED, not CONFIRMED — resolvedAt and
     // resolutionTransactionId both set, preserving the audit trail.
     const final = await testDb.transactionApproval.findUniqueOrThrow({
       where: { id: approval.id },
-    });
-    expect(final.status).toBe(ApprovalStatus.DISPUTED);
-    expect(final.resolvedAt).not.toBeNull();
-    expect(final.resolutionTransactionId).toBe(correction.id);
-  });
-});
+    })
+    expect(final.status).toBe(ApprovalStatus.DISPUTED)
+    expect(final.resolvedAt).not.toBeNull()
+    expect(final.resolutionTransactionId).toBe(correction.id)
+  })
+})
