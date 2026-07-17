@@ -39,6 +39,14 @@ export default async function globalSetup() {
     // Portal: wipe roles, then seed each persona's roles — the single source of
     // authorization read by every app's session callback.
     await portal`TRUNCATE TABLE portal_user_roles RESTART IDENTITY CASCADE`
+    // The Photos page test needs at least one album row. CI's ephemeral
+    // branches clone production (which has albums), but the local `test`
+    // branches lose theirs whenever apps/web's integration suite truncates
+    // the table — seed one idempotently so the suite is deterministic.
+    await portal`
+      INSERT INTO portal_photo_albums (year, url) VALUES (2026, '')
+      ON CONFLICT (year) DO NOTHING
+    `
     for (const persona of Object.values(personas)) {
       const { siteOwner, siteManager, accountingManager } = persona.roles
       if (siteOwner || siteManager || accountingManager) {
