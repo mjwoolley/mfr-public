@@ -28,16 +28,14 @@ export default defineConfig({
       ...(process.env.COVERAGE_UNIT_ONLY
         ? {} // unit-only local run: merged thresholds would spuriously fail
         : {
-            // Baseline measured 2026-07-16 (merged unit+integration run).
-            // lib branches floor comes from CI (59.67%) — its ephemeral
-            // production-clone data exercises fewer branches than the local
-            // test branch does.
+            // Measured 2026-07-16 after the phase-2 test campaign (lib
+            // 96/85/93/96, actions 100/85/92/99, route 100). Floors =
+            // measured − 2, with extra branch slack on lib since CI's
+            // prod-clone data has measured lower than local test data before.
             thresholds: {
-              'lib/**/*.ts': { lines: 81, branches: 58, functions: 79, statements: 81 },
-              'app/**/actions.ts': { lines: 95, branches: 56, functions: 92, statements: 91 },
-              // Sole route is the NextAuth re-export, untested today — raise
-              // from zero as tests land.
-              'app/api/**/route.ts': { lines: 0, branches: 0, functions: 0, statements: 0 },
+              'lib/**/*.ts': { lines: 94, branches: 80, functions: 87, statements: 93 },
+              'app/**/actions.ts': { lines: 98, branches: 82, functions: 90, statements: 97 },
+              'app/api/**/route.ts': { lines: 98, branches: 98, functions: 98, statements: 98 },
             },
           }),
     },
