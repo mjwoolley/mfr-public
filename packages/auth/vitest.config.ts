@@ -13,8 +13,9 @@ export default defineConfig({
       // thresholds apply (ratchet floor — raise as tests are added, target 90).
       include: ['src/**/*.ts'],
       exclude: ['drizzle/**', '**/*.test.ts', '**/*.d.ts', '**/*.config.*'],
-      // Baseline measured 2026-07-16.
-      thresholds: { lines: 44, branches: 39, functions: 48, statements: 44 },
+      // Measured 100% across the board 2026-07-16; floored at 98 so new
+      // auth logic must ship with tests.
+      thresholds: { lines: 98, branches: 98, functions: 98, statements: 98 },
     },
   },
 })
