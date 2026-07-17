@@ -1,3 +1,8 @@
+// Single-reservation API: PATCH (change dates) and DELETE (cancel), allowed
+// for the owner or a reservations admin acting on their behalf. Edits re-run
+// the full rules validation excluding the reservation itself; cancels are
+// idempotent. Both log activity and email the owner (cc admins).
+
 import { NextRequest, NextResponse } from 'next/server'
 import { eq } from 'drizzle-orm'
 import { canAdminReservations } from '@mfr/auth'
@@ -10,6 +15,8 @@ import { logActivity } from '@/lib/db/logActivity'
 import { logger } from '@/lib/logger'
 import { sendReservationCancelledEmail, sendReservationUpdatedEmail } from '@/lib/notifications'
 
+// Fetch + authorize in one step: admins may act on any reservation, members
+// only on their own. Callers distinguish 404 (no row) from 403 (not allowed).
 async function loadOwnedReservation(id: string, userId: string, isReservationsAdmin: boolean) {
   const [reservation] = await db.select().from(reservations).where(eq(reservations.id, id))
   if (!reservation) return { reservation: null, allowed: false }

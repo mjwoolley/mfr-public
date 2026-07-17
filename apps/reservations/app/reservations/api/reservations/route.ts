@@ -1,3 +1,8 @@
+// Reservations collection API. GET: confirmed reservations in a date window,
+// with owner names merged in from the identity DB. POST: create — rules
+// validation, then insert + activity log in one transaction, with the DB
+// overlap constraints as the concurrency backstop (409), then email.
+
 import { NextRequest, NextResponse } from 'next/server'
 import { eq, and, gte, lt, inArray } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
@@ -80,6 +85,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Booking rules are not configured yet' }, { status: 500 })
   }
 
+  // Deliberately loads ALL reservations, not a window: the yearly-cap check
+  // needs the user's full calendar year. Fine at family scale.
   const allConfirmedAndCancelled = await db
     .select({
       id: reservations.id,

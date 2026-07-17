@@ -1,3 +1,12 @@
+// The booking-rules engine: a pure function over plain data, so the exact
+// same logic runs client-side (live feedback in the booking dialog) and
+// server-side (the POST/PATCH routes). The DB's exclusion constraint is the
+// final overlap authority for races — see lib/db/isOverlapError.ts.
+//
+// All dates are ISO YYYY-MM-DD strings, compared with plain `<`/`>` — safe
+// because the format sorts lexicographically. Ranges are half-open
+// [startDate, endDate): the end date is checkout day, not a booked night.
+
 import { nightsBetween, rangesOverlap, calendarYearOf } from './dateHelpers'
 
 export interface ExistingReservation {
@@ -76,6 +85,10 @@ export function validateReservation(input: ValidateReservationInput): Validation
     }
   }
 
+  // Checks run cheapest-first: range/horizon/length above, then the yearly
+  // cap, then overlaps. `excludeReservationId` drops the reservation being
+  // edited from every check so an edit doesn't collide with itself. A stay's
+  // nights all count toward the calendar year it STARTS in.
   const year = calendarYearOf(startDate)
   const otherConfirmed = existingReservations.filter(
     (r) => r.status === 'confirmed' && r.id !== excludeReservationId,

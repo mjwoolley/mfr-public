@@ -1,5 +1,9 @@
 'use client'
 
+// Activity feed: infinite-scrolling list of activity_log events via
+// useInfiniteQuery, paging on the API's `nextCursor` and rendering each
+// event through formatActivityMessage.
+
 import { useInfiniteQuery } from '@tanstack/react-query'
 import {
   formatActivityMessage,

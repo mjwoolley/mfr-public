@@ -1,3 +1,7 @@
+// Date math on ISO YYYY-MM-DD strings, deliberately pinned to UTC: parsing
+// with a T00:00:00Z suffix and stepping via setUTCDate means results never
+// shift with the server/browser timezone or DST transitions.
+
 export function addDays(dateStr: string, days: number): string {
   const date = new Date(`${dateStr}T00:00:00Z`)
   date.setUTCDate(date.getUTCDate() + days)

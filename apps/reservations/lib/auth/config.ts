@@ -1,3 +1,8 @@
+// This app's NextAuth instance from the shared @mfr/auth factory: portal
+// roles attached to the session from the portal DB, plus a signup hook that
+// records user_signed_up in the activity feed. No sign-in page here — the
+// portal (apps/web) owns the canonical sign-in surface.
+
 import NextAuth from 'next-auth'
 import { createAuthConfig, createRolesReaderFromEnv } from '@mfr/auth'
 import { identityDb } from './identityDb'

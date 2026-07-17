@@ -1,5 +1,8 @@
 'use client'
 
+// This app's tab row inside the shared ResponsiveNav: member pages plus the
+// Admin tab when the session has the reservations-admin capability.
+
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { HOME_URL, ResponsiveNav } from '@mfr/ui'

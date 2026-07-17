@@ -1,3 +1,7 @@
+// Base API-route guard: 401 JSON response unless a session exists. The
+// stricter guards (requireApprovedUser, requireReservationsAdmin) layer on
+// top of this; routes branch on the returned discriminated union.
+
 import type { Session } from 'next-auth'
 import { auth } from './config'
 

@@ -1,3 +1,6 @@
+// Integration: the admin APIs — blocked-dates CRUD (including the trigger-
+// enforced 409) and booking-rules read/patch/bootstrap.
+
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { eq } from 'drizzle-orm'
 import { testDb } from './testDb'

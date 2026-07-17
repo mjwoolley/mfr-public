@@ -1,3 +1,7 @@
+// Per-day cell state for the month grid: which reservation (if any) covers
+// the day, blocked status, and past-horizon status. Half-open comparisons —
+// a checkout day is free for the next stay.
+
 import type { ReservationRow, BlockedDateRow, BookingRulesRow } from './useCalendarData'
 
 export interface DayInfo {

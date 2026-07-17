@@ -1,3 +1,6 @@
+// Purpose-built endpoint for the Summary page: this calendar year's confirmed
+// stays, owner names merged in from the identity DB.
+
 import { NextResponse } from 'next/server'
 import { and, eq, gte, inArray, lt } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
@@ -6,6 +9,8 @@ import { users } from '@mfr/auth'
 import { identityDb } from '@/lib/auth/identityDb'
 import { requireApprovedUser } from '@/lib/auth/requireApprovedUser'
 
+// UTC on purpose, matching lib/rules/dateHelpers.ts — the year boundary must
+// not shift with the server's timezone.
 function currentYearRange() {
   const now = new Date()
   const from = new Date(Date.UTC(now.getUTCFullYear(), 0, 1)).toISOString().slice(0, 10)

@@ -1,5 +1,9 @@
 'use client'
 
+// The month grid: renders one cell per day, combining computeDayInfo
+// (booked/blocked/past-horizon), the in-progress selection highlight, and
+// own-vs-family tones. All date arithmetic is UTC to match dateHelpers.
+
 import { useMemo } from 'react'
 import { computeDayInfo, type DayInfo } from './dayInfo'
 import { isDayInSelection } from './dayInSelection'

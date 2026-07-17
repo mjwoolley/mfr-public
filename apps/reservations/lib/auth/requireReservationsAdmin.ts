@@ -1,3 +1,6 @@
+// API-route guard for admin endpoints: approved user AND reservations-admin
+// capability (site owner or site manager — portal roles, see @mfr/auth).
+
 import { canAdminReservations } from '@mfr/auth'
 import { requireApprovedUser } from './requireApprovedUser'
 import type { AuthResult } from './requireUser'

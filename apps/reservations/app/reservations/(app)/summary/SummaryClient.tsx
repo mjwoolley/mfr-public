@@ -1,5 +1,9 @@
 'use client'
 
+// Reservations Summary: everyone's confirmed stays for the current calendar
+// year grouped per person (upcoming vs past — see summaryGrouping.ts), fed by
+// the purpose-built /api/history endpoint.
+
 import { useQuery } from '@tanstack/react-query'
 import { nightsBetween } from '@/lib/rules/dateHelpers'
 import { niceRange } from '../calendar/formatDates'
