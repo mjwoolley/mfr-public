@@ -9,16 +9,21 @@ export default async function OwnershipPage() {
   const session = await requireAuthorized()
   const { rows, total } = await getAllShareholderBalances()
 
+  // Only current owners: hide zero-balance shareholders (e.g. those who have
+  // fully transferred out, including many who have passed away). Percentages
+  // are unaffected — hidden rows are 0% of the unchanged total outstanding.
+  const owners = rows.filter(({ shares }) => shares.gt(0))
+
   // Largest holder first.
-  const sorted = [...rows].sort((a, b) => Number(b.shares) - Number(a.shares))
+  const sorted = [...owners].sort((a, b) => Number(b.shares) - Number(a.shares))
   const currentShareholderId = session.user.shareholderId ?? null
 
   return (
     <div>
       <h1 className="mb-2 text-4xl">Ownership report</h1>
       <p className="text-muted mb-6 text-[15px]">
-        {formatUSD(total.toString())} shares outstanding across {rows.length} shareholder
-        {rows.length === 1 ? '' : 's'}.
+        {formatUSD(total.toString())} shares outstanding across {owners.length} shareholder
+        {owners.length === 1 ? '' : 's'}.
       </p>
 
       <div className="card elev-sm bg-white px-4 pt-2 pb-1 sm:px-5">
