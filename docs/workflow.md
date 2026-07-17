@@ -42,12 +42,31 @@ the family seeing it.
    | Semgrep / npm audit     | Advisory only — never block a merge                                                                                                                                      |
    | **CI OK**               | The single required status check; merge is blocked until it's green                                                                                                      |
 
-5. **Merge the PR — that IS the deploy.** All three Vercel projects build and
-   auto-promote.
+5. **Test it on staging before merging — this is the default, not an extra.**
+   While CI runs on the PR, deploy the branch to staging and exercise it on the
+   real deployed site:
 
-6. **Smoke-test production for two minutes.** Sign in on the live site and
+   ```sh
+   git checkout staging && git pull
+   git merge fix/whatever && git push   # pushing staging IS the staging deploy
+   ```
+
+   Click through the changed flow on `staging.millerfamilyreunions.org` (and
+   the reservations/accounting staging subdomains if touched). Found a problem?
+   Fix on the feature branch, push (PR + CI update), merge into `staging`
+   again, retest. Skip this step only for changes with no runtime surface
+   (docs, comments, CI config).
+
+6. **Merge the PR — that IS the production deploy.** Only after staging looks
+   good and CI is green. All three Vercel projects build and auto-promote.
+
+7. **Smoke-test production for two minutes.** Sign in on the live site and
    exercise the flow you changed. Tests can pass while production config is
    broken; the only place to catch that class of problem is production itself.
+
+8. **Re-sync staging.** Merge `main → staging` and push, so staging mirrors
+   what production now runs (this also flushes anything tested on staging but
+   never shipped).
 
 **Rollback:** `vercel rollback` in the affected app's directory instantly
 restores the previous deployment; `git revert` the commit afterward (via a PR).
@@ -116,20 +135,24 @@ production data, without touching the family's real data or email.
   fresh prod copy anytime: `./scripts/refresh-dev-from-prod.sh --target staging`
   (snapshots each `staging` branch to `backup-staging-<stamp>` first; production
   is only read).
-- **Deploying to it.** Push (or merge `main`) into the `staging` branch — that's
-  the staging deploy, the same way merging `main` is the prod deploy. Keep staging
-  mirroring prod by merging `main → staging` after a release; or push a feature
-  branch to `staging` first to smoke-test it live before it reaches `main`.
+- **Deploying to it.** Push (or merge) into the `staging` branch — that's the
+  staging deploy, the same way merging `main` is the prod deploy. This is steps
+  5 and 8 of the routine above: feature branches merge into `staging` for live
+  testing before they reach `main`, and `main` merges back into `staging` after
+  each release. `staging` is unprotected by design — direct pushes, no PR
+  ceremony; every commit that matters gets its review on the PR to `main`.
 - **Build gate.** Each project's Vercel _Ignored Build Step_ is
   `if [ "$VERCEL_ENV" == "production" ] || [ "$VERCEL_GIT_COMMIT_REF" == "staging" ]; then exit 1; else exit 0; fi`
   — it builds production and the `staging` branch, and skips every other preview
   branch (so random PR previews don't deploy). If a staging push shows up
   "Canceled" with a 0 ms build, this setting is why — confirm the branch is
   literally `staging`.
-- **Privacy.** The staging deployments sit behind Vercel Deployment Protection
-  (Vercel Authentication), so only signed-in Vercel team members can open the
-  URLs. Fine for solo testing; add a Protection Bypass or relax it if the family
-  needs to reach staging directly.
+- **Privacy.** Vercel Deployment Protection was turned OFF for staging
+  (2026-07-16) — it made cross-app testing painful. The staging URLs are
+  publicly reachable, gated only by the apps' own Google auth + approval
+  status (on prod-mirrored data). If protection is ever re-enabled, the
+  web→accounting fundraising fetch breaks again — see the Trusted Sources
+  chore in [backlog.md](backlog.md) for the fix.
 - **Env vars (Vercel, scoped to Preview → the `staging` branch, ×3 apps).** A full
   set with staging values: the `staging` Neon DB URLs; the shared identity
   `staging` URLs and a **staging-only** `AUTH_SECRET` (identical across the three,
@@ -189,11 +212,23 @@ credentials sign-ins, conflicting with the database-session architecture.)
 Run locally:
 
 ```sh
+# Build with CI-style dummy env — apps/web fails page-data collection without
+# IDENTITY_DATABASE_URL, and NEXT_PUBLIC_HOME_URL must point at the e2e portal
+# (mirror the "Build apps" env in .github/workflows/ci.yml):
+DATABASE_URL=postgres://ci:ci@localhost:5432/ci \
+DIRECT_URL=postgres://ci:ci@localhost:5432/ci \
+IDENTITY_DATABASE_URL=postgres://ci:ci@localhost:5432/ci \
+PORTAL_DATABASE_URL=postgres://ci:ci@localhost:5432/ci \
+AUTH_SECRET=ci-dummy-secret-not-used \
+NEXT_PUBLIC_HOME_URL=http://localhost:3100 \
 npm run build                    # e2e serves the apps with `next start`
+
 export E2E_IDENTITY_DATABASE_URL=...        # pooled …
 export E2E_IDENTITY_DIRECT_URL=...          # … and direct URLs for the
-export E2E_ACCOUNTING_DATABASE_URL=...      # `test` branch of each of the
-export E2E_ACCOUNTING_DIRECT_URL=...        # three Neon projects.
+export E2E_PORTAL_DATABASE_URL=...          # `test` branch of each of the
+export E2E_PORTAL_DIRECT_URL=...            # FOUR Neon projects (identity,
+export E2E_ACCOUNTING_DATABASE_URL=...      # portal, accounting,
+export E2E_ACCOUNTING_DIRECT_URL=...        # reservations).
 export E2E_RESERVATIONS_DATABASE_URL=...    # NEVER production — global-setup
 export E2E_RESERVATIONS_DIRECT_URL=...      # truncates these databases.
 npm run e2e
@@ -224,4 +259,5 @@ Neon projects: `mfr-identity` (shared Auth.js tables — sessions/users),
 production branch: `br-patient-water-ajen7oii`.
 
 **The short mnemonic: branch → build it locally on `dev` data →
-test/lint/click-through → PR → CI green → merge → smoke-test production.**
+test/lint/click-through → PR → push to `staging` and test the deployed site →
+CI green + staging good → merge → smoke-test production → re-sync staging.**
