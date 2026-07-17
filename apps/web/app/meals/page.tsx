@@ -1,3 +1,7 @@
+// Members-only Meals page for reunion week: your own lunch/dinner toggles,
+// per-day headcounts with a peak-meal callout, and the full family roster
+// grid — all assembled server-side by getMealsView.
+
 import type { Metadata } from 'next'
 import type { CSSProperties } from 'react'
 import { requireApproved } from '@/lib/authz'

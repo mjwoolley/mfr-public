@@ -1,3 +1,7 @@
+// Browser smoke tests for the portal app: public home rendering, sign-in
+// redirects, and the member/admin nav states (personas seeded by
+// e2e/global-setup.ts).
+
 import { test, expect } from '@playwright/test'
 import { WEB_URL } from '../../playwright.config'
 import { contextFor } from '../session'

@@ -1,5 +1,10 @@
 'use server'
 
+// Site-owner-only user administration, spanning both databases: status
+// (pending/approved/blocked) writes to the identity DB, role grants upsert
+// portal_user_roles in the portal DB. Self-lockout guards below keep the
+// owner from stranding the portal with no owner.
+
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { eq } from 'drizzle-orm'
