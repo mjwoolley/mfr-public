@@ -117,7 +117,16 @@ test.describe('meals RSVPs', () => {
     const firstLunch = page.getByRole('button', { name: /Lunch/ }).first()
     await expect(firstLunch).toHaveText('Lunch')
 
-    await firstLunch.click()
+    // The pill flips optimistically (useOptimistic) while toggleMeal runs in a
+    // transition, so wait for the server action's POST to /meals to actually
+    // resolve before reloading — otherwise the reload can race the (remote
+    // Neon) write and read back the pre-toggle state.
+    await Promise.all([
+      page.waitForResponse(
+        (r) => r.request().method() === 'POST' && r.url().endsWith('/meals') && r.status() === 200,
+      ),
+      firstLunch.click(),
+    ])
     await expect(firstLunch).toHaveText('✓ Lunch')
 
     await page.reload()
