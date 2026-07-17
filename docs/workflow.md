@@ -75,6 +75,13 @@ the family seeing it.
    what production now runs (this also flushes anything tested on staging but
    never shipped).
 
+9. **Clean up.** GitHub deletes the remote branch automatically on merge
+   (delete-branch-on-merge is enabled on the repo). Remove the local leftovers
+   too: `git branch -d fix/whatever`, `git worktree remove <path>` if the work
+   happened in a worktree, and `git fetch --prune`. As a safety net, a
+   SessionStart hook (`scripts/check-stale-worktrees.sh`) flags any worktree or
+   branch already merged into `main` at the start of each Claude session.
+
 **Rollback:** `vercel rollback` in the affected app's directory instantly
 restores the previous deployment; `git revert` the commit afterward (via a PR).
 
@@ -317,4 +324,5 @@ production branch: `br-patient-water-ajen7oii`.
 
 **The short mnemonic: branch → build it locally on `dev` data →
 test/lint/click-through → PR → push to `staging` and test the deployed site →
-CI green + staging good → merge → smoke-test production → re-sync staging.**
+CI green + staging good → merge → smoke-test production → re-sync staging →
+clean up the branch and worktree.**
