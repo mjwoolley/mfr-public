@@ -52,6 +52,10 @@ export default defineConfig({
   testDir: './e2e/tests',
   globalSetup: './e2e/global-setup.ts',
   fullyParallel: false,
+  // One worker: the admin-edge specs mutate cross-cutting state (user
+  // status, booking rules, blocked dates) that other spec files assert
+  // against — parallel workers would race. The whole suite is ~1 minute.
+  workers: 1,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: {
