@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'node',
-    include: ['src/**/*.test.tsx'],
+    include: ['src/**/*.test.{ts,tsx}'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary', 'html'],
@@ -15,8 +15,9 @@ export default defineConfig({
       // thresholds apply (ratchet floor — raise as tests are added, target 90).
       include: ['src/**/*.{ts,tsx}'],
       exclude: ['**/*.test.{ts,tsx}', '**/*.d.ts', '**/*.config.*'],
-      // Baseline measured 2026-07-16.
-      thresholds: { lines: 21, branches: 12, functions: 18, statements: 18 },
+      // Measured 100% across the board 2026-07-16; floored at 98 so new
+      // components must ship with tests.
+      thresholds: { lines: 98, branches: 98, functions: 98, statements: 98 },
     },
   },
 })
