@@ -46,12 +46,17 @@ jobs:
       - run: npm ci
       - run: npx prisma generate
         working-directory: apps/accounting
-      - run: npm run test:coverage
+      # Fast unit signal for the three apps — their coverage (merged
+      # unit+integration) and ratchet thresholds are enforced in the
+      # integration jobs below, which have databases.
+      - run: npm run test -w apps/reservations -w apps/accounting -w apps/web
+      # Coverage + ratchet threshold enforcement for the no-DB packages.
+      - run: npm run test:coverage -w packages/ui -w packages/auth
       - name: Coverage summary
         if: always()
         run: |
-          echo "## Coverage (lines / branches / functions)" >> "$GITHUB_STEP_SUMMARY"
-          for f in apps/*/coverage/coverage-summary.json packages/*/coverage/coverage-summary.json; do
+          echo "## Coverage — packages (lines / branches / functions)" >> "$GITHUB_STEP_SUMMARY"
+          for f in packages/*/coverage/coverage-summary.json; do
             [ -f "$f" ] || continue
             ws=$(echo "$f" | cut -d/ -f1-2)
             jq -r --arg ws "$ws" \
@@ -62,8 +67,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: coverage
-          path: '**/coverage/coverage-summary.json'
+          name: coverage-packages
+          path: 'packages/*/coverage/coverage-summary.json'
           if-no-files-found: ignore
 
   build:
@@ -96,9 +101,9 @@ jobs:
       - run: npm run build -w apps/${{ matrix.app }}
 
   integration-accounting:
-    name: Integration tests (accounting)
+    name: Integration tests + coverage (accounting)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -131,13 +136,29 @@ jobs:
       # production branch and already carries the exact live schema. (Drizzle
       # migrate collides on production's non-matching journal, and push rebuilds
       # from schema.ts and drops migration-only constraints — neither is safe.)
-      - name: Run integration tests
+      # Merged unit+integration coverage; the ratchet thresholds in
+      # vitest.config.ts are enforced here (exit 1 on regression).
+      - name: Run tests with coverage
         env:
           TEST_DATABASE_URL: ${{ steps.db.outputs.db_url_pooled }}
           TEST_DIRECT_URL: ${{ steps.db.outputs.db_url }}
           TEST_IDENTITY_DATABASE_URL: ${{ steps.iddb.outputs.db_url_pooled }}
           TEST_IDENTITY_DIRECT_DATABASE_URL: ${{ steps.iddb.outputs.db_url }}
-        run: npm run test:integration -w apps/accounting
+        run: npm run test:coverage -w apps/accounting
+      - name: Coverage summary
+        if: always()
+        run: |
+          f=apps/accounting/coverage/coverage-summary.json
+          [ -f "$f" ] || exit 0
+          echo "## Merged unit+integration coverage — accounting (lines / branches / functions)" >> "$GITHUB_STEP_SUMMARY"
+          jq -r '"- \(.total.lines.pct)% / \(.total.branches.pct)% / \(.total.functions.pct)%"' "$f" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-accounting
+          path: apps/accounting/coverage/coverage-summary.json
+          if-no-files-found: ignore
       - name: Delete accounting DB branch
         if: always()
         uses: neondatabase/delete-branch-action@v3
@@ -154,9 +175,9 @@ jobs:
           api_key: ${{ secrets.NEON_API_KEY }}
 
   integration-reservations:
-    name: Integration tests (reservations)
+    name: Integration tests + coverage (reservations)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -194,7 +215,9 @@ jobs:
       # production branch and already carries the exact live schema. (Drizzle
       # migrate collides on production's non-matching journal, and push rebuilds
       # from schema.ts and drops migration-only constraints — neither is safe.)
-      - name: Run integration tests
+      # Merged unit+integration coverage; the ratchet thresholds in
+      # vitest.config.ts are enforced here (exit 1 on regression).
+      - name: Run tests with coverage
         env:
           TEST_DATABASE_URL: ${{ steps.db.outputs.db_url_pooled }}
           TEST_DIRECT_DATABASE_URL: ${{ steps.db.outputs.db_url }}
@@ -202,7 +225,21 @@ jobs:
           TEST_IDENTITY_DIRECT_DATABASE_URL: ${{ steps.iddb.outputs.db_url }}
           # Notifications resolve reservations admins from the portal DB.
           TEST_PORTAL_DATABASE_URL: ${{ steps.portaldb.outputs.db_url_pooled }}
-        run: npm run test:integration -w apps/reservations
+        run: npm run test:coverage -w apps/reservations
+      - name: Coverage summary
+        if: always()
+        run: |
+          f=apps/reservations/coverage/coverage-summary.json
+          [ -f "$f" ] || exit 0
+          echo "## Merged unit+integration coverage — reservations (lines / branches / functions)" >> "$GITHUB_STEP_SUMMARY"
+          jq -r '"- \(.total.lines.pct)% / \(.total.branches.pct)% / \(.total.functions.pct)%"' "$f" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-reservations
+          path: apps/reservations/coverage/coverage-summary.json
+          if-no-files-found: ignore
       - name: Delete reservations DB branch
         if: always()
         uses: neondatabase/delete-branch-action@v3
@@ -226,9 +263,9 @@ jobs:
           api_key: ${{ secrets.NEON_API_KEY }}
 
   integration-web:
-    name: Integration tests (web)
+    name: Integration tests + coverage (web)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -254,11 +291,27 @@ jobs:
           api_key: ${{ secrets.NEON_API_KEY }}
       # No schema step: both CI branches are full clones of their production
       # branches (portal_user_roles + identity tables already present).
-      - name: Run integration tests
+      # Merged unit+integration coverage; the ratchet thresholds in
+      # vitest.config.ts are enforced here (exit 1 on regression).
+      - name: Run tests with coverage
         env:
           TEST_PORTAL_DATABASE_URL: ${{ steps.portaldb.outputs.db_url_pooled }}
           TEST_IDENTITY_DATABASE_URL: ${{ steps.iddb.outputs.db_url_pooled }}
-        run: npm run test:integration -w apps/web
+        run: npm run test:coverage -w apps/web
+      - name: Coverage summary
+        if: always()
+        run: |
+          f=apps/web/coverage/coverage-summary.json
+          [ -f "$f" ] || exit 0
+          echo "## Merged unit+integration coverage — web (lines / branches / functions)" >> "$GITHUB_STEP_SUMMARY"
+          jq -r '"- \(.total.lines.pct)% / \(.total.branches.pct)% / \(.total.functions.pct)%"' "$f" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-web
+          path: apps/web/coverage/coverage-summary.json
+          if-no-files-found: ignore
       - name: Delete portal DB branch
         if: always()
         uses: neondatabase/delete-branch-action@v3

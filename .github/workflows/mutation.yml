@@ -1,0 +1,57 @@
+# Weekly mutation-testing sweep (StrykerJS). Report-only — it never gates
+# merges. Stryker runs each workspace's UNIT tests only (a dedicated flat
+# vitest config in the apps), so no database secrets are needed.
+# Trigger manually with: gh workflow run mutation.yml
+name: Mutation tests
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # Mondays 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  mutation:
+    name: Stryker (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: reservations, workspace: apps/reservations }
+          - { name: accounting, workspace: apps/accounting }
+          - { name: web, workspace: apps/web }
+          - { name: auth, workspace: packages/auth }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+        if: matrix.name == 'accounting'
+        working-directory: apps/accounting
+      # Full authoritative run each week (incremental mode is a local-DX
+      # feature; in CI there is no prior state worth trusting).
+      - name: Run Stryker
+        run: npm run test:mutation -w ${{ matrix.workspace }} -- --incremental false
+      - name: Mutation score summary
+        if: always()
+        run: |
+          f=${{ matrix.workspace }}/reports/mutation/mutation.json
+          [ -f "$f" ] || exit 0
+          echo "## Mutation score — ${{ matrix.name }}" >> "$GITHUB_STEP_SUMMARY"
+          jq -r '[.files[].mutants[].status] as $s
+            | ($s | map(select(. == "Killed" or . == "Timeout")) | length) as $detected
+            | ($s | map(select(. == "Killed" or . == "Timeout" or . == "Survived" or . == "NoCoverage")) | length) as $valid
+            | if $valid == 0 then "- no mutants"
+              else "- score: \(($detected / $valid * 10000 | round) / 100)% (\($detected)/\($valid) detected)"
+              end' "$f" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mutation-report-${{ matrix.name }}
+          path: ${{ matrix.workspace }}/reports/mutation/
+          if-no-files-found: ignore
