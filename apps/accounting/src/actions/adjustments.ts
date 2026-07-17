@@ -1,5 +1,9 @@
 "use server";
 
+// Admin action: record an ADJUSTMENT — a signed share credit/debit outside the
+// normal contribution/transfer flows (e.g. a write-off). Creates the ledger
+// entry plus an approval-inbox row, then emails the affected shareholder.
+
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";

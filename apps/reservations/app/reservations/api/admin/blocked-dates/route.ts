@@ -1,3 +1,7 @@
+// Admin blocked-dates API: list and create. No app-level overlap validation
+// on purpose — the DB triggers reject a block that overlaps a confirmed
+// reservation, surfaced as a 409 via isOverlapError.
+
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/client'
 import { blockedDates } from '@/lib/db/schema'

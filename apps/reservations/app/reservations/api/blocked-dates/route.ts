@@ -1,3 +1,6 @@
+// Member-visible read of blocked date ranges (admin CRUD lives under
+// api/admin/blocked-dates).
+
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db/client'
 import { blockedDates } from '@/lib/db/schema'

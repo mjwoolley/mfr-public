@@ -1,3 +1,6 @@
+// Member-visible read of the booking-rules singleton (row id=1, enforced by
+// a DB CHECK); the calendar runs client-side validation against these.
+
 import { NextResponse } from 'next/server'
 import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'

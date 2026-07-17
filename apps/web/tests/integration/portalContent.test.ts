@@ -1,3 +1,8 @@
+// Integration: the content-admin actions (schedule/links/albums/events),
+// meal RSVP toggling, and the getMealsView assembly against the real portal
+// + identity test branches. `auth` is mocked to impersonate each role;
+// next/cache and redirect are stubbed since there's no request context.
+
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { randomUUID } from 'node:crypto'
 import { and, eq } from 'drizzle-orm'

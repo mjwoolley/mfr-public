@@ -1,3 +1,12 @@
+// Drizzle schema for the shared identity database (its own Neon project):
+// the Auth.js tables plus portal status on `users`. Business DBs reference
+// users.id as a plain string — no cross-database FKs anywhere.
+//
+// The is_reservations_admin / is_accounting_admin flags are LEGACY: nothing
+// reads them anymore (authorization moved to the portal DB's
+// portal_user_roles — see ./roles.ts); they're kept only as a backfill
+// source until a follow-up migration drops them.
+
 import {
   pgTable,
   uuid,

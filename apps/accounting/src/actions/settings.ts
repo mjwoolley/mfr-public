@@ -1,5 +1,8 @@
 "use server";
 
+// Admin action for the AppSettings singleton (currently just the
+// Contributions-tab visibility toggle).
+
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/authz";

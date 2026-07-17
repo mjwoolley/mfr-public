@@ -1,5 +1,8 @@
 "use server";
 
+// Admin action: set the annual contribution goal shown as a progress bar on
+// every shareholder's dashboard.
+
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";

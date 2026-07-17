@@ -1,5 +1,9 @@
 "use server";
 
+// Admin action: record a TRANSFER of shares between two shareholders. One
+// transaction, double-entry ledger rows (see below), an approval-inbox row
+// for each party, and a notification email to each (sent/received wording).
+
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
@@ -55,6 +59,9 @@ export async function createTransfer(
       createdById: session.user.id,
       createdByName: session.user.name ?? null,
       createdByEmail: session.user.email ?? null,
+      // Double-entry: a negative row for the sender and a positive row for
+      // the receiver, so the transfer nets to zero and each side's balance is
+      // just the sum of their own entries.
       entries: {
         create: [
           { shareholderId: from.id, shares: -amount },

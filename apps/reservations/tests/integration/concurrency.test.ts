@@ -1,3 +1,6 @@
+// Integration: two simultaneous bookings for the same dates — exactly one
+// wins; the loser gets the DB exclusion-constraint 409, not a double booking.
+
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { eq } from 'drizzle-orm'
 import { testDb } from './testDb'

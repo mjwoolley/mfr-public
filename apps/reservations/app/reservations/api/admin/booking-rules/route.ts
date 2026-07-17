@@ -1,3 +1,7 @@
+// Admin booking-rules API: read and partial-PATCH of the singleton row
+// (id=1), logging before→after values to the activity feed. PATCH also
+// handles first-time creation on a fresh environment.
+
 import { NextRequest, NextResponse } from 'next/server'
 import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'

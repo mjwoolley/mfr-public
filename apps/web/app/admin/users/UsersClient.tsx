@@ -1,5 +1,9 @@
 'use client'
 
+// User Management table (site owner only): per-user status dropdown
+// (approve/block) and the three portal-role checkboxes, calling the actions
+// in ./actions.ts with per-row busy/error state.
+
 import { useState, useTransition } from 'react'
 import { setUserStatus, setUserRole, type ActionResult } from './actions'
 import type { UserWithRoles } from '@/lib/users'

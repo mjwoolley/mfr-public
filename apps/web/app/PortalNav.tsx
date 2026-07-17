@@ -1,5 +1,9 @@
 'use client'
 
+// The portal home's tab bar: internal pages (Photos/Meals/Documents),
+// external links out to the Reservations and Accounting apps (arrow glyph),
+// the optional Chat link, and the admin gear tab for content admins.
+
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ResponsiveNav } from '@mfr/ui'

@@ -1,3 +1,7 @@
+// Integration: the DB-level guarantees themselves — the GiST no-overlap
+// exclusion constraint and the reservation↔blocked-date triggers — exercised
+// with raw inserts, no API layer.
+
 import { describe, it, expect, afterEach } from 'vitest'
 import { randomUUID } from 'node:crypto'
 import { db } from '../../lib/db/client'

@@ -1,3 +1,7 @@
+// Activity-feed API: newest-first pages of activity_log rows, cursor-
+// paginated via `?before=<ISO timestamp>` (nextCursor in the response). Ships
+// the full user-id→name map alongside so the client can render any event.
+
 import { NextRequest, NextResponse } from 'next/server'
 import { desc, lt } from 'drizzle-orm'
 import { db } from '@/lib/db/client'

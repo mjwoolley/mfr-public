@@ -1,3 +1,6 @@
+// Integration: the /api/history (summary) and /api/activity endpoints —
+// year scoping, cancelled exclusion, name merging, and cursor pagination.
+
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { eq } from 'drizzle-orm'
 import { testDb } from './testDb'

@@ -1,3 +1,7 @@
+// Renders raw activity_log events into the human sentences shown in the
+// Activity feed. Tolerant by design: unknown users become "A former member",
+// missing metadata "?" — old rows must keep rendering as the schema evolves.
+
 export interface ActivityEvent {
   id: string
   eventType: string

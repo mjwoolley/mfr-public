@@ -1,3 +1,6 @@
+// react-email template: "booking confirmed", sent to the owner (cc admins)
+// after a reservation is created. Rendered/sent by lib/notifications.ts.
+
 import {
   Body,
   Container,

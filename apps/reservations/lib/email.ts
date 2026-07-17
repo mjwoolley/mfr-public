@@ -1,3 +1,8 @@
+// Transactional email via Amazon SES with the portal-wide non-prod safety
+// net: real recipients only when EMAIL_ENABLED=true (production only);
+// everywhere else mail redirects to EMAIL_OVERRIDE_TO or is dropped. Mirrors
+// the accounting app's lib/email.ts. Failures are logged, never thrown.
+
 import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2'
 import { render } from '@react-email/render'
 import { logger } from '@/lib/logger'

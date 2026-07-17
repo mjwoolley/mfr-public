@@ -1,3 +1,6 @@
+// react-email template: "reservation cancelled", showing the freed dates and
+// who cancelled (owner or an admin on their behalf).
+
 import {
   Body,
   Container,

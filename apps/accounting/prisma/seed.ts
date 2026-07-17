@@ -1,3 +1,8 @@
+// Dev-database seed (`npx prisma db seed`): two example shareholders, the
+// AppSettings singleton, a current-year contribution goal, and sample
+// expenses. Idempotent — safe to re-run. Never run against production, which
+// holds the real shareholder history.
+
 import { PrismaClient } from "../src/generated/prisma/client";
 import { ExpenseCategory } from "../src/generated/prisma/enums";
 import { PrismaNeon } from "@prisma/adapter-neon";

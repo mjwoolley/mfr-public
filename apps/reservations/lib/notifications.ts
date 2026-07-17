@@ -1,3 +1,8 @@
+// Builds and sends the three reservation notification emails (created /
+// updated / cancelled): resolves the owner + reservations-admin CC list
+// across the portal and identity DBs, renders the react-email template, and
+// hands off to lib/email.ts (which enforces the non-prod redirect).
+
 import { createElement } from 'react'
 import { and, eq, inArray, or } from 'drizzle-orm'
 import {

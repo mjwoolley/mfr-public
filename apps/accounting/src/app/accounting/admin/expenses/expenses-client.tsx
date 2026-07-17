@@ -1,5 +1,8 @@
 "use client";
 
+// Admin expenses view (client half): the table plus create/edit/delete modal
+// dialogs, wired to the server actions in @/actions/expenses.
+
 import { useActionState, useEffect, useState } from "react";
 import { ModalDialog } from "@mfr/ui";
 import { createExpense, deleteExpense, updateExpense, type ActionState } from "@/actions/expenses";

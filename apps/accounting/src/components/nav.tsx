@@ -1,3 +1,8 @@
+// The app shell's header + tab row (server component): assembles the tab
+// list from the session — inbox badge count, the Contributions visibility
+// toggle (lock glyph when admins-only), and the Admin tab for accounting
+// admins (portal roles).
+
 import { PortalHeader, AuthStatus, HOME_URL } from "@mfr/ui";
 import { canAdminAccounting } from "@mfr/auth";
 import { auth, signOut } from "@/lib/auth";

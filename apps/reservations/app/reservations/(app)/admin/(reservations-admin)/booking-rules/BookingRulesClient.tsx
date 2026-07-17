@@ -1,5 +1,8 @@
 'use client'
 
+// Admin booking-rules screen: edit the horizon date and the two night limits
+// (the singleton row every booking is validated against).
+
 import { useState, type FormEvent } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 

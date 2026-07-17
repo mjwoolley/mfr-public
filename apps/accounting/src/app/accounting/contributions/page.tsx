@@ -1,3 +1,7 @@
+// Contributions tab (server half): full ledger grouped per shareholder and
+// per fiscal year (contributionsGrouping.ts). Access follows the admin
+// "visible to everyone" toggle — non-admins are redirected while it's off.
+
 import { redirect } from "next/navigation";
 import { canAdminAccounting } from "@mfr/auth";
 import { requireAuthorized } from "@/lib/authz";

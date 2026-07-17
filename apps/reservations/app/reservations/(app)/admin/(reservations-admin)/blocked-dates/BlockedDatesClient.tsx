@@ -1,5 +1,9 @@
 'use client'
 
+// Admin blocked-dates screen: add/remove blocked ranges against the admin
+// API; a 409 here means the range collides with an existing reservation
+// (enforced by DB triggers, not client checks).
+
 import { useState, type FormEvent } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { niceRange } from '../../../calendar/formatDates'

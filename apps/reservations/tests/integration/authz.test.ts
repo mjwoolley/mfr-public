@@ -1,3 +1,6 @@
+// Integration: the 401/403 matrix — signed-out, pending, approved-member,
+// and admin sessions against member and admin endpoints.
+
 import { describe, it, expect, vi } from 'vitest'
 
 vi.mock('../../lib/auth/config', () => ({ auth: vi.fn() }))

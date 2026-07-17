@@ -1,5 +1,8 @@
 'use client'
 
+// Admin all-reservations screen: every member's upcoming stays with edit and
+// cancel on their behalf (the API allows either the owner or an admin).
+
 import { useState } from 'react'
 import { BookingPanel } from '../../../calendar/BookingPanel'
 import { useCalendarData, type ReservationRow } from '../../../calendar/useCalendarData'

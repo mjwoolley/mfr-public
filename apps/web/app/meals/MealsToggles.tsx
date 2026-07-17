@@ -1,5 +1,9 @@
 'use client'
 
+// The signed-in member's own lunch/dinner RSVP pills for each reunion day,
+// flipped optimistically (useOptimistic) while the toggleMeal server action
+// commits; the page revalidation then confirms or corrects the state.
+
 import { useOptimistic, useTransition, type CSSProperties } from 'react'
 import { toggleMeal } from './actions'
 
@@ -62,6 +66,9 @@ export function MealsToggles({
     })
   }
 
+  // `||` (not `??`) is deliberate: reduce always yields a number, and a 0 here
+  // usually means the optimistic list is empty (no reunion window configured),
+  // in which case the server-computed total is the safer thing to show.
   const total =
     optimistic.reduce((n, d) => n + (d.lunch ? 1 : 0) + (d.dinner ? 1 : 0), 0) || userTotal
 

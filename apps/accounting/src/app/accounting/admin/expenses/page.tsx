@@ -1,3 +1,6 @@
+// Admin expenses view (server half): fetches and pre-formats expense rows,
+// then hands everything to the client component that owns the CRUD dialogs.
+
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/format";
 import { expenseCategoryTag } from "@/lib/tags";

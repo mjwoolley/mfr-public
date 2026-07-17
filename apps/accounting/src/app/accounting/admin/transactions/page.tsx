@@ -1,3 +1,8 @@
+// Admin transactions view (server half): fetches the full transaction list
+// with entries/approvals, pre-formats display rows, and passes the active
+// shareholders the record dialogs need. `?correct=<id>` deep-links straight
+// into the correction dialog for that transaction.
+
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/format";
 import { transactionTypeTag, approvalStatusTag } from "@/lib/tags";
