@@ -1,3 +1,7 @@
+// API-route guard for member endpoints: 401 without a session, 403 unless
+// the portal status is 'approved' (pending/blocked users can sign in but
+// can't touch reservation data).
+
 import { requireUser, type AuthResult } from './requireUser'
 
 function jsonError(status: number, error: string): Response {

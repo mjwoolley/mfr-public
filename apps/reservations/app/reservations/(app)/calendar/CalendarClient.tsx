@@ -1,5 +1,9 @@
 'use client'
 
+// The calendar page orchestrator: month navigation, the two-click date
+// selection state (see calendarSelection.ts), grid/list mode toggle, and the
+// create/view/edit dialogs. Data comes from useCalendarData (React Query).
+
 import { useState } from 'react'
 import { CalendarGrid } from './CalendarGrid'
 import { BookingPanel } from './BookingPanel'

@@ -1,3 +1,7 @@
+// Members-only Photos page: one card per reunion year linking out to that
+// year's Google Photos album (portal_photo_albums), plus the highlights reel
+// link when configured.
+
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'

@@ -1,3 +1,7 @@
+// The portal home page — the only public page in the suite: hero slideshow
+// for everyone; the fundraising goal card and Upcoming events are member
+// content, rendered (and fetched) only for signed-in visitors.
+
 import Link from 'next/link'
 import { ACCOUNTING_URL } from '@mfr/ui'
 import { auth } from '@/lib/auth'
@@ -15,6 +19,9 @@ const usd0 = (n: number) =>
     maximumFractionDigits: 0,
   }).format(n)
 
+// Event dates are YYYY-MM-DD strings; parsing at local midnight (T00:00:00,
+// no Z) keeps the displayed day from shifting across timezones — same
+// rationale as reservations' notification formatting.
 function eventDateParts(date: string | null) {
   if (!date) return { mon: '—', day: '', dow: '' }
   const dt = new Date(`${date}T00:00:00`)

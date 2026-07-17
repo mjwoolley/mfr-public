@@ -1,3 +1,6 @@
+// Admin delete of a blocked date range; the removed range's details go into
+// the activity log since the row itself is gone.
+
 import { NextResponse } from 'next/server'
 import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'

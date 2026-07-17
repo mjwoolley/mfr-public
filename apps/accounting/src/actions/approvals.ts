@@ -1,5 +1,10 @@
 "use server";
 
+// Shareholder-facing approval workflow (confirm/dispute from the inbox) plus
+// the admin-side resolveDispute. Approval is informational — it never blocks a
+// transaction from counting toward balances. Every mutation is scoped to the
+// caller's own approval row via updateMany filters, not checked-then-updated.
+
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireShareholder, requireAdmin } from "@/lib/authz";

@@ -1,3 +1,8 @@
+// Transactional email via Amazon SES with a hard non-prod safety net: real
+// recipients are only reachable when EMAIL_ENABLED=true (production only);
+// everywhere else mail is redirected to EMAIL_OVERRIDE_TO or dropped. Send
+// failures are logged, never thrown — email must not break a ledger action.
+
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { render } from "@react-email/render";
 

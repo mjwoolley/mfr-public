@@ -1,3 +1,8 @@
+// Read-side data access for the portal: the settings singleton, photo
+// albums, events, the live fundraising fetch from accounting, and the whole
+// Meals page view assembly. Writes live in app/admin/actions.ts and
+// app/meals/actions.ts.
+
 import { asc, desc, eq } from 'drizzle-orm'
 import { users } from '@mfr/auth'
 import { ACCOUNTING_URL } from '@mfr/ui'
@@ -163,6 +168,8 @@ export async function getMealsView(currentUserId: string): Promise<MealsView> {
     }
   })
 
+  // Busiest single meal across the week — linear scan over days × 2 meals;
+  // earlier day/meal wins ties (count must strictly beat the current peak).
   let peak = { count: -1, label: 'Nothing planned yet' }
   for (const d of days) {
     for (const [meal, word] of [
@@ -178,6 +185,8 @@ export async function getMealsView(currentUserId: string): Promise<MealsView> {
     id: a.id,
     name: a.name,
     isYou: a.id === currentUserId,
+    // First+last initials; single-word names fall back to their first two
+    // letters so every avatar still gets two characters.
     initials: ((a.firstName[0] ?? '') + (a.lastName[0] ?? a.firstName[1] ?? '')).toUpperCase(),
     cells: days.map((d) => ({ lunch: on(a.id, d.index, 'L'), dinner: on(a.id, d.index, 'D') })),
   }))

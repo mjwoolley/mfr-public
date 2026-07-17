@@ -1,5 +1,9 @@
 'use client'
 
+// My Reservations: the member's own upcoming and past stays with book/edit/
+// cancel actions and their nights-used-this-year count. Reuses the calendar's
+// data hook and dialogs rather than its own fetch layer.
+
 import { useState } from 'react'
 import { BookingPanel } from '../calendar/BookingPanel'
 import { ReservationViewDialog } from '../calendar/ReservationViewDialog'

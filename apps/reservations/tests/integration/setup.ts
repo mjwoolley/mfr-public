@@ -1,3 +1,8 @@
+// Vitest global setup for the integration project: truncates the business,
+// shared-identity, and portal Neon *test* branches before the run. The
+// TEST_*-prefixed env names are the only guard keeping this away from real
+// databases.
+
 import postgres from 'postgres'
 
 export default async function setup() {

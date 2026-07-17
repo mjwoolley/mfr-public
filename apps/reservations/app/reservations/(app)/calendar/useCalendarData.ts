@@ -1,5 +1,9 @@
 'use client'
 
+// React Query fetchers for everything the calendar needs (reservations in a
+// window, blocked dates, booking rules), refetching on focus/mount so the
+// grid stays fresh without polling.
+
 import { useQuery } from '@tanstack/react-query'
 
 export interface ReservationRow {
@@ -25,6 +29,9 @@ export interface BookingRulesRow {
   maxNightsPerUserPerYear: number
 }
 
+// Jan 1 last year → Jan 1 two years out: covers every month the UI can
+// navigate to plus the data the yearly-nights displays need, in one fetch —
+// no refetch on month navigation.
 function windowRange() {
   const now = new Date()
   const from = new Date(Date.UTC(now.getUTCFullYear() - 1, 0, 1)).toISOString().slice(0, 10)

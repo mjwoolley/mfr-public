@@ -1,5 +1,10 @@
 'use server'
 
+// Content-admin server actions for the portal DB: the reunion schedule and
+// sharing links (portal_settings singleton), photo-album rows, and events.
+// All gated by requirePortalContentAdmin (site owner or manager). User/role
+// management is separate and stricter — see admin/users/actions.ts.
+
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { eq } from 'drizzle-orm'
@@ -70,6 +75,8 @@ export async function saveLinks(input: z.input<typeof linksSchema>): Promise<Act
 export async function addAlbumYear(): Promise<ActionResult> {
   await requirePortalContentAdmin()
   const rows = await portalDb.select({ year: portalPhotoAlbums.year }).from(portalPhotoAlbums)
+  // New rows default to the year after the latest existing album (the common
+  // "add next reunion" case); the current year only seeds an empty table.
   const nextYear = rows.length ? Math.max(...rows.map((r) => r.year)) + 1 : new Date().getFullYear()
   await portalDb.insert(portalPhotoAlbums).values({ year: nextYear, url: '' }).onConflictDoNothing()
   revalidatePublic()

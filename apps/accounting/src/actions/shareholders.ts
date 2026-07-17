@@ -1,5 +1,10 @@
 "use server";
 
+// Admin CRUD for Shareholder records plus login linking/unlinking against the
+// shared identity DB. Shareholders exist independently of Google logins; the
+// link can be made automatically (by email, here and at sign-in) or manually
+// (via the edit page's search control).
+
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";

@@ -1,5 +1,8 @@
 "use client";
 
+// Dumb renderer for the tab row Nav assembles: active-tab highlight from the
+// pathname, badge pills, and lock glyphs, inside the shared ResponsiveNav.
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { HOME_URL, ResponsiveNav } from "@mfr/ui";

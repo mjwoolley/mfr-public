@@ -187,6 +187,9 @@ export function computeIncomeExpenseChart(
     if (isLabeled(i)) yearLabels.push({ x: Math.round(cx), label: y.year });
   });
 
+  // The cumulative line gets its own right-hand axis, deliberately symmetric
+  // ([-max, +max]) so $0 always lands on the middle gridline — the line can
+  // dip negative without needing a different gridline layout than the bars.
   const cumulativeValues = computeCumulativeValues(data, chartYears);
   const cumulativeMax = computeCumulativeMax(cumulativeValues);
   const loC = -cumulativeMax;

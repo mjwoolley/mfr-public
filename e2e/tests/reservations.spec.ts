@@ -1,3 +1,6 @@
+// Browser smoke tests for the reservations app: portal sign-in redirect, the
+// pending-user gate, calendar rendering, and a booking flow end-to-end.
+
 import { test, expect } from '@playwright/test'
 import { RESERVATIONS_URL, WEB_URL } from '../../playwright.config'
 import { contextFor } from '../session'

@@ -1,3 +1,6 @@
+// Browser smoke tests for the accounting app: portal sign-in redirect, the
+// pending-user gate, and the shareholder dashboard for a linked persona.
+
 import { test, expect } from '@playwright/test'
 import { ACCOUNTING_URL, WEB_URL } from '../../playwright.config'
 import { contextFor } from '../session'

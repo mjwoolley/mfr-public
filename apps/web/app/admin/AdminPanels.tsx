@@ -1,5 +1,9 @@
 'use client'
 
+// The four content-admin editor panels composed by admin/page.tsx: reunion
+// schedule, sharing links, photo albums, and events — each a small form
+// wrapping its server action in ./actions.ts with busy/error state.
+
 import { useState, useTransition, type CSSProperties } from 'react'
 import {
   saveSchedule,

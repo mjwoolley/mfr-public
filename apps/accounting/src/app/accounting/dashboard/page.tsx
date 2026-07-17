@@ -1,3 +1,7 @@
+// Shareholder dashboard: share balance + ownership %, the current fiscal
+// year's contribution-goal tracker (with Venmo QR when configured), and the
+// shareholder's full entry history with approval/dispute states inline.
+
 import QRCode from "qrcode";
 import { requireShareholder } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
@@ -24,6 +28,10 @@ export default async function DashboardPage() {
   const currentFY = currentFiscalYear();
   const { start: yearStart, end: nextYearStart } = fiscalYearRange(currentFY);
 
+  // One parallel round-trip for everything on the page. "Raised this year"
+  // sums contribution entries across ALL shareholders inside the current
+  // fiscal-year range (Mar 1 → Mar 1, half-open) — it feeds the shared goal
+  // tracker, not this shareholder's personal totals.
   const [shareholder, balance, total, entries, goal, raisedAggregate] = await Promise.all([
     prisma.shareholder.findUniqueOrThrow({ where: { id: shareholderId } }),
     getShareholderBalance(shareholderId),
@@ -58,6 +66,8 @@ export default async function DashboardPage() {
   const goalAmount = goal ? Number(goal.amount) : null;
   const progress = goalAmount ? computeGoalProgress(goalAmount, raisedThisYear) : null;
 
+  // QR is rendered server-side to a data URL — no client QR library, and the
+  // Venmo link works even with JS disabled.
   const venmo = getVenmoConfig();
   const qrDataUrl = venmo ? await QRCode.toDataURL(venmo.url, { margin: 1, width: 420 }) : null;
 

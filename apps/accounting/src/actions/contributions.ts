@@ -1,5 +1,9 @@
 "use server";
 
+// Admin action: record a CONTRIBUTION — money in from one shareholder, $1 = 1
+// share. Creates the transaction + ledger entry + approval-inbox row, then
+// emails the shareholder (reply-to set to the recording admin).
+
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";

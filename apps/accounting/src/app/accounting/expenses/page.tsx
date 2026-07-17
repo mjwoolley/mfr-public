@@ -1,3 +1,8 @@
+// Expenses tab (all authorized users): income-vs-expenses combo chart over
+// recent fiscal years, the full per-year net table, and the raw expense log.
+// Assembles the union of contribution years and expense years so a year with
+// only one side still gets a row.
+
 import { requireAuthorized } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { getContributionsByYear } from "@/lib/ledger";

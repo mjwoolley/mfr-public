@@ -1,3 +1,6 @@
+// react-email template: "dates changed", showing before → after and who made
+// the change (owner or an admin on their behalf).
+
 import {
   Body,
   Container,

@@ -1,3 +1,6 @@
+// Members-only Documents page: embeds the shared Google Drive folder from
+// portal_settings.driveUrl in read-only list view.
+
 import type { Metadata } from 'next'
 import { requireApproved } from '@/lib/authz'
 import { getPortalSettings } from '@/lib/portal'
@@ -11,6 +14,9 @@ export default async function DocumentsPage() {
   await requireApproved()
   const settings = await getPortalSettings()
 
+  // Drive folder ids are long (25+) base64url-ish tokens — that pattern pulls
+  // the id out of any pasted folder URL shape. `embeddedfolderview#list` is
+  // Google's chrome-less embed view, the only iframe-friendly folder view.
   const drive = settings.driveUrl.trim()
   const driveId = drive.match(/[-\w]{25,}/)?.[0] ?? ''
   const embedUrl = driveId ? `https://drive.google.com/embeddedfolderview?id=${driveId}#list` : ''

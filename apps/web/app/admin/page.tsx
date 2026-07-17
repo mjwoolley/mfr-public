@@ -1,3 +1,6 @@
+// Admin dashboard: composes the four content panels (schedule, links,
+// albums, events) and shows the Users link only to the site owner.
+
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { canManageUsers } from '@mfr/auth'

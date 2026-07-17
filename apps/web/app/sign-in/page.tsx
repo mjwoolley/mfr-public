@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import { auth, signIn } from '@/lib/auth'
 
@@ -51,6 +52,29 @@ export default async function SignInPage({
           </a>{' '}
           to register for a Google account. You do not have to use Gmail as your email service to
           sign up for a Google account.
+        </p>
+        <a
+          href="/google-signup-existing-email.jpg"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Open full-size screenshot"
+        >
+          <Image
+            src="/google-signup-existing-email.jpg"
+            alt="Google's sign-up screen, with an arrow pointing to the 'Use your existing email' link"
+            width={360}
+            height={155}
+            className="max-w-full"
+            style={{
+              border: '1px solid var(--color-divider)',
+              borderRadius: 'var(--radius-sm)',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          />
+        </a>
+        <p className="text-muted text-[13px] leading-relaxed">
+          When registering, choose &ldquo;Use your existing email&rdquo; (arrow above) to sign up
+          with the email address you already have.
         </p>
       </div>
     </div>

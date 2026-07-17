@@ -1,3 +1,7 @@
+// drizzle-kit config for the identity schema. Migrations need the DIRECT
+// (unpooled) Neon URL — DDL through the pooled/PgBouncer endpoint is not
+// reliable.
+
 import 'dotenv/config'
 import { defineConfig } from 'drizzle-kit'
 

@@ -1,5 +1,11 @@
 "use client";
 
+// Admin transactions view (client half): the table plus the four record
+// dialogs (contribution / transfer / adjustment / correction), each wired to
+// its server action. The correction dialog posts one `amount_<shareholderId>`
+// field per entry on the original — the convention actions/corrections.ts
+// parses.
+
 import { useActionState, useEffect, useState } from "react";
 import { ModalDialog } from "@mfr/ui";
 import { createContribution } from "@/actions/contributions";

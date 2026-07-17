@@ -1,3 +1,7 @@
+// Shareholder inbox: PENDING approval rows for this shareholder's own
+// transactions, with confirm/dispute actions. Purely informational — items
+// already count toward balances (see actions/approvals.ts).
+
 import { requireShareholder } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { formatUSD, formatDate } from "@/lib/format";

@@ -1,5 +1,10 @@
 "use client";
 
+// Search-and-link UI binding a Shareholder to an identity-DB login: searches
+// users by email via the admin shareholder-search API, then links/unlinks
+// through the shareholders server actions. Complements the automatic by-email
+// link that happens at sign-in (see @/lib/auth.ts).
+
 import { useState, useTransition } from "react";
 import { linkShareholderToUser, unlinkShareholder } from "@/actions/shareholders";
 

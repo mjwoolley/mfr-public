@@ -1,3 +1,7 @@
+// Appends an activity_log row INSIDE a caller-supplied transaction, so the
+// log entry commits (or rolls back) atomically with the change it describes.
+// Event rendering lives in lib/activity/formatMessage.ts.
+
 import type { db as Db } from './client'
 import { activityLog } from './schema'
 

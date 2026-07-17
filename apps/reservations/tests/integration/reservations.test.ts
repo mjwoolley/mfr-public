@@ -1,3 +1,6 @@
+// Integration: the reservations CRUD API end-to-end against the real test
+// branches — create/edit/cancel, rule rejections, and activity logging.
+
 import { describe, it, expect, afterEach, beforeAll, vi } from 'vitest'
 import { eq } from 'drizzle-orm'
 import { testDb } from './testDb'

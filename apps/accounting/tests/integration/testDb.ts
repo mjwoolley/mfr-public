@@ -1,3 +1,7 @@
+// Prisma client for integration tests, bound to the dedicated Neon test
+// branch. Refuses to construct without TEST_DATABASE_URL — that guard is the
+// only thing standing between the truncating setup step and a real database.
+
 import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaNeon } from "@prisma/adapter-neon";
 

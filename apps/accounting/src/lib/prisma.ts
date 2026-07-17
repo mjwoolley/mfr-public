@@ -1,3 +1,7 @@
+// App-wide PrismaClient over the Neon serverless driver adapter (no Rust
+// engine). Cached on globalThis in dev so Next.js hot reloads don't leak a
+// new connection pool per reload.
+
 import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaNeon } from "@prisma/adapter-neon";
 
