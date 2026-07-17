@@ -3,11 +3,11 @@ import { requireUser } from './requireUser'
 import { requireApprovedUser } from './requireApprovedUser'
 import { requireReservationsAdmin } from './requireReservationsAdmin'
 
-vi.mock('./config', () => ({
+vi.mock('@/lib/auth', () => ({
   auth: vi.fn(),
 }))
 
-import { auth } from './config'
+import { auth } from '@/lib/auth'
 
 // Reservations admin = the site-manager role (site owner counts too). The
 // second arg maps to siteManager so the existing call sites read the same.

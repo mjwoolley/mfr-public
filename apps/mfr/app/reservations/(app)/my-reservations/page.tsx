@@ -1,4 +1,4 @@
-import { auth } from '@/lib/reservations/auth/config'
+import { auth } from '@/lib/auth'
 import { MyReservationsClient } from './MyReservationsClient'
 
 export default async function MyReservationsPage() {

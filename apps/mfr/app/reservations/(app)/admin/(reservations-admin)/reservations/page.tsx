@@ -1,4 +1,4 @@
-import { auth } from '@/lib/reservations/auth/config'
+import { auth } from '@/lib/auth'
 import { AdminReservationsClient } from './AdminReservationsClient'
 
 export default async function AdminReservationsPage() {

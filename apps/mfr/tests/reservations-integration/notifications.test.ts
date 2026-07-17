@@ -13,7 +13,7 @@ const portalSql = postgres(process.env.PORTAL_DATABASE_URL ?? '', { prepare: fal
 
 // Same auth seam as reservations.test.ts (also prevents lib/auth/config's
 // top-level NextAuth() from opening a second real postgres client).
-vi.mock('../../lib/reservations/auth/config', () => ({ auth: vi.fn() }))
+vi.mock('@/lib/auth', () => ({ auth: vi.fn() }))
 
 // Mock ONLY the SES boundary — lib/notifications runs for real here, so
 // these tests exercise the actual recipient query against testIdentityDb.
@@ -22,7 +22,7 @@ vi.mock('../../lib/reservations/email', () => ({
   appUrl: (p: string) => p,
 }))
 
-import { auth } from '../../lib/reservations/auth/config'
+import { auth } from '@/lib/auth'
 import { sendEmail } from '../../lib/reservations/email'
 import { POST } from '../../app/reservations/api/reservations/route'
 import { PATCH, DELETE } from '../../app/reservations/api/reservations/[id]/route'

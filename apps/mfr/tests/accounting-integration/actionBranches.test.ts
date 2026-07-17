@@ -10,11 +10,11 @@ import { testDb } from './testDb'
 import { testIdentityDb } from './testIdentityDb'
 
 // Same mock trio as approvals.test.ts (see comments there).
-vi.mock('@/lib/accounting/auth', () => ({ auth: vi.fn() }))
+vi.mock('@/lib/auth', () => ({ auth: vi.fn() }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 vi.mock('@/lib/accounting/email', () => ({ sendEmail: vi.fn(), appUrl: (p: string) => p }))
 
-import { auth } from '@/lib/accounting/auth'
+import { auth } from '@/lib/auth'
 import { sendEmail } from '@/lib/accounting/email'
 import { updateDisputeReason, disputeTransaction } from '@/actions/accounting/approvals'
 import { createExpense, updateExpense, deleteExpense } from '@/actions/accounting/expenses'

@@ -9,9 +9,9 @@ import { reservations } from '../../lib/db/schema'
 import { users } from '@mfr/auth'
 
 // See tests/integration/reservations.test.ts for why `auth` is mocked here.
-vi.mock('../../lib/reservations/auth/config', () => ({ auth: vi.fn() }))
+vi.mock('@/lib/auth', () => ({ auth: vi.fn() }))
 
-import { auth } from '../../lib/reservations/auth/config'
+import { auth } from '@/lib/auth'
 import { GET } from '../../app/reservations/api/history/route'
 
 const createdUserIds: string[] = []

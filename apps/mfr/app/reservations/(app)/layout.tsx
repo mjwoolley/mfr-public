@@ -1,6 +1,6 @@
 import { PortalHeader, AuthStatus, HOME_URL } from '@mfr/ui'
 import { canAdminReservations } from '@mfr/auth'
-import { auth, signOut } from '@/lib/reservations/auth/config'
+import { auth, signOut } from '@/lib/auth'
 import { gatePortalStatus } from '@/lib/reservations/auth/portalStatusGate'
 import { NavBar } from './NavBar'
 

@@ -11,9 +11,9 @@ import { blockedDates, activityLog } from '../../lib/db/schema'
 import { users } from '@mfr/auth'
 
 // See tests/integration/reservations.test.ts for why `auth` is mocked.
-vi.mock('../../lib/reservations/auth/config', () => ({ auth: vi.fn() }))
+vi.mock('@/lib/auth', () => ({ auth: vi.fn() }))
 
-import { auth } from '../../lib/reservations/auth/config'
+import { auth } from '@/lib/auth'
 import { GET as getBlockedDates } from '../../app/reservations/api/blocked-dates/route'
 import { GET as getBookingRules } from '../../app/reservations/api/booking-rules/route'
 import { GET as getActivity } from '../../app/reservations/api/activity/route'

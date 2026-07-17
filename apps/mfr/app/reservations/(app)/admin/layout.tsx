@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { canAdminReservations } from '@mfr/auth'
-import { auth } from '@/lib/reservations/auth/config'
+import { auth } from '@/lib/auth'
 import { AdminSubNav } from './AdminSubNav'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

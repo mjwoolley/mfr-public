@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { canAdminReservations } from '@mfr/auth'
-import { auth } from '@/lib/reservations/auth/config'
+import { auth } from '@/lib/auth'
 
 export default async function ReservationsAdminLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()

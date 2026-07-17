@@ -18,9 +18,9 @@ import { users } from '@mfr/auth'
 // real postgres-js client at import time. Mocking the module avoids both
 // problems and lets each test control exactly which session (admin or not)
 // the route handler sees.
-vi.mock('../../lib/reservations/auth/config', () => ({ auth: vi.fn() }))
+vi.mock('@/lib/auth', () => ({ auth: vi.fn() }))
 
-import { auth } from '../../lib/reservations/auth/config'
+import { auth } from '@/lib/auth'
 import { POST as postBlockedDate } from '../../app/reservations/api/admin/blocked-dates/route'
 import { PATCH as patchRules } from '../../app/reservations/api/admin/booking-rules/route'
 

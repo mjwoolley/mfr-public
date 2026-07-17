@@ -6,7 +6,7 @@ import { testDb } from './testDb'
 // @/lib/auth, whose top-level NextAuth(...) call would otherwise
 // instantiate real next-auth machinery that doesn't resolve under plain
 // Vitest.
-vi.mock('@/lib/accounting/auth', () => ({ auth: vi.fn() }))
+vi.mock('@/lib/auth', () => ({ auth: vi.fn() }))
 
 // revalidatePath() throws a "static generation store missing" invariant
 // when called outside a real Next.js request — mock it out so only the
@@ -16,7 +16,7 @@ vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 // Avoid real SES network calls from createCorrection's notification emails.
 vi.mock('@/lib/accounting/email', () => ({ sendEmail: vi.fn(), appUrl: (p: string) => p }))
 
-import { auth } from '@/lib/accounting/auth'
+import { auth } from '@/lib/auth'
 import {
   confirmTransaction,
   disputeTransaction,

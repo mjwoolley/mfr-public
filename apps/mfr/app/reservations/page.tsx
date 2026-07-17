@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { auth } from '@/lib/reservations/auth/config'
+import { auth } from '@/lib/auth'
 import { gatePortalStatus } from '@/lib/reservations/auth/portalStatusGate'
 
 export default async function RootPage() {

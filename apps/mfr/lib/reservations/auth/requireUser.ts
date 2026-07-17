@@ -3,7 +3,7 @@
 // top of this; routes branch on the returned discriminated union.
 
 import type { Session } from 'next-auth'
-import { auth } from './config'
+import { auth } from '@/lib/auth'
 
 export type AuthResult = { ok: true; session: Session } | { ok: false; response: Response }
 

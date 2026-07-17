@@ -1,4 +1,4 @@
-import { auth } from '@/lib/reservations/auth/config'
+import { auth } from '@/lib/auth'
 import { CalendarClient } from './CalendarClient'
 
 export default async function CalendarPage() {

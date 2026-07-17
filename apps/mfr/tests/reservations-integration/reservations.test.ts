@@ -18,7 +18,7 @@ import { users } from '@mfr/auth'
 // DrizzleAdapter(db, ...), ... })`) imports `db` from lib/db/client and would
 // otherwise instantiate a second real postgres-js client at import time. With
 // the module mocked, that top-level code never runs.
-vi.mock('../../lib/reservations/auth/config', () => ({ auth: vi.fn() }))
+vi.mock('@/lib/auth', () => ({ auth: vi.fn() }))
 
 // The write routes send notification emails after each commit; mock the
 // notifications module so these tests neither query the identity DB for
@@ -30,7 +30,7 @@ vi.mock('../../lib/reservations/notifications', () => ({
   sendReservationCancelledEmail: vi.fn(),
 }))
 
-import { auth } from '../../lib/reservations/auth/config'
+import { auth } from '@/lib/auth'
 import { POST, GET } from '../../app/reservations/api/reservations/route'
 import { PATCH, DELETE } from '../../app/reservations/api/reservations/[id]/route'
 

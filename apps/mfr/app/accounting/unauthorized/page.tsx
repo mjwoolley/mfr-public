@@ -1,7 +1,7 @@
-import { auth } from "@/lib/accounting/auth";
+import { auth } from '@/lib/auth'
 
 export default async function UnauthorizedPage() {
-  const session = await auth();
+  const session = await auth()
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
@@ -13,10 +13,10 @@ export default async function UnauthorizedPage() {
             shareholder yet.
           </>
         ) : (
-          "You need to sign in."
-        )}{" "}
+          'You need to sign in.'
+        )}{' '}
         Contact the corporation administrator to be added.
       </p>
     </div>
-  );
+  )
 }

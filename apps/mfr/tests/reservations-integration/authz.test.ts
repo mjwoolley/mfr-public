@@ -3,7 +3,7 @@
 
 import { describe, it, expect, vi } from 'vitest'
 
-vi.mock('../../lib/reservations/auth/config', () => ({ auth: vi.fn() }))
+vi.mock('@/lib/auth', () => ({ auth: vi.fn() }))
 // POST sends a notification email after commit; mock the notifications
 // module so this file neither queries the identity DB nor calls SES.
 vi.mock('../../lib/reservations/notifications', () => ({
@@ -11,7 +11,7 @@ vi.mock('../../lib/reservations/notifications', () => ({
   sendReservationUpdatedEmail: vi.fn(),
   sendReservationCancelledEmail: vi.fn(),
 }))
-import { auth } from '../../lib/reservations/auth/config'
+import { auth } from '@/lib/auth'
 import { POST as postReservation } from '../../app/reservations/api/reservations/route'
 
 function mockSession(status: 'pending' | 'approved' | 'blocked', isReservationsAdmin: boolean) {

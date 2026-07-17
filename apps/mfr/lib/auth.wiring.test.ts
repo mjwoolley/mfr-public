@@ -42,8 +42,10 @@ describe('portal auth wiring', () => {
     expect(opts.pages).toEqual({ signIn: '/sign-in' })
     expect(opts.db).toEqual({ marker: 'identity-db' })
     expect(opts.getUserRoles).toBeTypeOf('function')
-    // web attaches nothing app-specific and never sees new users first
-    expect(opts.extendSession).toBeUndefined()
-    expect(opts.onUserCreated).toBeUndefined()
+    // The single unified instance merges the two per-section session hooks:
+    // accounting's extendSession (linked Shareholder id) and reservations'
+    // onUserCreated (records user_signed_up in the activity feed).
+    expect(opts.extendSession).toBeTypeOf('function')
+    expect(opts.onUserCreated).toBeTypeOf('function')
   })
 })

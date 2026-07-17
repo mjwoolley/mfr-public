@@ -7,9 +7,9 @@ import { testDb } from './testDb'
 
 // Same reasoning as harness.test.ts for mocking @/lib/auth: the routes gate
 // through requireAdmin(), which calls auth() from @/lib/auth.
-vi.mock('@/lib/accounting/auth', () => ({ auth: vi.fn() }))
+vi.mock('@/lib/auth', () => ({ auth: vi.fn() }))
 
-import { auth } from '@/lib/accounting/auth'
+import { auth } from '@/lib/auth'
 import { GET as shareholderSearch } from '@/app/accounting/api/admin/shareholder-search/route'
 import { GET as currentYear } from '@/app/accounting/api/contributions/current-year/route'
 import { currentFiscalYear } from '@/lib/accounting/fiscalYear'

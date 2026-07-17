@@ -4,10 +4,10 @@ import { TransactionType } from '@/lib/accounting/enums'
 
 // Same reasoning as shareholders.test.ts for mocking @/lib/auth and
 // next/cache's revalidatePath.
-vi.mock('@/lib/accounting/auth', () => ({ auth: vi.fn() }))
+vi.mock('@/lib/auth', () => ({ auth: vi.fn() }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
-import { auth } from '@/lib/accounting/auth'
+import { auth } from '@/lib/auth'
 import { createExpense, updateExpense } from '@/actions/accounting/expenses'
 import { getContributionsByYear } from '@/lib/accounting/ledger'
 import { getIncomeExpensesByYear } from '@/lib/accounting/expenses'
