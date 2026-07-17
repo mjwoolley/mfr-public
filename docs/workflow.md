@@ -52,7 +52,7 @@ the family seeing it.
    | Unit tests + coverage   | fast unit runs for the three apps + coverage **with ratchet thresholds** for `packages/ui` / `packages/auth`                                                            |
    | Build (×3)              | `next build` for each app with dummy DB env                                                                                                                             |
    | Integration (×3)        | Creates **ephemeral Neon branches** cloned from `production`, runs the app's merged unit+integration coverage and **enforces its ratchet thresholds**, deletes branches |
-   | E2E (Playwright)        | Ephemeral branches for all 3 DBs, builds and boots all 3 apps, runs 14 browser smoke tests                                                                              |
+   | E2E (Playwright)        | Ephemeral branches for all 4 DBs, builds and boots all 3 apps, runs the ~45-test browser suite (smoke + lifecycle/flows/auth/admin specs), single worker                |
    | Secret scan             | gitleaks over full history                                                                                                                                              |
    | Semgrep / npm audit     | Advisory only — never block a merge                                                                                                                                     |
    | **CI OK**               | The single required status check; merge is blocked until it's green                                                                                                     |
@@ -328,7 +328,7 @@ branch older than 24h that a crashed runner leaked.
 | ----------------- | ---------------------------------------------------- | --------------------------------------- | ------------------------------ |
 | Local dev         | your machine (`npm run dev:*`)                       | `dev` branch                            | day-to-day development         |
 | Integration tests | vitest on your machine                               | `test` branch (via `TEST_*` env vars)   | destructive schema/query tests |
-| Local e2e         | `next start` ×3 via Playwright                       | `test` branch (via `E2E_*` env vars)    | browser smoke tests            |
+| Local e2e         | `next start` ×3 via Playwright                       | `test` branch (via `E2E_*` env vars)    | full browser suite             |
 | CI                | GitHub Actions (PRs + pushes to `main`)              | ephemeral `ci-*` branches, auto-deleted | the merge gate                 |
 | Staging           | Vercel preview of the `staging` branch (×3 apps)     | `staging` branch (copy of production)   | testing the deployed site      |
 | Production        | Vercel (mfr_web / mfr_reservations / mfr_accounting) | `production` branch                     | the family                     |
