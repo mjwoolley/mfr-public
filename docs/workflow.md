@@ -33,9 +33,17 @@ the family seeing it.
      merged unit+integration coverage with threshold enforcement — exactly
      what CI checks (needs the `TEST_*` env vars).
    - See [Coverage policy & mutation testing](#coverage-policy--mutation-testing)
-     for what the thresholds mean and when to bump them.
+     for what the thresholds mean (they're a backstop, not a target).
 
-4. **Push the branch and open a PR.** `git push -u origin fix/whatever`, then
+4. **Before opening the PR, revisit coverage deliberately — the number is a
+   backstop, not the goal.** The CI floors (90% on the logic subset) only catch
+   gross regressions. Confirm that every piece of key business logic, every
+   user/admin flow, and every important branch — validation, authorization,
+   error, and edge paths — is actually exercised by a test, and add the ones
+   that aren't. A passing threshold over an untested money-path or auth gate is
+   a gap, not a green light.
+
+5. **Push the branch and open a PR.** `git push -u origin fix/whatever`, then
    `gh pr create`. CI runs on the PR:
 
    | Job                     | What it does                                                                                                                                                            |
@@ -49,7 +57,7 @@ the family seeing it.
    | Semgrep / npm audit     | Advisory only — never block a merge                                                                                                                                     |
    | **CI OK**               | The single required status check; merge is blocked until it's green                                                                                                     |
 
-5. **Test it on staging before merging — this is the default, not an extra.**
+6. **Test it on staging before merging — this is the default, not an extra.**
    While CI runs on the PR, deploy the branch to staging and exercise it on the
    real deployed site:
 
@@ -64,23 +72,23 @@ the family seeing it.
    again, retest. Skip this step only for changes with no runtime surface
    (docs, comments, CI config).
 
-6. **Merge the PR — that IS the production deploy.** Only after staging looks
+7. **Merge the PR — that IS the production deploy.** Only after staging looks
    good and CI is green. All three Vercel projects build and auto-promote.
 
-7. **Smoke-test production for two minutes.** Sign in on the live site and
+8. **Smoke-test production for two minutes.** Sign in on the live site and
    exercise the flow you changed. Tests can pass while production config is
    broken; the only place to catch that class of problem is production itself.
 
-8. **Re-sync staging.** Merge `main → staging` and push, so staging mirrors
+9. **Re-sync staging.** Merge `main → staging` and push, so staging mirrors
    what production now runs (this also flushes anything tested on staging but
    never shipped).
 
-9. **Clean up.** GitHub deletes the remote branch automatically on merge
-   (delete-branch-on-merge is enabled on the repo). Remove the local leftovers
-   too: `git branch -d fix/whatever`, `git worktree remove <path>` if the work
-   happened in a worktree, and `git fetch --prune`. As a safety net, a
-   SessionStart hook (`scripts/check-stale-worktrees.sh`) flags any worktree or
-   branch already merged into `main` at the start of each Claude session.
+10. **Clean up.** GitHub deletes the remote branch automatically on merge
+    (delete-branch-on-merge is enabled on the repo). Remove the local leftovers
+    too: `git branch -d fix/whatever`, `git worktree remove <path>` if the work
+    happened in a worktree, and `git fetch --prune`. As a safety net, a
+    SessionStart hook (`scripts/check-stale-worktrees.sh`) flags any worktree or
+    branch already merged into `main` at the start of each Claude session.
 
 **Rollback:** `vercel rollback` in the affected app's directory instantly
 restores the previous deployment; `git revert` the commit afterward (via a PR).
@@ -225,22 +233,29 @@ the `TEST_*` env vars). `test:coverage:unit` is the no-database variant for
 quick local runs; it skips thresholds since unit-only numbers sit below the
 merged floors. Reports: terminal table + `coverage/index.html` per workspace.
 
-### The ratchet
+### The floors are a backstop, not a target
 
-Coverage thresholds live in each workspace's `vitest.config.ts` and are a
-**floor, not a target**: they started at the measured baseline (2026-07-16)
-and only move up. CI fails any PR that drops below them.
+Coverage thresholds live in each workspace's `vitest.config.ts`. They are a
+**regression backstop — not a goal to chase toward 100%.** CI fails any PR that
+drops below them; that catches gross regressions. What actually keeps the suite
+honest is the deliberate pre-PR coverage review (step 4 of the routine), not the
+number.
 
+- Floors are capped at **90%** (lines/statements/functions) and **85%**
+  (branches — defensive/unreachable arms make a higher branch floor brittle).
+  Don't crank a floor above the cap to "lock in" a high measurement; a green
+  90% with an untested flow is still a gap. A few globs sit below the cap on
+  purpose (documented in-config: reservations routes' defensive 500 fallbacks;
+  emails' v8-merge measurement flake) — leave those at their honest-measured
+  floor rather than forcing filler tests.
 - Thresholds apply only to the **logic subset**: `lib/`, API route handlers,
   server actions, emails, and all of `packages/ui` / `packages/auth`.
   Pages/layouts/client components are _measured and reported_ but not
   thresholded — the e2e suite is responsible for those.
-- **When you add tests, bump the relevant thresholds in the same PR** (round
-  down to whole numbers, leave a couple points of slack below the new
-  measured value). The long-term target is **90%** on the logic subset.
 - If a refactor legitimately lowers a percentage (e.g. deleting well-covered
   code), either add a test or lower the floor in the same PR and say why in
-  the PR description.
+  the PR description. Only raise a floor when you've genuinely closed a real
+  coverage gap and want to hold the line — never just to pin a lucky number.
 
 ### Mutation testing (StrykerJS)
 
