@@ -28,7 +28,7 @@ export function NavBar({ isAdmin }: { isAdmin: boolean }) {
   const links = isAdmin ? [...baseLinks, adminLink] : baseLinks
 
   return (
-    <ResponsiveNav>
+    <ResponsiveNav alwaysHorizontal>
       {links.map((link) => {
         const active = pathname === link.href || pathname.startsWith(`${link.href}/`)
         return (

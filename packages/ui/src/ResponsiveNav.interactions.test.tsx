@@ -65,4 +65,19 @@ describe('ResponsiveNav interactions', () => {
     fireEvent.click(screen.getByText('not a link'))
     expect(button.getAttribute('aria-expanded')).toBe('true')
   })
+
+  it('alwaysHorizontal renders a hamburger-less strip with links always visible', () => {
+    render(
+      <ResponsiveNav alwaysHorizontal>
+        <a href="/one">One</a>
+        <a href="/two">Two</a>
+      </ResponsiveNav>,
+    )
+    // No hamburger toggle, and no collapsible panel — the sub-nav is a plain
+    // horizontal strip that never hides its tabs behind a second menu.
+    expect(screen.queryByRole('button', { name: /menu/i })).toBeNull()
+    expect(document.getElementById('portal-nav-links')).toBeNull()
+    expect(screen.getByText('One')).toBeTruthy()
+    expect(screen.getByText('Two')).toBeTruthy()
+  })
 })

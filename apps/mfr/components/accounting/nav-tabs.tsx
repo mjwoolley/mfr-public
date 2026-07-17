@@ -23,7 +23,7 @@ export function NavTabs({ tabs }: { tabs: NavTab[] }) {
   const pathname = usePathname()
 
   return (
-    <ResponsiveNav maxWidthClass="max-w-4xl">
+    <ResponsiveNav maxWidthClass="max-w-4xl" alwaysHorizontal>
       {tabs.map((tab) => {
         const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`)
         return (
