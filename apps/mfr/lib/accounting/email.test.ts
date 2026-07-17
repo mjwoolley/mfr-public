@@ -88,18 +88,23 @@ describe('resolveRecipient', () => {
 })
 
 describe('appUrl', () => {
-  it('defaults to localhost when APP_BASE_URL is unset', () => {
+  it('defaults to localhost with the /accounting prefix when APP_BASE_URL is unset', () => {
     vi.stubEnv('APP_BASE_URL', undefined)
-    expect(appUrl('/inbox')).toBe('http://localhost:3000/inbox')
+    expect(appUrl('/inbox')).toBe('http://localhost:3000/accounting/inbox')
   })
 
-  it('preserves the base path segment and strips a trailing slash', () => {
+  it('appends the /accounting section to a bare origin', () => {
+    vi.stubEnv('APP_BASE_URL', 'https://example.org')
+    expect(appUrl('/inbox')).toBe('https://example.org/accounting/inbox')
+  })
+
+  it('is idempotent when APP_BASE_URL already includes the section', () => {
     vi.stubEnv('APP_BASE_URL', 'https://example.org/accounting/')
     expect(appUrl('/inbox')).toBe('https://example.org/accounting/inbox')
   })
 
   it('adds a leading slash when the path lacks one', () => {
-    vi.stubEnv('APP_BASE_URL', 'https://example.org/accounting')
+    vi.stubEnv('APP_BASE_URL', 'https://example.org')
     expect(appUrl('inbox')).toBe('https://example.org/accounting/inbox')
   })
 })
