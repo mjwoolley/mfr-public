@@ -15,7 +15,8 @@
 // either way. Money columns stay `numeric` (drizzle returns a string) so cents
 // are never routed through a float; the ledger wraps them in Decimal.
 
-import { sql } from 'drizzle-orm'
+import { createId } from '@paralleldrive/cuid2'
+import { relations, sql } from 'drizzle-orm'
 import {
   pgTable,
   text,
@@ -49,7 +50,10 @@ export const transactionType = pgEnum('TransactionType', [
 export const shareholder = pgTable(
   'Shareholder',
   {
-    id: text().primaryKey().notNull(),
+    id: text()
+      .primaryKey()
+      .notNull()
+      .$defaultFn(() => createId()),
     name: text().notNull(),
     email: text(),
     active: boolean().default(true).notNull(),
@@ -73,7 +77,10 @@ export const shareholder = pgTable(
 export const transaction = pgTable(
   'Transaction',
   {
-    id: text().primaryKey().notNull(),
+    id: text()
+      .primaryKey()
+      .notNull()
+      .$defaultFn(() => createId()),
     type: transactionType().notNull(),
     description: text(),
     createdAt: timestamp({ precision: 3, mode: 'date' })
@@ -105,7 +112,10 @@ export const transaction = pgTable(
 export const ledgerEntry = pgTable(
   'LedgerEntry',
   {
-    id: text().primaryKey().notNull(),
+    id: text()
+      .primaryKey()
+      .notNull()
+      .$defaultFn(() => createId()),
     transactionId: text().notNull(),
     shareholderId: text().notNull(),
     shares: numeric({ precision: 12, scale: 2 }).notNull(),
@@ -142,7 +152,10 @@ export const ledgerEntry = pgTable(
 export const transactionApproval = pgTable(
   'TransactionApproval',
   {
-    id: text().primaryKey().notNull(),
+    id: text()
+      .primaryKey()
+      .notNull()
+      .$defaultFn(() => createId()),
     transactionId: text().notNull(),
     shareholderId: text().notNull(),
     createdAt: timestamp({ precision: 3, mode: 'date' })
@@ -185,7 +198,10 @@ export const transactionApproval = pgTable(
 export const expense = pgTable(
   'Expense',
   {
-    id: text().primaryKey().notNull(),
+    id: text()
+      .primaryKey()
+      .notNull()
+      .$defaultFn(() => createId()),
     description: text().notNull(),
     amount: numeric({ precision: 12, scale: 2 }).notNull(),
     incurredAt: timestamp({ precision: 3, mode: 'date' }).notNull(),
@@ -227,3 +243,44 @@ export type TransactionApprovalRow = typeof transactionApproval.$inferSelect
 export type ExpenseRow = typeof expense.$inferSelect
 export type ContributionGoalRow = typeof contributionGoal.$inferSelect
 export type AppSettingsRow = typeof appSettings.$inferSelect
+
+// Relations for Drizzle relational queries (db.query.*.findMany({ with })),
+// mirroring the former Prisma model relations used by the nested include reads
+// (dashboard, inbox, admin activity/transactions, contributions).
+export const shareholderRelations = relations(shareholder, ({ many }) => ({
+  ledgerEntries: many(ledgerEntry),
+  approvals: many(transactionApproval),
+}))
+
+export const transactionRelations = relations(transaction, ({ many, one }) => ({
+  entries: many(ledgerEntry),
+  approvals: many(transactionApproval),
+  correctsTransaction: one(transaction, {
+    fields: [transaction.correctsTransactionId],
+    references: [transaction.id],
+    relationName: 'corrections',
+  }),
+  correctedBy: many(transaction, { relationName: 'corrections' }),
+}))
+
+export const ledgerEntryRelations = relations(ledgerEntry, ({ one }) => ({
+  transaction: one(transaction, {
+    fields: [ledgerEntry.transactionId],
+    references: [transaction.id],
+  }),
+  shareholder: one(shareholder, {
+    fields: [ledgerEntry.shareholderId],
+    references: [shareholder.id],
+  }),
+}))
+
+export const transactionApprovalRelations = relations(transactionApproval, ({ one }) => ({
+  transaction: one(transaction, {
+    fields: [transactionApproval.transactionId],
+    references: [transaction.id],
+  }),
+  shareholder: one(shareholder, {
+    fields: [transactionApproval.shareholderId],
+    references: [shareholder.id],
+  }),
+}))
