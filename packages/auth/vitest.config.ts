@@ -12,7 +12,10 @@ export default defineConfig({
       // untested ones at 0%. The whole package is logic subset, so global
       // thresholds apply.
       include: ['src/**/*.ts'],
-      exclude: ['drizzle/**', '**/*.test.ts', '**/*.d.ts', '**/*.config.*'],
+      // **/drizzle/**, not drizzle/**: coverage excludes are matched against
+      // ABSOLUTE paths (picomatch contains mode), so bare relative globs can
+      // swallow everything when the checkout path contains the substring.
+      exclude: ['**/drizzle/**', '**/*.test.ts', '**/*.d.ts', '**/*.config.*'],
       // Floors are a regression backstop (90 lines/stmts/funcs, 85 branches),
       // NOT a target — genuine coverage of key logic/flows/branches is ensured
       // by the pre-PR coverage review (see docs/workflow.md). Measured 100%.

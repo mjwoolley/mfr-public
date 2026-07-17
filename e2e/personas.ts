@@ -63,6 +63,36 @@ export const personas = {
     roles: NO_ROLES,
     sessionToken: 'e2e-session-pending',
   },
+  /** Pending user whose approval the admin-edge spec drives (and then
+   * blocks) — dedicated so the flow never disturbs the `pending` persona
+   * that other specs assert stays pending. */
+  applicant: {
+    id: '77777777-7777-4777-8777-777777777777',
+    email: 'applicant@e2e.test',
+    name: 'E2E Applicant',
+    status: 'pending',
+    roles: NO_ROLES,
+    sessionToken: 'e2e-session-applicant',
+  },
+  /** Approved member whose session the sign-out spec revokes — dedicated so
+   * no other spec loses its login mid-suite. */
+  visitor: {
+    id: '88888888-8888-4888-8888-888888888888',
+    email: 'visitor@e2e.test',
+    name: 'E2E Visitor',
+    status: 'approved',
+    roles: NO_ROLES,
+    sessionToken: 'e2e-session-visitor',
+  },
+  /** Blocked: can sign in, but every app locks them out. */
+  blocked: {
+    id: '66666666-6666-4666-8666-666666666666',
+    email: 'blocked@e2e.test',
+    name: 'E2E Blocked',
+    status: 'blocked',
+    roles: NO_ROLES,
+    sessionToken: 'e2e-session-blocked',
+  },
   /** Approved, but neither an admin nor a linked shareholder. */
   outsider: {
     id: '44444444-4444-4444-8444-444444444444',

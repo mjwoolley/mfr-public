@@ -47,6 +47,17 @@ export default async function globalSetup() {
       INSERT INTO portal_photo_albums (year, url) VALUES (2026, '')
       ON CONFLICT (year) DO NOTHING
     `
+    // Pin the reunion schedule: the Meals page derives its day grid from
+    // these dates, and integration suites elsewhere rewrite the settings
+    // singleton — upsert known dates so the meals tests are deterministic.
+    await portal`
+      INSERT INTO portal_settings (id, reunion_year, reunion_start, reunion_end)
+      VALUES ('singleton', 2026, '2026-08-07', '2026-08-14')
+      ON CONFLICT (id) DO UPDATE
+      SET reunion_year = 2026, reunion_start = '2026-08-07', reunion_end = '2026-08-14'
+    `
+    // Meal RSVPs are test-mutated state — start each run empty.
+    await portal`TRUNCATE TABLE portal_meal_rsvps RESTART IDENTITY CASCADE`
     for (const persona of Object.values(personas)) {
       const { siteOwner, siteManager, accountingManager } = persona.roles
       if (siteOwner || siteManager || accountingManager) {

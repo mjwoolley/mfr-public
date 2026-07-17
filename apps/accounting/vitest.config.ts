@@ -23,13 +23,18 @@ export default defineConfig({
       // by tests unless include globs are set, in which case every matching
       // file is reported (untested files show up at 0%).
       include: ["src/**/*.{ts,tsx}"],
+      // Segment-anchored (**/dir/**) rather than bare relative globs: vitest
+      // matches coverage excludes against ABSOLUTE paths with picomatch
+      // `contains: true`, so a bare `tests/**` silently excludes EVERY file
+      // when the checkout path itself contains the substring `tests/` (e.g.
+      // a worktree named accounting-tests) — coverage reports 0/0.
       exclude: [
-        "src/generated/**",
-        "tests/**",
+        "**/src/generated/**",
+        "**/tests/**",
         "**/*.test.{ts,tsx}",
         "**/*.d.ts",
         "**/*.config.*",
-        ".next/**",
+        "**/.next/**",
       ],
       // Thresholds are a ratchet floor on the logic subset only (glob keys,
       // matched relative to this directory). Pages/layouts/client components
@@ -41,14 +46,18 @@ export default defineConfig({
       ...(process.env.COVERAGE_UNIT_ONLY
         ? {} // unit-only local run: merged thresholds would spuriously fail
         : {
-            // Baseline measured 2026-07-16 (merged unit+integration run).
+            // Floors are a regression backstop (cap 90 lines/stmts/funcs, 85
+            // branches), NOT a target — genuine coverage of key logic/flows/
+            // branches is ensured by the pre-PR coverage review (see
+            // docs/workflow.md). Measured well above these (lib 100/88,
+            // actions 98/91, emails 100, routes 100/75). Route branches stay
+            // at 70: the current-year endpoint's goal-set vs goal-null display
+            // branch depends on live goal config.
             thresholds: {
-              "src/lib/**/*.ts": { lines: 86, branches: 74, functions: 89, statements: 86 },
-              "src/actions/**/*.ts": { lines: 85, branches: 59, functions: 89, statements: 85 },
-              "src/emails/**/*.tsx": { lines: 50, branches: 50, functions: 50, statements: 50 },
-              // The two route handlers are untested today — raise from zero
-              // as tests land.
-              "src/app/**/route.ts": { lines: 0, branches: 0, functions: 0, statements: 0 },
+              "src/lib/**/*.ts": { lines: 90, branches: 85, functions: 90, statements: 90 },
+              "src/actions/**/*.ts": { lines: 90, branches: 85, functions: 90, statements: 90 },
+              "src/emails/**/*.tsx": { lines: 90, branches: 85, functions: 90, statements: 90 },
+              "src/app/**/route.ts": { lines: 90, branches: 70, functions: 90, statements: 90 },
             },
           }),
     },
@@ -71,6 +80,13 @@ export default defineConfig({
           environment: "node",
           include: ["tests/integration/**/*.test.ts"],
           globalSetup: ["tests/integration/setup.ts"],
+          // All files share one test-branch database. Prisma stitches
+          // `include` relations with a second query, so a global read (e.g.
+          // reports.test.ts's getContributionsByYear) can observe entries
+          // whose transaction another file's afterEach hard-deleted between
+          // the two queries — entry.transaction comes back null and the
+          // grouping crashes. Serialize the files, same as reservations.
+          fileParallelism: false,
           // src/lib/prisma.ts's `prisma` and src/lib/identityDb.ts's
           // `identityDb` are module-load-time singletons that read
           // process.env.DATABASE_URL / IDENTITY_DATABASE_URL exactly once, at
