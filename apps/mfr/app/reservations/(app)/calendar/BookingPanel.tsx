@@ -6,12 +6,14 @@ import {
   validateReservation,
   type ExistingReservation,
 } from '@/lib/reservations/rules/validateReservation'
-import { addDays, nightsBetween } from '@/lib/reservations/rules/dateHelpers'
+import { addDays, nightsBetween, todayISO } from '@/lib/reservations/rules/dateHelpers'
 import { useReservationMutations } from './useReservationMutations'
 import type { ReservationRow, BlockedDateRow, BookingRulesRow } from './useCalendarData'
 
 interface BookingPanelProps {
   userId: string
+  /** Whether the acting user may administer reservations (bypasses the past-date rule). */
+  isAdmin: boolean
   /** When set, the dialog edits this reservation instead of creating one. */
   editReservationId?: string
   initialStart: string
@@ -31,6 +33,7 @@ interface BookingPanelProps {
  */
 export function BookingPanel({
   userId,
+  isAdmin,
   editReservationId,
   initialStart,
   initialEnd,
@@ -68,8 +71,19 @@ export function BookingPanel({
         maxConsecutiveNights: bookingRules.maxConsecutiveNights,
         maxNightsPerUserPerYear: bookingRules.maxNightsPerUserPerYear,
       },
+      isAdmin,
+      today: todayISO(),
     })
-  }, [userId, startDate, endDate, editReservationId, reservations, blockedDates, bookingRules])
+  }, [
+    userId,
+    isAdmin,
+    startDate,
+    endDate,
+    editReservationId,
+    reservations,
+    blockedDates,
+    bookingRules,
+  ])
 
   const nights = endDate > startDate ? nightsBetween(startDate, endDate) : 0
 
@@ -101,17 +115,16 @@ export function BookingPanel({
           />
         </div>
         <div className="field flex-1">
-          {/* Displayed as the inclusive last night (endDate − 1) to match the
-              calendar; storage stays half-open, so a change maps back to the
-              exclusive checkout date (last night + 1). */}
-          <label htmlFor="booking-last-night">Last night</label>
+          {/* The check-out day is the exclusive end of the half-open stay, so
+              it maps straight to endDate. Checkout must be after check-in. */}
+          <label htmlFor="booking-check-out">Check-out</label>
           <input
-            id="booking-last-night"
+            id="booking-check-out"
             className="input"
             type="date"
-            min={startDate}
-            value={endDate ? addDays(endDate, -1) : ''}
-            onChange={(e) => setEndDate(e.target.value ? addDays(e.target.value, 1) : '')}
+            min={addDays(startDate, 1)}
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
           />
         </div>
       </div>

@@ -36,10 +36,15 @@ export interface ValidateReservationInput {
   existingReservations: ExistingReservation[]
   blockedDates: BlockedDateRange[]
   bookingRules: BookingRules
+  /** Whether the acting user may administer reservations (bypasses PAST_DATE). */
+  isAdmin: boolean
+  /** Today as YYYY-MM-DD (see todayISO in dateHelpers); used by the past-date rule. */
+  today: string
 }
 
 export type ValidationCode =
   | 'INVALID_RANGE'
+  | 'PAST_DATE'
   | 'HORIZON'
   | 'MAX_CONSECUTIVE'
   | 'YEARLY_CAP'
@@ -58,6 +63,8 @@ export function validateReservation(input: ValidateReservationInput): Validation
     existingReservations,
     blockedDates,
     bookingRules,
+    isAdmin,
+    today,
   } = input
 
   if (endDate <= startDate) {
@@ -65,6 +72,19 @@ export function validateReservation(input: ValidateReservationInput): Validation
       valid: false,
       code: 'INVALID_RANGE',
       reason: 'The end date must be after the start date.',
+    }
+  }
+
+  // A brand-new reservation (no excludeReservationId) by a non-admin can't be
+  // entirely in the past: because endDate is the exclusive checkout day,
+  // endDate <= today means every booked night falls before today. Admins may
+  // still backfill past stays, and EDITS are exempt so a member can extend the
+  // end date of a stay that began before today.
+  if (excludeReservationId === undefined && !isAdmin && endDate <= today) {
+    return {
+      valid: false,
+      code: 'PAST_DATE',
+      reason: "New reservations can't be entirely in the past.",
     }
   }
 

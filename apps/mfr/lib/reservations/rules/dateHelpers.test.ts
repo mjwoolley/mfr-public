@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { addDays, nightsBetween, rangesOverlap, calendarYearOf } from './dateHelpers'
+import { addDays, nightsBetween, rangesOverlap, calendarYearOf, todayISO } from './dateHelpers'
 
 describe('addDays', () => {
   it('adds a single day within a month', () => {
@@ -63,5 +63,13 @@ describe('calendarYearOf', () => {
 
   it('extracts the year for a December date', () => {
     expect(calendarYearOf('2027-12-31')).toBe(2027)
+  })
+})
+
+describe('todayISO', () => {
+  it('returns a YYYY-MM-DD string matching the current UTC date', () => {
+    const result = todayISO()
+    expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(result).toBe(new Date().toISOString().slice(0, 10))
   })
 })

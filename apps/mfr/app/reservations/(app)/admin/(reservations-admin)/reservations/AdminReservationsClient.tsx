@@ -105,6 +105,9 @@ export function AdminReservationsClient({ adminUserId }: { adminUserId: string }
         <BookingPanel
           // Validate against the reservation owner's caps, not the admin's.
           userId={editing.userId}
+          // This route is reservations-admin-gated, so the actor is always an
+          // admin — and admins bypass the new-reservation past-date rule.
+          isAdmin
           editReservationId={editing.id}
           initialStart={editing.startDate}
           initialEnd={editing.endDate}

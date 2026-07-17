@@ -1,5 +1,3 @@
-import { addDays } from '@/lib/reservations/rules/dateHelpers'
-
 export interface CalendarSelection {
   selectionStart: string | null
   selectionEnd: string | null
@@ -10,12 +8,13 @@ export interface CalendarSelection {
  * the next selection state.
  *
  * - First click: becomes selectionStart; selectionEnd stays unset.
- * - Second click: the earlier of the two clicked dates becomes
- *   selectionStart, and the later — the last night the user wants to stay —
- *   is converted to an exclusive checkout date (+1 day) before becoming
- *   selectionEnd. This keeps selectionEnd consistent with the half-open
+ * - Second click: the CHECK-OUT day. The earlier of the two clicked dates
+ *   becomes selectionStart (check-in) and the later becomes selectionEnd
+ *   (the exclusive checkout day) directly — this is already the half-open
  *   `[startDate, endDate)` convention used everywhere else (dayInfo.ts,
- *   validateReservation.ts, the API route, the DB).
+ *   validateReservation.ts, the API route, the DB). Clicking the SAME day as
+ *   the check-in would mean checkout == check-in (0 nights), so the selection
+ *   stays in progress instead of completing.
  * - Third click (a selection is already complete): starts a new selection.
  */
 export function computeSelectionAfterClick(
@@ -26,9 +25,13 @@ export function computeSelectionAfterClick(
     return { selectionStart: clicked, selectionEnd: null }
   }
   if (!current.selectionEnd) {
-    const lastNight = current.selectionStart < clicked ? clicked : current.selectionStart
+    if (clicked === current.selectionStart) {
+      // Checkout on the check-in day is a 0-night stay — keep selecting.
+      return { selectionStart: clicked, selectionEnd: null }
+    }
     const start = current.selectionStart < clicked ? current.selectionStart : clicked
-    return { selectionStart: start, selectionEnd: addDays(lastNight, 1) }
+    const checkout = current.selectionStart < clicked ? clicked : current.selectionStart
+    return { selectionStart: start, selectionEnd: checkout }
   }
   return { selectionStart: clicked, selectionEnd: null }
 }

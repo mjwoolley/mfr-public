@@ -12,6 +12,7 @@ import {
   validateReservation,
   type ExistingReservation,
 } from '@/lib/reservations/rules/validateReservation'
+import { todayISO } from '@/lib/reservations/rules/dateHelpers'
 import { requireApprovedUser } from '@/lib/reservations/auth/requireApprovedUser'
 import { isOverlapError } from '@/lib/reservations/isOverlapError'
 import { logActivity } from '@/lib/reservations/logActivity'
@@ -35,10 +36,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (!auth.ok) return auth.response
 
   const { id } = await params
+  const isReservationsAdmin = canAdminReservations(auth.session.user.roles)
   const { reservation, allowed } = await loadOwnedReservation(
     id,
     auth.session.user.id,
-    canAdminReservations(auth.session.user.roles),
+    isReservationsAdmin,
   )
   if (!reservation) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -80,6 +82,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       maxConsecutiveNights: rules.maxConsecutiveNights,
       maxNightsPerUserPerYear: rules.maxNightsPerUserPerYear,
     },
+    isAdmin: isReservationsAdmin,
+    today: todayISO(),
   })
 
   if (!validation.valid) {

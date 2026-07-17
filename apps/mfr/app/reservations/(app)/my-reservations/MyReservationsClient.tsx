@@ -23,7 +23,7 @@ function todayISO(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
-export function MyReservationsClient({ userId }: { userId: string }) {
+export function MyReservationsClient({ userId, isAdmin }: { userId: string; isAdmin: boolean }) {
   const [modal, setModal] = useState<Modal>(null)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [cancelError, setCancelError] = useState<string | null>(null)
@@ -160,6 +160,7 @@ export function MyReservationsClient({ userId }: { userId: string }) {
       {modal?.mode === 'create' && (
         <BookingPanel
           userId={userId}
+          isAdmin={isAdmin}
           initialStart={modal.start}
           initialEnd={modal.end}
           reservations={reservations}
@@ -183,6 +184,7 @@ export function MyReservationsClient({ userId }: { userId: string }) {
       {modal?.mode === 'edit' && selected && (
         <BookingPanel
           userId={userId}
+          isAdmin={isAdmin}
           editReservationId={selected.id}
           initialStart={selected.startDate}
           initialEnd={selected.endDate}

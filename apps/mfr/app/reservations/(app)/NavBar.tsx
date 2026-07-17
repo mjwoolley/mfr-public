@@ -29,13 +29,6 @@ export function NavBar({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <ResponsiveNav>
-      <Link
-        href="/"
-        className={`${tabBase} border-transparent font-semibold`}
-        style={{ color: 'color-mix(in srgb, var(--color-text) 60%, transparent)' }}
-      >
-        Home
-      </Link>
       {links.map((link) => {
         const active = pathname === link.href || pathname.startsWith(`${link.href}/`)
         return (

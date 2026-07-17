@@ -11,12 +11,14 @@ import { ListView } from './ListView'
 import { ReservationViewDialog } from './ReservationViewDialog'
 import { useCalendarData, type ReservationRow } from './useCalendarData'
 import { computeSelectionAfterClick } from './calendarSelection'
-import { addDays, nightsBetween } from '@/lib/reservations/rules/dateHelpers'
+import { addDays, nightsBetween, todayISO } from '@/lib/reservations/rules/dateHelpers'
 import { niceDate } from './formatDates'
 import type { DayInfo } from './dayInfo'
 
 interface CalendarClientProps {
   userId: string
+  /** Whether the acting user may administer reservations (bypasses the past-date rule). */
+  isAdmin: boolean
 }
 
 type CalMode = 'month' | 'list'
@@ -27,11 +29,7 @@ type Modal =
   | { mode: 'edit'; reservationId: string }
   | null
 
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
-export function CalendarClient({ userId }: CalendarClientProps) {
+export function CalendarClient({ userId, isAdmin }: CalendarClientProps) {
   const today = new Date()
   const [year, setYear] = useState(today.getUTCFullYear())
   const [month, setMonth] = useState(today.getUTCMonth())
@@ -123,7 +121,7 @@ export function CalendarClient({ userId }: CalendarClientProps) {
   const selectionLabel = !selectionStart
     ? ''
     : selectionEnd
-      ? `Selected: ${niceDate(selectionStart)} → ${niceDate(addDays(selectionEnd, -1))}  (${nightsBetween(selectionStart, selectionEnd)} night${nightsBetween(selectionStart, selectionEnd) === 1 ? '' : 's'})`
+      ? `Check-in ${niceDate(selectionStart)} → Check-out ${niceDate(selectionEnd)}  (${nightsBetween(selectionStart, selectionEnd)} night${nightsBetween(selectionStart, selectionEnd) === 1 ? '' : 's'})`
       : `Check-in ${niceDate(selectionStart)} — now pick a check-out date`
 
   return (
@@ -313,6 +311,7 @@ export function CalendarClient({ userId }: CalendarClientProps) {
       {modal?.mode === 'create' && (
         <BookingPanel
           userId={userId}
+          isAdmin={isAdmin}
           initialStart={modal.start}
           initialEnd={modal.end}
           reservations={reservations}
@@ -342,6 +341,7 @@ export function CalendarClient({ userId }: CalendarClientProps) {
       {modal?.mode === 'edit' && viewedReservation && (
         <BookingPanel
           userId={userId}
+          isAdmin={isAdmin}
           editReservationId={viewedReservation.id}
           initialStart={viewedReservation.startDate}
           initialEnd={viewedReservation.endDate}

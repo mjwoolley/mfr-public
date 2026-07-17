@@ -19,6 +19,10 @@ function baseInput(overrides: Partial<Parameters<typeof validateReservation>[0]>
     existingReservations: [] as ExistingReservation[],
     blockedDates: [],
     bookingRules: defaultRules,
+    isAdmin: false,
+    // Well before the base 2027-06 dates, so the past-date rule never trips
+    // unless a test deliberately moves `today` forward.
+    today: '2027-01-01',
     ...overrides,
   }
 }
@@ -35,6 +39,55 @@ describe('validateReservation — basic validity', () => {
     )
     expect(result.valid).toBe(false)
     if (!result.valid) expect(result.code).toBe('INVALID_RANGE')
+  })
+})
+
+describe('validateReservation — past-date rule', () => {
+  it('rejects a NEW fully-past reservation by a non-admin (checkout on/before today)', () => {
+    const result = validateReservation(
+      baseInput({ startDate: '2027-06-01', endDate: '2027-06-05', today: '2027-06-15' }),
+    )
+    expect(result.valid).toBe(false)
+    if (!result.valid) expect(result.code).toBe('PAST_DATE')
+  })
+
+  it('rejects when the checkout day equals today (every night is before today)', () => {
+    const result = validateReservation(
+      baseInput({ startDate: '2027-06-01', endDate: '2027-06-15', today: '2027-06-15' }),
+    )
+    expect(result.valid).toBe(false)
+    if (!result.valid) expect(result.code).toBe('PAST_DATE')
+  })
+
+  it('lets an admin create a fully-past reservation (backfill)', () => {
+    const result = validateReservation(
+      baseInput({
+        startDate: '2027-06-01',
+        endDate: '2027-06-05',
+        today: '2027-06-15',
+        isAdmin: true,
+      }),
+    )
+    expect(result.valid).toBe(true)
+  })
+
+  it('exempts EDITS: a non-admin can extend the end date of a stay that started before today', () => {
+    const result = validateReservation(
+      baseInput({
+        startDate: '2027-06-10', // began before today
+        endDate: '2027-06-16', // extending an ongoing stay (6 nights, within the cap)
+        today: '2027-06-15',
+        excludeReservationId: 'r1',
+      }),
+    )
+    expect(result.valid).toBe(true)
+  })
+
+  it('accepts a NEW reservation starting today (not entirely in the past)', () => {
+    const result = validateReservation(
+      baseInput({ startDate: '2027-06-15', endDate: '2027-06-18', today: '2027-06-15' }),
+    )
+    expect(result.valid).toBe(true)
   })
 })
 

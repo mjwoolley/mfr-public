@@ -7,12 +7,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { eq, and, gte, lt, inArray } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { reservations, bookingRules, blockedDates } from '@/lib/db/schema'
-import { users } from '@mfr/auth'
+import { users, canAdminReservations } from '@mfr/auth'
 import { identityDb } from '@/lib/reservations/auth/identityDb'
 import {
   validateReservation,
   type ExistingReservation,
 } from '@/lib/reservations/rules/validateReservation'
+import { todayISO } from '@/lib/reservations/rules/dateHelpers'
 import { requireApprovedUser } from '@/lib/reservations/auth/requireApprovedUser'
 import { isOverlapError } from '@/lib/reservations/isOverlapError'
 import { logActivity } from '@/lib/reservations/logActivity'
@@ -113,6 +114,8 @@ export async function POST(request: NextRequest) {
       maxConsecutiveNights: rules.maxConsecutiveNights,
       maxNightsPerUserPerYear: rules.maxNightsPerUserPerYear,
     },
+    isAdmin: canAdminReservations(auth.session.user.roles),
+    today: todayISO(),
   })
 
   if (!validation.valid) {

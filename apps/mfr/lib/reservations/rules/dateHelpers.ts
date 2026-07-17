@@ -24,3 +24,10 @@ export function rangesOverlap(aStart: string, aEnd: string, bStart: string, bEnd
 export function calendarYearOf(dateStr: string): number {
   return Number(dateStr.slice(0, 4))
 }
+
+// Today's date as YYYY-MM-DD, pinned to UTC like every other date here so the
+// server (Vercel, UTC) and the browser agree on which calendar day "today" is.
+// Single source of truth for both the client calendar and the server routes.
+export function todayISO(): string {
+  return new Date().toISOString().slice(0, 10)
+}

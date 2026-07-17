@@ -8,21 +8,21 @@ describe('niceDate', () => {
 })
 
 describe('niceRange', () => {
-  // Storage is half-open [start, end); the range end is displayed as the
-  // inclusive last night (end − 1) so it reads the way a guest thinks of a stay.
-  it('shows the inclusive last night, not the checkout date', () => {
+  // Storage is half-open [start, end); the range is displayed as CHECK-IN →
+  // CHECK-OUT, endDate being the exclusive checkout day.
+  it('shows the check-in and check-out dates', () => {
     // Jul 3 check-in, Jul 5 checkout = 2 nights (Jul 3, Jul 4).
-    expect(niceRange('2026-07-03', '2026-07-05')).toBe('Jul 3 → Jul 4')
+    expect(niceRange('2026-07-03', '2026-07-05')).toBe('Jul 3 → Jul 5')
   })
 
-  it('collapses a single-night stay to the same day on both ends', () => {
+  it('shows consecutive days for a single-night stay', () => {
     // Jul 3 check-in, Jul 4 checkout = 1 night (Jul 3).
-    expect(niceRange('2026-07-03', '2026-07-04')).toBe('Jul 3 → Jul 3')
+    expect(niceRange('2026-07-03', '2026-07-04')).toBe('Jul 3 → Jul 4')
   })
 
   it('crosses a month boundary correctly', () => {
-    // Jul 31 check-in, Aug 2 checkout = 2 nights, last night Aug 1.
-    expect(niceRange('2026-07-31', '2026-08-02')).toBe('Jul 31 → Aug 1')
+    // Jul 31 check-in, Aug 2 checkout = 2 nights.
+    expect(niceRange('2026-07-31', '2026-08-02')).toBe('Jul 31 → Aug 2')
   })
 })
 

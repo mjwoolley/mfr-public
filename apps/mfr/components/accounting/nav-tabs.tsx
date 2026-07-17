@@ -24,16 +24,6 @@ export function NavTabs({ tabs }: { tabs: NavTab[] }) {
 
   return (
     <ResponsiveNav maxWidthClass="max-w-4xl">
-      <Link
-        href="/"
-        className={`${tabBase} font-semibold`}
-        style={{
-          color: 'color-mix(in srgb, var(--color-text) 60%, transparent)',
-          borderBottomColor: 'transparent',
-        }}
-      >
-        Home
-      </Link>
       {tabs.map((tab) => {
         const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`)
         return (
