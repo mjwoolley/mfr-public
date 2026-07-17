@@ -12,7 +12,10 @@ export default defineConfig({
       // untested ones at 0%. The whole package is logic subset, so global
       // thresholds apply (ratchet floor — raise as tests are added, target 90).
       include: ['src/**/*.ts'],
-      exclude: ['drizzle/**', '**/*.test.ts', '**/*.d.ts', '**/*.config.*'],
+      // **/drizzle/**, not drizzle/**: coverage excludes are matched against
+      // ABSOLUTE paths (picomatch contains mode), so bare relative globs can
+      // swallow everything when the checkout path contains the substring.
+      exclude: ['**/drizzle/**', '**/*.test.ts', '**/*.d.ts', '**/*.config.*'],
       // Measured 100% across the board 2026-07-16; floored at 98 so new
       // auth logic must ship with tests.
       thresholds: { lines: 98, branches: 98, functions: 98, statements: 98 },

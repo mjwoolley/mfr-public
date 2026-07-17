@@ -17,7 +17,11 @@ export default defineConfig({
       // by tests unless include globs are set, in which case every matching
       // file is reported (untested files show up at 0%).
       include: ['app/**/*.{ts,tsx}', 'lib/**/*.ts'],
-      exclude: ['**/*.test.{ts,tsx}', '**/*.d.ts', '**/*.config.*', '.next/**', 'tests/**'],
+      // Segment-anchored (**/dir/**): vitest matches coverage excludes against
+      // ABSOLUTE paths with picomatch `contains: true`, so a bare `tests/**`
+      // silently excludes EVERY file when the checkout path contains the
+      // substring `tests/` (e.g. a worktree named web-tests).
+      exclude: ['**/*.test.{ts,tsx}', '**/*.d.ts', '**/*.config.*', '**/.next/**', '**/tests/**'],
       // Thresholds are a ratchet floor on the logic subset only (glob keys,
       // matched relative to this directory). Pages/layouts/client components
       // are measured and reported but not thresholded — e2e covers them.
