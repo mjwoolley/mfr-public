@@ -20,7 +20,7 @@ jobs:
         include:
           - { name: reservations, workspace: apps/reservations }
           - { name: accounting, workspace: apps/accounting }
-          - { name: web, workspace: apps/web }
+          - { name: web, workspace: apps/mfr }
           - { name: auth, workspace: packages/auth }
     steps:
       - uses: actions/checkout@v7

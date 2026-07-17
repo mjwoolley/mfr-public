@@ -49,7 +49,7 @@ jobs:
       # Fast unit signal for the three apps — their coverage (merged
       # unit+integration) and ratchet thresholds are enforced in the
       # integration jobs below, which have databases.
-      - run: npm run test -w apps/reservations -w apps/accounting -w apps/web
+      - run: npm run test -w apps/reservations -w apps/accounting -w apps/mfr
       # Coverage + ratchet threshold enforcement for the no-DB packages.
       - run: npm run test:coverage -w packages/ui -w packages/auth
       - name: Coverage summary
@@ -311,11 +311,11 @@ jobs:
         env:
           TEST_PORTAL_DATABASE_URL: ${{ steps.portaldb.outputs.db_url_pooled }}
           TEST_IDENTITY_DATABASE_URL: ${{ steps.iddb.outputs.db_url_pooled }}
-        run: npm run test:coverage -w apps/web
+        run: npm run test:coverage -w apps/mfr
       - name: Coverage summary
         if: always()
         run: |
-          f=apps/web/coverage/coverage-summary.json
+          f=apps/mfr/coverage/coverage-summary.json
           [ -f "$f" ] || exit 0
           echo "## Merged unit+integration coverage — web (lines / branches / functions)" >> "$GITHUB_STEP_SUMMARY"
           jq -r '"- \(.total.lines.pct)% / \(.total.branches.pct)% / \(.total.functions.pct)%"' "$f" >> "$GITHUB_STEP_SUMMARY"
@@ -324,7 +324,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: coverage-web
-          path: apps/web/coverage/coverage-summary.json
+          path: apps/mfr/coverage/coverage-summary.json
           if-no-files-found: ignore
       - name: Delete portal DB branch
         if: always()

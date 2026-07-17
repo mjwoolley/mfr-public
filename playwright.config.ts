@@ -64,7 +64,7 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: [
     {
-      command: 'npm run start -w apps/web -- --port 3100',
+      command: 'npm run start -w apps/mfr -- --port 3100',
       url: WEB_URL,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
