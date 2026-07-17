@@ -27,7 +27,8 @@ test.describe('reservations admin', () => {
     await memberPage.goto(`${RESERVATIONS_URL}/reservations/my-reservations`)
     await memberPage.getByRole('button', { name: 'New reservation' }).click()
     await memberPage.locator('#booking-check-in').fill('2026-10-01')
-    await memberPage.locator('#booking-last-night').fill('2026-10-06')
+    // Check-out Oct 7 = 6 nights (Oct 1–6), one over the tightened max of 5.
+    await memberPage.locator('#booking-check-out').fill('2026-10-07')
     await expect(
       memberPage.getByText('Reservations cannot exceed 5 consecutive nights.'),
     ).toBeVisible()

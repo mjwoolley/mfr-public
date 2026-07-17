@@ -51,11 +51,15 @@ export default async function globalSetup() {
     // Pin the reunion schedule: the Meals page derives its day grid from
     // these dates, and integration suites elsewhere rewrite the settings
     // singleton — upsert known dates so the meals tests are deterministic.
+    // drive_url must be a real Drive-folder shape (id ≥ 25 chars) so the
+    // Documents page renders both the "Open in Google Drive" link and the embed.
+    const driveUrl = 'https://drive.google.com/drive/folders/1A2B3C4D5E6F7G8H9I0J1K2L3M4N5O6P7'
     await sql`
-      INSERT INTO portal_settings (id, reunion_year, reunion_start, reunion_end)
-      VALUES ('singleton', 2026, '2026-08-07', '2026-08-14')
+      INSERT INTO portal_settings (id, reunion_year, reunion_start, reunion_end, drive_url)
+      VALUES ('singleton', 2026, '2026-08-07', '2026-08-14', ${driveUrl})
       ON CONFLICT (id) DO UPDATE
-      SET reunion_year = 2026, reunion_start = '2026-08-07', reunion_end = '2026-08-14'
+      SET reunion_year = 2026, reunion_start = '2026-08-07', reunion_end = '2026-08-14',
+          drive_url = ${driveUrl}
     `
     // Meal RSVPs are test-mutated state — start each run empty.
     await sql`TRUNCATE TABLE portal_meal_rsvps RESTART IDENTITY CASCADE`

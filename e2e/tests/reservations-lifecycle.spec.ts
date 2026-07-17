@@ -12,11 +12,11 @@ import { contextFor } from '../session'
 const MY_RESERVATIONS = `${RESERVATIONS_URL}/reservations/my-reservations`
 const API = `${RESERVATIONS_URL}/reservations/api`
 
-/** Fill the booking dialog's date fields. `lastNight` is the inclusive last
- * night shown in the UI (checkout − 1). */
-async function fillBookingDates(page: Page, checkIn: string, lastNight: string) {
+/** Fill the booking dialog's date fields. `checkOut` is the departure day —
+ * the exclusive end of the half-open stay (nights = checkOut − checkIn). */
+async function fillBookingDates(page: Page, checkIn: string, checkOut: string) {
   await page.locator('#booking-check-in').fill(checkIn)
-  await page.locator('#booking-last-night').fill(lastNight)
+  await page.locator('#booking-check-out').fill(checkOut)
 }
 
 test.describe('reservation lifecycle (UI)', () => {
@@ -25,19 +25,20 @@ test.describe('reservation lifecycle (UI)', () => {
     const page = await context.newPage()
     await page.goto(MY_RESERVATIONS)
 
-    // Create: Sep 1 → Sep 3 2026 (checkout), shown as Sep 1 → Sep 2.
+    // Create: Sep 1 check-in → Sep 3 check-out 2026 = 2 nights, shown as
+    // Sep 1 → Sep 3.
     await page.getByRole('button', { name: 'New reservation' }).click()
-    await fillBookingDates(page, '2026-09-01', '2026-09-02')
+    await fillBookingDates(page, '2026-09-01', '2026-09-03')
     await expect(page.getByText('2 nights at the cabin')).toBeVisible()
     await page.getByRole('button', { name: 'Confirm reservation' }).click()
-    const created = page.getByRole('button', { name: /Sep 1 → Sep 2/ })
+    const created = page.getByRole('button', { name: /Sep 1 → Sep 3/ })
     await expect(created).toBeVisible()
 
-    // Edit: extend to Sep 4 (last night Sep 3).
+    // Edit: extend the check-out to Sep 4 (3 nights).
     await page.getByRole('button', { name: 'Edit' }).first().click()
-    await page.locator('#booking-last-night').fill('2026-09-03')
+    await page.locator('#booking-check-out').fill('2026-09-04')
     await page.getByRole('button', { name: 'Save changes' }).click()
-    await expect(page.getByRole('button', { name: /Sep 1 → Sep 3/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Sep 1 → Sep 4/ })).toBeVisible()
 
     // The summary page reflects the stay.
     await page.goto(`${RESERVATIONS_URL}/reservations/summary`)
@@ -47,7 +48,7 @@ test.describe('reservation lifecycle (UI)', () => {
     // Cancel: the row disappears.
     await page.goto(MY_RESERVATIONS)
     await page.getByRole('button', { name: 'Cancel', exact: true }).first().click()
-    await expect(page.getByRole('button', { name: /Sep 1 → Sep 3/ })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /Sep 1 → Sep 4/ })).toHaveCount(0)
 
     await context.close()
   })
@@ -65,7 +66,7 @@ test.describe('reservation lifecycle (UI)', () => {
     const page = await outsider.newPage()
     await page.goto(MY_RESERVATIONS)
     await page.getByRole('button', { name: 'New reservation' }).click()
-    await fillBookingDates(page, '2027-07-11', '2027-07-11')
+    await fillBookingDates(page, '2027-07-11', '2027-07-12')
     await expect(page.getByText('Those dates overlap an existing reservation.')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Confirm reservation' })).toBeDisabled()
 
@@ -86,7 +87,7 @@ test.describe('reservation lifecycle (UI)', () => {
 
     // global-setup seeds the horizon at 2030-12-31.
     await page.getByRole('button', { name: 'New reservation' }).click()
-    await fillBookingDates(page, '2031-01-05', '2031-01-06')
+    await fillBookingDates(page, '2031-01-05', '2031-01-07')
     await expect(page.getByText(/Reservations cannot start after 2030-12-31/)).toBeVisible()
     await expect(page.getByRole('button', { name: 'Confirm reservation' })).toBeDisabled()
 
@@ -111,7 +112,7 @@ test.describe('reservation lifecycle (UI)', () => {
     const page = await member.newPage()
     await page.goto(MY_RESERVATIONS)
     await page.getByRole('button', { name: 'New reservation' }).click()
-    await fillBookingDates(page, '2027-08-11', '2027-08-11')
+    await fillBookingDates(page, '2027-08-11', '2027-08-12')
     await expect(page.getByText('Those dates are blocked and unavailable.')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Confirm reservation' })).toBeDisabled()
 

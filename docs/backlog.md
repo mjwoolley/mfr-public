@@ -173,9 +173,38 @@ once staging is live and end-to-end tested:**
 
 ## Defects
 
-_(nothing tracked yet — add items here as they're found)_
+### Server logs `TypeError: Cannot read properties of null (reading 'user')`
+
+A server-rendered component reads `session.user` without a null-guard on an
+unauthenticated request path (seen in e2e webserver logs, digest `1874081621`,
+before signed-out redirect flows). Non-fatal — the request still resolves to the
+expected redirect/error boundary and all e2e pass — but it should be guarded so
+the log is clean and there's no latent crash if the redirect ever changes. Track
+down which page/component (likely a reservations or portal route rendering under
+a redirect) and add the null check.
 
 ## Chores
+
+### Speed up the integration CI job (matrix-shard by suite)
+
+The `Integration tests + coverage` job runs ~4.5 min, ~218s of it the tests
+themselves. All three integration suites (portal, accounting, reservations)
+share one Neon `test` branch and two are `fileParallelism: false` (they mutate
+singleton rows — `portal_settings`, `booking_rules` — that would race). Split
+the job into a 3-leg matrix (one suite per leg), each provisioning its **own**
+ephemeral Neon branch, so the legs run fully in parallel and each isolated leg
+can drop `fileParallelism: false`. Expect wall-clock ~218s → ~slowest single
+suite (~90–120s). CI jobs already run in parallel; this shortens the long pole.
+
+### Standardize on Node 24 across the stack
+
+`.nvmrc` pins 22 (CI + Vercel build image follow it) but local dev defaults to
+node 24, which is what produced a mismatched `package-lock.json` (node 22's npm
+10 vs node 24's npm 11 resolve the `@napi-rs/wasm-runtime`→`@emnapi/*` optional
+subtree differently, so `npm ci` rejected the lock). Options: bump `.nvmrc` →
+`24` (local/CI/Vercel all agree on what devs actually run) — needs a Vercel
+build-runtime re-verify, so its own PR. (An nvm auto-switch hook is already in
+`~/.zshrc` so the repo selects 22 automatically until then.)
 
 ### Delete stale Neon backup branches (mfr-accounting)
 
