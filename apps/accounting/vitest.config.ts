@@ -46,14 +46,15 @@ export default defineConfig({
       ...(process.env.COVERAGE_UNIT_ONLY
         ? {} // unit-only local run: merged thresholds would spuriously fail
         : {
-            // Baseline measured 2026-07-16 (merged unit+integration run).
+            // Measured 2026-07-16 after the phase-2 test campaign (lib 100/88,
+            // actions 98/91, emails 100, routes 100/75); floors = measured − 2.
+            // Route branches sit at 70: the current-year endpoint's goal-set
+            // vs goal-null display branch depends on live goal config.
             thresholds: {
-              "src/lib/**/*.ts": { lines: 86, branches: 74, functions: 89, statements: 86 },
-              "src/actions/**/*.ts": { lines: 85, branches: 59, functions: 89, statements: 85 },
-              "src/emails/**/*.tsx": { lines: 50, branches: 50, functions: 50, statements: 50 },
-              // The two route handlers are untested today — raise from zero
-              // as tests land.
-              "src/app/**/route.ts": { lines: 0, branches: 0, functions: 0, statements: 0 },
+              "src/lib/**/*.ts": { lines: 98, branches: 86, functions: 98, statements: 97 },
+              "src/actions/**/*.ts": { lines: 96, branches: 88, functions: 98, statements: 96 },
+              "src/emails/**/*.tsx": { lines: 90, branches: 90, functions: 90, statements: 90 },
+              "src/app/**/route.ts": { lines: 98, branches: 70, functions: 98, statements: 98 },
             },
           }),
     },
@@ -76,6 +77,13 @@ export default defineConfig({
           environment: "node",
           include: ["tests/integration/**/*.test.ts"],
           globalSetup: ["tests/integration/setup.ts"],
+          // All files share one test-branch database. Prisma stitches
+          // `include` relations with a second query, so a global read (e.g.
+          // reports.test.ts's getContributionsByYear) can observe entries
+          // whose transaction another file's afterEach hard-deleted between
+          // the two queries — entry.transaction comes back null and the
+          // grouping crashes. Serialize the files, same as reservations.
+          fileParallelism: false,
           // src/lib/prisma.ts's `prisma` and src/lib/identityDb.ts's
           // `identityDb` are module-load-time singletons that read
           // process.env.DATABASE_URL / IDENTITY_DATABASE_URL exactly once, at
