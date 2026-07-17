@@ -1,6 +1,12 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 
+// next/image needs the Next.js runtime image config; render a plain img.
+vi.mock('next/image', () => ({
+  // eslint-disable-next-line @next/next/no-img-element
+  default: (props: { src: string; alt: string }) => <img src={props.src} alt={props.alt} />,
+}))
+
 const { authMock, redirectMock } = vi.hoisted(() => ({
   authMock: vi.fn(),
   redirectMock: vi.fn((url: string) => {
@@ -34,6 +40,16 @@ describe('sign-in page', () => {
     expect(html).toContain('Miller Family Reunions')
     expect(html).toContain('Sign in with Google')
     expect(html).toMatch(/<button[^>]*type="submit"/)
+  })
+
+  it('shows the Google-account note with the existing-email screenshot', async () => {
+    authMock.mockResolvedValue(null)
+
+    const html = renderToStaticMarkup(await SignInPage(props()))
+
+    expect(html).toContain('https://accounts.google.com/signup')
+    expect(html).toContain('/google-signup-existing-email.jpg')
+    expect(html).toContain('Use your existing email')
   })
 
   it('redirects home when already signed in', async () => {
