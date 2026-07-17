@@ -11,9 +11,32 @@ export default defineConfig({
     environment: 'node',
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json-summary'],
+      reporter: ['text', 'json-summary', 'html'],
       reportsDirectory: './coverage',
-      exclude: ['**/*.test.{ts,tsx}', '**/*.config.*', '.next/**', 'tests/**'],
+      // Explicit include = honest coverage: vitest only counts files imported
+      // by tests unless include globs are set, in which case every matching
+      // file is reported (untested files show up at 0%).
+      include: ['app/**/*.{ts,tsx}', 'lib/**/*.ts'],
+      exclude: ['**/*.test.{ts,tsx}', '**/*.d.ts', '**/*.config.*', '.next/**', 'tests/**'],
+      // Thresholds are a ratchet floor on the logic subset only (glob keys,
+      // matched relative to this directory). Pages/layouts/client components
+      // are measured and reported but not thresholded — e2e covers them.
+      // No top-level lines/branches/... keys here: global thresholds would
+      // apply to ALL included files, pages included.
+      // Raise these as tests are added (target: 90). CI enforces them in the
+      // integration job, where the merged unit+integration run happens.
+      ...(process.env.COVERAGE_UNIT_ONLY
+        ? {} // unit-only local run: merged thresholds would spuriously fail
+        : {
+            // Baseline measured 2026-07-16 (merged unit+integration run).
+            thresholds: {
+              'lib/**/*.ts': { lines: 81, branches: 67, functions: 79, statements: 81 },
+              'app/**/actions.ts': { lines: 95, branches: 56, functions: 92, statements: 91 },
+              // Sole route is the NextAuth re-export, untested today — raise
+              // from zero as tests land.
+              'app/api/**/route.ts': { lines: 0, branches: 0, functions: 0, statements: 0 },
+            },
+          }),
     },
     projects: [
       {
