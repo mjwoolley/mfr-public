@@ -179,6 +179,71 @@ describe('POST /api/reservations', () => {
     expect(rowViaTestDb.startDate).toBe('2027-10-15')
     expect(rowViaTestDb.endDate).toBe('2027-10-17')
   })
+
+  it('lets a reservations admin create a reservation for another member', async () => {
+    const member = await makeUser('admincreate-member')
+    const admin = await makeUser('admincreate-admin')
+    mockSessionFor({ id: admin.id, isReservationsAdmin: true })
+    const request = new Request('http://localhost/api/reservations', {
+      method: 'POST',
+      body: JSON.stringify({ startDate: '2027-09-01', endDate: '2027-09-04', userId: member.id }),
+    })
+    const response = await POST(request as never)
+    expect(response.status).toBe(201)
+    const body = await response.json()
+    // The reservation is owned by the member, not the acting admin.
+    expect(body.reservation.userId).toBe(member.id)
+
+    // Activity is attributed to the admin, with the owner noted in metadata.
+    const activityRows = await testDb
+      .select()
+      .from(activityLog)
+      .where(eq(activityLog.actorUserId, admin.id))
+    const created = activityRows.find((a) => a.eventType === 'reservation_created')
+    expect(created).toBeDefined()
+    expect((created!.metadata as { userId?: string }).userId).toBe(member.id)
+  })
+
+  it('forbids a non-admin from creating a reservation for another member', async () => {
+    const member = await makeUser('forbid-member')
+    const stranger = await makeUser('forbid-stranger')
+    mockSessionFor({ id: stranger.id }) // not an admin
+    const request = new Request('http://localhost/api/reservations', {
+      method: 'POST',
+      body: JSON.stringify({ startDate: '2027-09-10', endDate: '2027-09-12', userId: member.id }),
+    })
+    const response = await POST(request as never)
+    expect(response.status).toBe(403)
+  })
+
+  it('rejects an admin booking for an unknown member', async () => {
+    const admin = await makeUser('unknown-admin')
+    mockSessionFor({ id: admin.id, isReservationsAdmin: true })
+    const request = new Request('http://localhost/api/reservations', {
+      method: 'POST',
+      body: JSON.stringify({
+        startDate: '2027-09-20',
+        endDate: '2027-09-22',
+        userId: '00000000-0000-0000-0000-000000000000',
+      }),
+    })
+    const response = await POST(request as never)
+    expect(response.status).toBe(400)
+    const body = await response.json()
+    expect(body.error).toMatch(/member/i)
+  })
+
+  it('rejects an admin booking for a pending (not yet approved) member', async () => {
+    const admin = await makeUser('pending-admin')
+    const pending = await makeUser('pending-member', { status: 'pending' })
+    mockSessionFor({ id: admin.id, isReservationsAdmin: true })
+    const request = new Request('http://localhost/api/reservations', {
+      method: 'POST',
+      body: JSON.stringify({ startDate: '2027-09-25', endDate: '2027-09-27', userId: pending.id }),
+    })
+    const response = await POST(request as never)
+    expect(response.status).toBe(400)
+  })
 })
 
 describe('GET /api/reservations', () => {

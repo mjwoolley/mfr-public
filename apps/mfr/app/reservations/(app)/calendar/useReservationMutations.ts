@@ -22,12 +22,18 @@ export function useReservationMutations() {
     queryClient.invalidateQueries({ queryKey: ['my-reservations'] })
   }
 
-  async function createReservation(startDate: string, endDate: string): Promise<MutationResult> {
+  async function createReservation(
+    startDate: string,
+    endDate: string,
+    // Admin-only: create the reservation for this member instead of the
+    // signed-in user. The API re-checks that the actor is a reservations admin.
+    forUserId?: string,
+  ): Promise<MutationResult> {
     try {
       const res = await fetch('/reservations/api/reservations', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ startDate, endDate }),
+        body: JSON.stringify({ startDate, endDate, ...(forUserId ? { userId: forUserId } : {}) }),
       })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
