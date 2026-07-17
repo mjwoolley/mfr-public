@@ -27,10 +27,15 @@ function getClient() {
 }
 
 export function appUrl(path: string) {
-  // Plain string join, not `new URL(path, base)` — that constructor treats a
-  // leading-slash path as absolute and silently drops the /reservations path
-  // segment in APP_BASE_URL (same rationale as the accounting app's helper).
-  const base = (process.env.APP_BASE_URL || 'http://localhost:3000/reservations').replace(/\/$/, '')
+  // The merged app serves reservations under /reservations on the shared
+  // origin, so APP_BASE_URL is the bare origin (e.g. https://millerfamily…org)
+  // and the section prefix is appended here — one APP_BASE_URL feeds both the
+  // reservations and accounting email helpers. Stays idempotent if the env
+  // value already carries the /reservations segment. Plain string join, not
+  // `new URL(path, base)` — that constructor treats a leading-slash path as
+  // absolute and would drop the /reservations segment.
+  const origin = (process.env.APP_BASE_URL || 'http://localhost:3000').replace(/\/+$/, '')
+  const base = origin.endsWith('/reservations') ? origin : `${origin}/reservations`
   return `${base}${path.startsWith('/') ? path : `/${path}`}`
 }
 

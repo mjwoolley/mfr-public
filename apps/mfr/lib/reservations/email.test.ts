@@ -41,13 +41,18 @@ describe('appUrl', () => {
     expect(appUrl('/')).toBe('http://localhost:3000/reservations/')
   })
 
-  it('joins without dropping the base path segment and strips trailing slash', () => {
+  it('appends the /reservations section to a bare origin', () => {
+    vi.stubEnv('APP_BASE_URL', 'https://example.org')
+    expect(appUrl('/history')).toBe('https://example.org/reservations/history')
+  })
+
+  it('is idempotent when APP_BASE_URL already includes the section', () => {
     vi.stubEnv('APP_BASE_URL', 'https://example.org/reservations/')
     expect(appUrl('/history')).toBe('https://example.org/reservations/history')
   })
 
   it('adds a leading slash when the path lacks one', () => {
-    vi.stubEnv('APP_BASE_URL', 'https://example.org/reservations')
+    vi.stubEnv('APP_BASE_URL', 'https://example.org')
     expect(appUrl('history')).toBe('https://example.org/reservations/history')
   })
 })
