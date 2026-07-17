@@ -1,11 +1,10 @@
-// The app shell's header + tab row (server component): assembles the tab
+// The accounting second-level sub-tab row (server component): assembles the tab
 // list from the session — inbox badge count, the Contributions visibility
 // toggle (lock glyph when admins-only), and the Admin tab for accounting
-// admins (portal roles).
+// admins (portal roles). The primary nav + header come from the app root layout.
 
-import { PortalHeader, AuthStatus, HOME_URL } from '@mfr/ui'
 import { canAdminAccounting } from '@mfr/auth'
-import { auth, signOut } from '@/lib/auth'
+import { auth } from '@/lib/auth'
 import { db } from '@/lib/db/client'
 import { transactionApproval } from '@/lib/db/schema'
 import { getAppSettings } from '@/lib/accounting/settings'
@@ -59,22 +58,5 @@ export async function Nav() {
     }
   }
 
-  return (
-    <>
-      <PortalHeader appName="Accounting" appHref="/accounting/dashboard">
-        {user && (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-            <AuthStatus
-              email={user.email ?? ''}
-              onSignOut={async () => {
-                'use server'
-                await signOut({ redirectTo: HOME_URL })
-              }}
-            />
-          </div>
-        )}
-      </PortalHeader>
-      {user && <NavTabs tabs={tabs} />}
-    </>
-  )
+  return user ? <NavTabs tabs={tabs} /> : null
 }

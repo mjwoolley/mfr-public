@@ -1,53 +1,53 @@
-"use client";
+'use client'
 
 // Dumb renderer for the tab row Nav assembles: active-tab highlight from the
 // pathname, badge pills, and lock glyphs, inside the shared ResponsiveNav.
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { HOME_URL, ResponsiveNav } from "@mfr/ui";
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { ResponsiveNav } from '@mfr/ui'
 
 export interface NavTab {
-  href: string;
-  label: string;
+  href: string
+  label: string
   /** Pending-approval count rendered as a pill (Inbox). */
-  badge?: number;
+  badge?: number
   /** Shows a lock glyph — the tab is currently admins-only (Contributions). */
-  lock?: boolean;
+  lock?: boolean
 }
 
 const tabBase =
-  "inline-flex items-center gap-1.5 whitespace-nowrap border-b-2 py-3.5 text-[15px] transition-colors";
+  'inline-flex items-center gap-1.5 whitespace-nowrap border-b-2 py-3.5 text-[15px] transition-colors'
 
 export function NavTabs({ tabs }: { tabs: NavTab[] }) {
-  const pathname = usePathname();
+  const pathname = usePathname()
 
   return (
     <ResponsiveNav maxWidthClass="max-w-4xl">
-      <a
-        href={HOME_URL}
+      <Link
+        href="/"
         className={`${tabBase} font-semibold`}
         style={{
-          color: "color-mix(in srgb, var(--color-text) 60%, transparent)",
-          borderBottomColor: "transparent",
+          color: 'color-mix(in srgb, var(--color-text) 60%, transparent)',
+          borderBottomColor: 'transparent',
         }}
       >
         Home
-      </a>
+      </Link>
       {tabs.map((tab) => {
-        const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+        const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`)
         return (
           <Link
             key={tab.href}
             href={tab.href}
-            aria-current={active ? "page" : undefined}
-            className={`${tabBase} ${active ? "font-bold" : "font-semibold"}`}
+            aria-current={active ? 'page' : undefined}
+            className={`${tabBase} ${active ? 'font-bold' : 'font-semibold'}`}
             style={
               active
-                ? { color: "var(--color-accent)", borderBottomColor: "var(--color-accent)" }
+                ? { color: 'var(--color-accent)', borderBottomColor: 'var(--color-accent)' }
                 : {
-                    color: "color-mix(in srgb, var(--color-text) 60%, transparent)",
-                    borderBottomColor: "transparent",
+                    color: 'color-mix(in srgb, var(--color-text) 60%, transparent)',
+                    borderBottomColor: 'transparent',
                   }
             }
           >
@@ -55,7 +55,7 @@ export function NavTabs({ tabs }: { tabs: NavTab[] }) {
             {tab.badge ? (
               <span
                 className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-[5px] text-[11px] font-bold"
-                style={{ background: "var(--color-accent)", color: "var(--color-bg)" }}
+                style={{ background: 'var(--color-accent)', color: 'var(--color-bg)' }}
               >
                 {tab.badge}
               </span>
@@ -78,8 +78,8 @@ export function NavTabs({ tabs }: { tabs: NavTab[] }) {
               </svg>
             )}
           </Link>
-        );
+        )
       })}
     </ResponsiveNav>
-  );
+  )
 }

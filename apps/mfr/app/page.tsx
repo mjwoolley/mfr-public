@@ -3,7 +3,6 @@
 // content, rendered (and fetched) only for signed-in visitors.
 
 import Link from 'next/link'
-import { ACCOUNTING_URL } from '@mfr/ui'
 import { auth } from '@/lib/auth'
 import { getPortalSettings, getFundraising, getEvents } from '@/lib/portal'
 import { HomeSlideshow } from './HomeSlideshow'
@@ -221,9 +220,9 @@ export default async function Home() {
                   <span style={{ fontSize: 13, color: 'var(--color-neutral-700)' }}>
                     {goalNote}
                   </span>
-                  <a href={ACCOUNTING_URL} style={{ fontSize: 12.5, fontWeight: 600 }}>
+                  <Link href="/accounting" style={{ fontSize: 12.5, fontWeight: 600 }}>
                     Full ledger &rarr;
-                  </a>
+                  </Link>
                 </div>
               </div>
             )}

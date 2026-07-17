@@ -81,6 +81,9 @@ export default defineConfig({
           environment: 'node',
           include: ['tests/integration/**/*.test.ts'],
           globalSetup: ['tests/integration/setup.ts'],
+          // Files share portal singletons (portal_settings, portal_meal_rsvps)
+          // on the one test branch — serialize so they don't race.
+          fileParallelism: false,
           // portalDb / identityDb / the unified db are module-load-time
           // singletons that read their URL once at import time. Set them via
           // test.env (applied before the worker evaluates the module graph) so

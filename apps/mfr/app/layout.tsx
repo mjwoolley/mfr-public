@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { Caprasimo, Figtree } from 'next/font/google'
-import { PortalHeader, AuthStatus, HOME_URL, RESERVATIONS_URL, ACCOUNTING_URL } from '@mfr/ui'
+import { PortalHeader, AuthStatus } from '@mfr/ui'
 import { canManagePortalContent, canManageUsers } from '@mfr/auth'
 import { auth, signOut } from '@/lib/auth'
 import { getPortalSettings } from '@/lib/portal'
@@ -43,7 +43,7 @@ export default async function RootLayout({
               email={session.user.email ?? ''}
               onSignOut={async () => {
                 'use server'
-                await signOut({ redirectTo: HOME_URL })
+                await signOut({ redirectTo: '/' })
               }}
             />
           ) : (
@@ -56,12 +56,7 @@ export default async function RootLayout({
             </a>
           )}
         </PortalHeader>
-        <PortalNav
-          reservationsUrl={RESERVATIONS_URL}
-          accountingUrl={ACCOUNTING_URL}
-          chatUrl={settings.chatUrl || 'https://chat.google.com/'}
-          isAdmin={isAdmin}
-        />
+        <PortalNav chatUrl={settings.chatUrl || 'https://chat.google.com/'} isAdmin={isAdmin} />
         <main className="flex w-full flex-1 flex-col">{children}</main>
         <footer>
           <div

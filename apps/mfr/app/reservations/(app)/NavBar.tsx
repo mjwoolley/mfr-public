@@ -5,7 +5,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { HOME_URL, ResponsiveNav } from '@mfr/ui'
+import { ResponsiveNav } from '@mfr/ui'
 
 interface NavLink {
   href: string
@@ -29,13 +29,13 @@ export function NavBar({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <ResponsiveNav>
-      <a
-        href={HOME_URL}
+      <Link
+        href="/"
         className={`${tabBase} border-transparent font-semibold`}
         style={{ color: 'color-mix(in srgb, var(--color-text) 60%, transparent)' }}
       >
         Home
-      </a>
+      </Link>
       {links.map((link) => {
         const active = pathname === link.href || pathname.startsWith(`${link.href}/`)
         return (

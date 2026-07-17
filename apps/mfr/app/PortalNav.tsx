@@ -1,8 +1,10 @@
 'use client'
 
-// The portal home's tab bar: internal pages (Photos/Meals/Documents),
-// external links out to the Reservations and Accounting apps (arrow glyph),
-// the optional Chat link, and the admin gear tab for content admins.
+// The single primary nav for the whole app: Home, the Reservations and
+// Accounting sections (now internal routes in this one app), the portal pages
+// (Photos/Meals/Documents), the optional external Chat link, and the admin gear
+// tab for content admins. Each section renders its own second-level sub-tab row
+// inside its layout.
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -10,8 +12,6 @@ import { ResponsiveNav } from '@mfr/ui'
 import type { CSSProperties, ReactNode } from 'react'
 
 interface PortalNavProps {
-  reservationsUrl: string
-  accountingUrl: string
   chatUrl: string
   isAdmin: boolean
 }
@@ -65,7 +65,7 @@ function GearIcon() {
   )
 }
 
-export function PortalNav({ reservationsUrl, accountingUrl, chatUrl, isAdmin }: PortalNavProps) {
+export function PortalNav({ chatUrl, isAdmin }: PortalNavProps) {
   const pathname = usePathname()
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`)
@@ -87,12 +87,8 @@ export function PortalNav({ reservationsUrl, accountingUrl, chatUrl, isAdmin }: 
   return (
     <ResponsiveNav>
       {internal('/', 'Home')}
-      <a href={reservationsUrl} className={`${tabBase} font-semibold`} style={inactiveStyle}>
-        Reservations
-      </a>
-      <a href={accountingUrl} className={`${tabBase} font-semibold`} style={inactiveStyle}>
-        Accounting
-      </a>
+      {internal('/reservations', 'Reservations')}
+      {internal('/accounting', 'Accounting')}
       {internal('/photos', 'Photos')}
       {internal('/meals', 'Meals')}
       {internal('/documents', 'Documents')}
