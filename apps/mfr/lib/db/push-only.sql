@@ -11,11 +11,14 @@
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 
 -- A confirmed reservation must not overlap any blocked date range.
+-- Tables are schema-qualified (public.*) so the trigger resolves them even when
+-- search_path is empty — e.g. during a pg_dump data load, which sets
+-- search_path='' and would otherwise fail these lookups mid-COPY.
 CREATE OR REPLACE FUNCTION public.check_reservation_not_blocked() RETURNS trigger
     LANGUAGE plpgsql AS $$
 BEGIN
   IF NEW.status = 'confirmed' AND EXISTS (
-    SELECT 1 FROM blocked_dates
+    SELECT 1 FROM public.blocked_dates
     WHERE daterange(blocked_dates.start_date, blocked_dates.end_date, '[)')
           && daterange(NEW.start_date, NEW.end_date, '[)')
   ) THEN
@@ -30,7 +33,7 @@ CREATE OR REPLACE FUNCTION public.check_blocked_date_not_reserved() RETURNS trig
     LANGUAGE plpgsql AS $$
 BEGIN
   IF EXISTS (
-    SELECT 1 FROM reservations
+    SELECT 1 FROM public.reservations
     WHERE reservations.status = 'confirmed'
       AND daterange(reservations.start_date, reservations.end_date, '[)')
           && daterange(NEW.start_date, NEW.end_date, '[)')
