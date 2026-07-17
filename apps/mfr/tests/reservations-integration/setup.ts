@@ -6,14 +6,13 @@
 import postgres from 'postgres'
 
 export default async function setup() {
+  // One unified branch now — business, identity, and portal tables share it,
+  // reached via the single direct (non-pooled) URL.
   const businessConnectionString = process.env.TEST_DIRECT_URL
   if (!businessConnectionString) {
     throw new Error('TEST_DIRECT_URL is not set')
   }
-  const identityConnectionString = process.env.TEST_IDENTITY_DIRECT_DATABASE_URL
-  if (!identityConnectionString) {
-    throw new Error('TEST_IDENTITY_DIRECT_DATABASE_URL is not set')
-  }
+  const identityConnectionString = businessConnectionString
 
   // Truncate in dependency order, resetting to a known-empty state before
   // the integration run begins. RESTART IDENTITY is harmless here (no
@@ -31,10 +30,7 @@ export default async function setup() {
 
   // Portal roles (mfr-portal test branch) drive which users notifications CC as
   // reservations admins — reset it too.
-  const portalConnectionString = process.env.TEST_PORTAL_DATABASE_URL
-  if (!portalConnectionString) {
-    throw new Error('TEST_PORTAL_DATABASE_URL is not set')
-  }
+  const portalConnectionString = businessConnectionString
   const portalSql = postgres(portalConnectionString, { prepare: false })
   await portalSql`TRUNCATE TABLE portal_user_roles RESTART IDENTITY CASCADE`
   await portalSql.end()

@@ -24,7 +24,7 @@ vi.mock('@mfr/auth', () => ({
     captured.extendSession = opts.extendSession
     return {}
   }),
-  createRolesReaderFromEnv: vi.fn(() => async () => ({
+  createRolesReader: vi.fn(() => async () => ({
     siteOwner: false,
     siteManager: false,
     accountingManager: false,

@@ -2,12 +2,12 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from './db/schema'
 
-// apps/web's portal-DB client singleton (module-load time, like identityDb.ts).
-// Points at the dedicated portal Neon project via PORTAL_DATABASE_URL — the
-// same value @mfr/auth's roles reader uses to attach roles to the session.
-const connectionString = process.env.PORTAL_DATABASE_URL
+// Portal feature-data client singleton (portal roles, settings, photo albums,
+// events, meal RSVPs). Post-merge these tables live in the one unified
+// database, so this reads the single DATABASE_URL like every other client.
+const connectionString = process.env.DATABASE_URL
 if (!connectionString) {
-  throw new Error('PORTAL_DATABASE_URL is not set')
+  throw new Error('DATABASE_URL is not set')
 }
 
 // Neon's pooled (pgbouncer) connection is in transaction mode, which does not

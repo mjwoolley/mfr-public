@@ -8,7 +8,7 @@ import { users } from '@mfr/auth'
 // reasoning: the authz helpers under test call requireSession() ->
 // auth() from @/lib/auth, whose top-level `NextAuth(createAuthConfig({ db:
 // identityDb, ... }))` call would otherwise instantiate a real identityDb
-// client (reading IDENTITY_DATABASE_URL, not our TEST_ variant) and pull in
+// client (reading DATABASE_URL, not our TEST_ variant) and pull in
 // next-auth machinery that doesn't resolve under plain Vitest. Mocking the
 // module lets each test control exactly which session (or none) the authz
 // helper sees, without touching real NextAuth at all.

@@ -60,14 +60,12 @@ export default defineConfig({
             'tests/accounting-integration/**',
             'tests/reservations-integration/**',
           ],
-          // The unified Drizzle client (and the identity/portal clients) throw
-          // at module load if their URL is unset. Pure unit tests that merely
-          // import a lib module which loads a client need a dummy URL — postgres
-          // is lazy and never connects unless a query runs.
+          // Every client now reads the single DATABASE_URL and throws at module
+          // load if it is unset. Pure unit tests that merely import a lib module
+          // which loads a client need a dummy URL — postgres is lazy and never
+          // connects unless a query runs.
           env: {
             DATABASE_URL: 'postgresql://unit:unit@localhost:5432/unit',
-            IDENTITY_DATABASE_URL: 'postgresql://unit:unit@localhost:5432/unit',
-            PORTAL_DATABASE_URL: 'postgresql://unit:unit@localhost:5432/unit',
           },
         },
       },
@@ -85,23 +83,18 @@ export default defineConfig({
           // on the one test branch — serialize so they don't race.
           fileParallelism: false,
           // portalDb / identityDb / the unified db are module-load-time
-          // singletons that read their URL once at import time. Set them via
+          // singletons that all read DATABASE_URL once at import time. Set it via
           // test.env (applied before the worker evaluates the module graph) so
-          // they point at the test branch. DATABASE_URL is needed because
-          // lib/portal.ts's getFundraising now reads the accounting ledger
-          // (the unified `db`) in-process instead of fetching a sibling app.
+          // they point at the one unified test branch.
           env: {
             DATABASE_URL: process.env.TEST_DATABASE_URL,
-            PORTAL_DATABASE_URL: process.env.TEST_PORTAL_DATABASE_URL,
-            IDENTITY_DATABASE_URL: process.env.TEST_IDENTITY_DATABASE_URL,
           },
         },
       },
       {
         // Accounting integration suite (the Prisma->Drizzle safety net). Runs
         // against the unified `test` branch: the accounting business client
-        // (db) reads DATABASE_URL and the identity client reads
-        // IDENTITY_DATABASE_URL — both point at the one test branch now.
+        // (db) and the identity client both read the single DATABASE_URL.
         plugins: [react()],
         resolve: { alias },
         test: {
@@ -111,18 +104,14 @@ export default defineConfig({
           globalSetup: ['tests/accounting-integration/setup.ts'],
           env: {
             DATABASE_URL: process.env.TEST_DATABASE_URL,
-            IDENTITY_DATABASE_URL: process.env.TEST_IDENTITY_DATABASE_URL,
           },
         },
       },
       {
         // Reservations integration suite (folded in from apps/reservations).
         // Runs against the unified `test` branch: the reservations route
-        // handlers query the unified `db` (DATABASE_URL) and the transitional
-        // reservations NextAuth identity client reads IDENTITY_DATABASE_URL —
-        // both point at the one test branch now. PORTAL_DATABASE_URL is still
-        // read by the portalDb singleton that notifications use to resolve
-        // reservations admins.
+        // handlers, the identity client, and the notifications admin-ids reader
+        // all read the single DATABASE_URL.
         plugins: [react()],
         resolve: { alias },
         test: {
@@ -135,8 +124,6 @@ export default defineConfig({
           fileParallelism: false,
           env: {
             DATABASE_URL: process.env.TEST_DATABASE_URL,
-            IDENTITY_DATABASE_URL: process.env.TEST_IDENTITY_DATABASE_URL,
-            PORTAL_DATABASE_URL: process.env.TEST_PORTAL_DATABASE_URL,
           },
         },
       },

@@ -18,9 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: reservations, workspace: apps/reservations }
-          - { name: accounting, workspace: apps/accounting }
-          - { name: web, workspace: apps/mfr }
+          - { name: mfr, workspace: apps/mfr }
           - { name: auth, workspace: packages/auth }
     steps:
       - uses: actions/checkout@v7
@@ -29,9 +27,6 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npx prisma generate
-        if: matrix.name == 'accounting'
-        working-directory: apps/accounting
       # Full authoritative run each week (incremental mode is a local-DX
       # feature; in CI there is no prior state worth trusting).
       - name: Run Stryker

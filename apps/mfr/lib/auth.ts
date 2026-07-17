@@ -1,6 +1,6 @@
 import NextAuth from 'next-auth'
 import { eq } from 'drizzle-orm'
-import { createAuthConfig, createRolesReaderFromEnv } from '@mfr/auth'
+import { createAuthConfig, createRolesReader } from '@mfr/auth'
 import { identityDb } from './identityDb'
 import { db } from './db/client'
 import { shareholder, activityLog } from './db/schema'
@@ -22,7 +22,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth(
     db: identityDb,
     basePath: '/api/auth',
     pages: { signIn: '/sign-in' },
-    getUserRoles: createRolesReaderFromEnv(),
+    getUserRoles: createRolesReader(process.env.DATABASE_URL!),
     onUserCreated: async ({ id }) => {
       await db.insert(activityLog).values({
         eventType: 'user_signed_up',

@@ -3,17 +3,16 @@
 // the TEST_* env guards in testDb/testIdentityDb are what keep it away from
 // real databases.
 
-import postgres from "postgres";
+import postgres from 'postgres'
 
 export default async function setup() {
-  const businessConnectionString = process.env.TEST_DIRECT_URL;
+  // One unified branch now — business and identity tables share it, reached
+  // via the single direct (non-pooled) URL.
+  const businessConnectionString = process.env.TEST_DIRECT_URL
   if (!businessConnectionString) {
-    throw new Error("TEST_DIRECT_URL is not set");
+    throw new Error('TEST_DIRECT_URL is not set')
   }
-  const identityConnectionString = process.env.TEST_IDENTITY_DIRECT_DATABASE_URL;
-  if (!identityConnectionString) {
-    throw new Error("TEST_IDENTITY_DIRECT_DATABASE_URL is not set");
-  }
+  const identityConnectionString = businessConnectionString
 
   // Single statement, CASCADE handles FK ordering (LedgerEntry and
   // TransactionApproval both cascade-delete from Transaction; Transaction
@@ -22,14 +21,14 @@ export default async function setup() {
   // for safety if that ever changes. Table names are unquoted-default Prisma
   // model names (no @@map in schema.prisma) so they must be double-quoted to
   // preserve case.
-  const businessSql = postgres(businessConnectionString, { prepare: false });
-  await businessSql`TRUNCATE TABLE "Shareholder", "Transaction", "LedgerEntry", "TransactionApproval", "Expense" RESTART IDENTITY CASCADE`;
-  await businessSql.end();
+  const businessSql = postgres(businessConnectionString, { prepare: false })
+  await businessSql`TRUNCATE TABLE "Shareholder", "Transaction", "LedgerEntry", "TransactionApproval", "Expense" RESTART IDENTITY CASCADE`
+  await businessSql.end()
 
   // users/accounts/sessions/verification_tokens live in the shared @mfr/auth
   // identity test branch (also used by reservations' integration tests) —
   // truncate it independently.
-  const identitySql = postgres(identityConnectionString, { prepare: false });
-  await identitySql`TRUNCATE TABLE sessions, accounts, verification_tokens, users RESTART IDENTITY CASCADE`;
-  await identitySql.end();
+  const identitySql = postgres(identityConnectionString, { prepare: false })
+  await identitySql`TRUNCATE TABLE sessions, accounts, verification_tokens, users RESTART IDENTITY CASCADE`
+  await identitySql.end()
 }

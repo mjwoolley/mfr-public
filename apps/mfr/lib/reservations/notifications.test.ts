@@ -14,7 +14,7 @@ vi.mock('@/lib/reservations/auth/identityDb', () => ({
 const adminIdsMock = vi.fn<() => Promise<string[]>>()
 vi.mock('@mfr/auth', async (importActual) => {
   const actual = await importActual<typeof import('@mfr/auth')>()
-  return { ...actual, createReservationsAdminIdsReaderFromEnv: () => adminIdsMock }
+  return { ...actual, createReservationsAdminIdsReader: () => adminIdsMock }
 })
 vi.mock('@/lib/reservations/email', () => ({
   sendEmail: vi.fn(),

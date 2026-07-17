@@ -5,11 +5,7 @@
 
 import { createElement } from 'react'
 import { and, eq, inArray, or } from 'drizzle-orm'
-import {
-  users,
-  createReservationsAdminIdsReaderFromEnv,
-  type ReservationsAdminIdsReader,
-} from '@mfr/auth'
+import { users, createReservationsAdminIdsReader, type ReservationsAdminIdsReader } from '@mfr/auth'
 import { identityDb } from '@/lib/reservations/auth/identityDb'
 import { sendEmail, appUrl } from '@/lib/reservations/email'
 import { logger } from '@/lib/reservations/logger'
@@ -54,10 +50,11 @@ function nightsBetween(startDate: string, endDate: string) {
 // those admins (for email/name), keeping only approved ones. The owner is
 // deduped out of the CC list.
 // Built lazily on first use so importing this module doesn't require
-// PORTAL_DATABASE_URL at load time (unit tests that mock it never hit this).
+// DATABASE_URL at load time (unit tests that mock it never hit this). The
+// portal_user_roles table now lives in the one unified database.
 let _reservationsAdminIds: ReservationsAdminIdsReader | undefined
 function reservationsAdminIds(): Promise<string[]> {
-  _reservationsAdminIds ??= createReservationsAdminIdsReaderFromEnv()
+  _reservationsAdminIds ??= createReservationsAdminIdsReader(process.env.DATABASE_URL!)
   return _reservationsAdminIds()
 }
 

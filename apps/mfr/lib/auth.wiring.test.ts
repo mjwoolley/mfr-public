@@ -17,7 +17,7 @@ vi.mock('next-auth', () => ({
 }))
 vi.mock('@mfr/auth', () => ({
   createAuthConfig,
-  createRolesReaderFromEnv: vi.fn(() => async () => ({
+  createRolesReader: vi.fn(() => async () => ({
     siteOwner: false,
     siteManager: false,
     accountingManager: false,

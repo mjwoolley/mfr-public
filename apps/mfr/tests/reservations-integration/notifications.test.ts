@@ -6,10 +6,10 @@ import { testIdentityDb } from './testIdentityDb'
 import { reservations, bookingRules, activityLog } from '../../lib/db/schema'
 import { users } from '@mfr/auth'
 
-// Portal roles live in the mfr-portal test branch; notifications resolve
-// reservations admins from here. vitest.config points PORTAL_DATABASE_URL at
+// portal_user_roles lives in the one unified test branch; notifications
+// resolve reservations admins from here. vitest.config points DATABASE_URL at
 // the test branch, so the reader and this seeding client hit the same DB.
-const portalSql = postgres(process.env.PORTAL_DATABASE_URL ?? '', { prepare: false })
+const portalSql = postgres(process.env.DATABASE_URL ?? '', { prepare: false })
 
 // Same auth seam as reservations.test.ts (also prevents lib/auth/config's
 // top-level NextAuth() from opening a second real postgres client).
