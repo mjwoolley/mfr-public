@@ -208,23 +208,13 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npx playwright install --with-deps chromium
-      # HUMAN: playwright.config.ts + e2e/global-setup.ts still spin up THREE app
-      # servers (mfr/reservations/accounting) and seed FOUR databases via the
-      # E2E_*_{DATABASE,DIRECT}_URL vars below. That harness must be collapsed to
-      # a single apps/mfr server on one origin + one E2E_DATABASE_URL/
-      # E2E_DIRECT_URL before this job can go green. Until then all E2E_* names
-      # are pointed at the one unified branch so the collapse is a config-only
-      # change here.
+      # Single unified harness: one apps/mfr server on one origin, one Neon
+      # branch. global-setup truncates/seeds via E2E_DIRECT_URL; the webServer
+      # reads E2E_DATABASE_URL (pooled) as its runtime DATABASE_URL.
       - name: Run Playwright tests
         env:
-          E2E_IDENTITY_DATABASE_URL: ${{ steps.db.outputs.db_url_pooled }}
-          E2E_IDENTITY_DIRECT_URL: ${{ steps.db.outputs.db_url }}
-          E2E_ACCOUNTING_DATABASE_URL: ${{ steps.db.outputs.db_url_pooled }}
-          E2E_ACCOUNTING_DIRECT_URL: ${{ steps.db.outputs.db_url }}
-          E2E_RESERVATIONS_DATABASE_URL: ${{ steps.db.outputs.db_url_pooled }}
-          E2E_RESERVATIONS_DIRECT_URL: ${{ steps.db.outputs.db_url }}
-          E2E_PORTAL_DATABASE_URL: ${{ steps.db.outputs.db_url_pooled }}
-          E2E_PORTAL_DIRECT_URL: ${{ steps.db.outputs.db_url }}
+          E2E_DATABASE_URL: ${{ steps.db.outputs.db_url_pooled }}
+          E2E_DIRECT_URL: ${{ steps.db.outputs.db_url }}
         run: npm run e2e
       - name: Upload Playwright report
         if: failure()
