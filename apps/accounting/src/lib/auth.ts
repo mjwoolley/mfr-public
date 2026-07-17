@@ -1,3 +1,7 @@
+// This app's NextAuth instance from the shared @mfr/auth factory. The
+// extendSession hook below attaches the linked Shareholder id — accounting's
+// one app-specific session field.
+
 import NextAuth from "next-auth";
 import { createAuthConfig, createRolesReaderFromEnv } from "@mfr/auth";
 import { identityDb } from "@/lib/identityDb";

@@ -1,3 +1,9 @@
+// The shared NextAuth config factory every app calls with its own basePath
+// and hooks: Google-only sign-in, database sessions via the Drizzle adapter
+// on the shared identity DB, the cross-subdomain cookie setup, and the
+// session callback that attaches id/status/portal-roles to every session.
+// One identity DB + one AUTH_SECRET across apps = one portal-wide login.
+
 import type { NextAuthConfig, Session } from 'next-auth'
 import type { AdapterUser } from '@auth/core/adapters'
 import Google from 'next-auth/providers/google'

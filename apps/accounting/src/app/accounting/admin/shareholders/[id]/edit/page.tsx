@@ -1,3 +1,6 @@
+// Admin edit-shareholder page: name/email/active form plus the control that
+// links a Shareholder record to a Google login in the shared identity DB.
+
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { users } from "@mfr/auth";

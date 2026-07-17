@@ -1,3 +1,8 @@
+// Expense aggregation for the Expenses tab: fiscal-year grouping, the
+// operating-vs-capital split, and the income-vs-expenses merge that feeds the
+// combo chart. All grouping is pure and keyed by fiscal year (Mar–Feb, see
+// @/lib/fiscalYear) — `year` fields hold fiscal years throughout.
+
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import type { ContributionYearGroup } from "@/lib/ledger";

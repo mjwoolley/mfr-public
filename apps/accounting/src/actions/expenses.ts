@@ -1,5 +1,9 @@
 "use server";
 
+// Admin CRUD for house expenses. Expenses live outside the share ledger (no
+// balances, no approvals): edits keep the original incurredAt and deletes are
+// hard — see the comments on updateSchema and deleteExpense.
+
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";

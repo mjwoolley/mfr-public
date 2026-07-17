@@ -1,3 +1,8 @@
+// Vitest global setup for the integration project: truncates the business and
+// shared-identity Neon *test* branches before the run. Destructive by design —
+// the TEST_* env guards in testDb/testIdentityDb are what keep it away from
+// real databases.
+
 import postgres from "postgres";
 
 export default async function setup() {

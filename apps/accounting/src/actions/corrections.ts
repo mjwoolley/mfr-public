@@ -1,5 +1,10 @@
 "use server";
 
+// Admin action: record a CORRECTION that replaces a mistaken transaction.
+// The correction carries the full intended amounts (not deltas) and the
+// original is soft-deleted in the same DB transaction — the ledger's only
+// "edit" path. Affected shareholders are emailed.
+
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
@@ -39,6 +44,9 @@ export async function createCorrection(
     return { error: "Original transaction not found" };
   }
 
+  // The correction form (transactions-client.tsx) posts one field per affected
+  // shareholder, named `amount_<shareholderId>` — every shareholder on the
+  // original must get a non-zero replacement amount.
   const entries: { shareholderId: string; shares: number }[] = [];
   for (const originalEntry of original.entries) {
     const raw = formData.get(`amount_${originalEntry.shareholderId}`);

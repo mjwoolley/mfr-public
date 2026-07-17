@@ -1,3 +1,6 @@
+// Ownership report: every shareholder's shares and percent of the total,
+// largest holder first, with the viewer's own row highlighted.
+
 import { requireAuthorized } from "@/lib/authz";
 import { getAllShareholderBalances } from "@/lib/ledger";
 import { formatUSD } from "@/lib/format";

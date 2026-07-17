@@ -1,3 +1,6 @@
+// Contribution-goal lookup + the progress math behind the dashboard's goal
+// tracker. Goals are keyed by fiscal year (see @/lib/fiscalYear).
+
 import { prisma } from "@/lib/prisma";
 
 export interface GoalProgress {

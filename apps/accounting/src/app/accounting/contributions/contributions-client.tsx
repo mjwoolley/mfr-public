@@ -1,5 +1,9 @@
 "use client";
 
+// Contributions tab (client half): toggles between the per-shareholder and
+// per-fiscal-year groupings computed in contributionsGrouping.ts, with
+// expand/collapse per group.
+
 import { useState } from "react";
 import { transactionTypeTag } from "@/lib/tags";
 import { fiscalYearLabel } from "@/lib/fiscalYear";
