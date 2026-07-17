@@ -291,25 +291,17 @@ credentials sign-ins, conflicting with the database-session architecture.)
 Run locally:
 
 ```sh
-# Build with CI-style dummy env — apps/web fails page-data collection without
-# IDENTITY_DATABASE_URL, and NEXT_PUBLIC_HOME_URL must point at the e2e portal
-# (mirror the "Build apps" env in .github/workflows/ci.yml):
+# Build with CI-style dummy env (mirror the "Build apps/mfr" env in
+# .github/workflows/ci.yml); the real branch URL is injected at runtime by
+# playwright.config.ts's webServer entry:
 DATABASE_URL=postgres://ci:ci@localhost:5432/ci \
 DIRECT_URL=postgres://ci:ci@localhost:5432/ci \
-IDENTITY_DATABASE_URL=postgres://ci:ci@localhost:5432/ci \
-PORTAL_DATABASE_URL=postgres://ci:ci@localhost:5432/ci \
 AUTH_SECRET=ci-dummy-secret-not-used \
-NEXT_PUBLIC_HOME_URL=http://localhost:3100 \
-npm run build                    # e2e serves the apps with `next start`
+npm run build -w apps/mfr         # e2e serves the app with `next start`
 
-export E2E_IDENTITY_DATABASE_URL=...        # pooled …
-export E2E_IDENTITY_DIRECT_URL=...          # … and direct URLs for the
-export E2E_PORTAL_DATABASE_URL=...          # `test` branch of each of the
-export E2E_PORTAL_DIRECT_URL=...            # FOUR Neon projects (identity,
-export E2E_ACCOUNTING_DATABASE_URL=...      # portal, accounting,
-export E2E_ACCOUNTING_DIRECT_URL=...        # reservations).
-export E2E_RESERVATIONS_DATABASE_URL=...    # NEVER production — global-setup
-export E2E_RESERVATIONS_DIRECT_URL=...      # truncates these databases.
+export E2E_DATABASE_URL=...       # pooled URL for the unified `test` Neon branch
+export E2E_DIRECT_URL=...         # direct URL (global-setup truncates + seeds it —
+                                  # NEVER production).
 npm run e2e
 ```
 

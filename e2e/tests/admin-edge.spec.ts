@@ -27,7 +27,8 @@ test.describe('reservations admin', () => {
     await memberPage.goto(`${RESERVATIONS_URL}/reservations/my-reservations`)
     await memberPage.getByRole('button', { name: 'New reservation' }).click()
     await memberPage.locator('#booking-check-in').fill('2026-10-01')
-    await memberPage.locator('#booking-last-night').fill('2026-10-06')
+    // Check-out Oct 7 = 6 nights (Oct 1–6), one over the tightened max of 5.
+    await memberPage.locator('#booking-check-out').fill('2026-10-07')
     await expect(
       memberPage.getByText('Reservations cannot exceed 5 consecutive nights.'),
     ).toBeVisible()
@@ -117,7 +118,16 @@ test.describe('meals RSVPs', () => {
     const firstLunch = page.getByRole('button', { name: /Lunch/ }).first()
     await expect(firstLunch).toHaveText('Lunch')
 
-    await firstLunch.click()
+    // The pill flips optimistically (useOptimistic) while toggleMeal runs in a
+    // transition, so wait for the server action's POST to /meals to actually
+    // resolve before reloading — otherwise the reload can race the (remote
+    // Neon) write and read back the pre-toggle state.
+    await Promise.all([
+      page.waitForResponse(
+        (r) => r.request().method() === 'POST' && r.url().endsWith('/meals') && r.status() === 200,
+      ),
+      firstLunch.click(),
+    ])
     await expect(firstLunch).toHaveText('✓ Lunch')
 
     await page.reload()

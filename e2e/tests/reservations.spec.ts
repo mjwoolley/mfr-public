@@ -56,9 +56,9 @@ test.describe('reservations portal', () => {
     await page.goto(`${RESERVATIONS_URL}/reservations/my-reservations`)
 
     await expect(page.getByRole('heading', { name: 'My reservations' })).toBeVisible()
-    // Ranges display the inclusive last night (checkout − 1): a May 10 → May 12
-    // (checkout) stay reads as its two nights, May 10 → May 11.
-    await expect(page.getByRole('button', { name: /May 10 → May 11/ })).toBeVisible()
+    // Ranges display as check-in → check-out (endDate is the exclusive checkout
+    // day): a May 10 → May 12 checkout stay (2 nights) reads "May 10 → May 12".
+    await expect(page.getByRole('button', { name: /May 10 → May 12/ })).toBeVisible()
     await context.close()
   })
 

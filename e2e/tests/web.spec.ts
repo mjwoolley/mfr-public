@@ -11,16 +11,17 @@ test.describe('web portal', () => {
     await page.goto(WEB_URL)
 
     await expect(page.getByText('Lake Lure, North Carolina', { exact: true })).toBeVisible()
-    // The cross-app links live in the shared tab-bar nav now (the old app
-    // cards are gone), and a signed-out visitor gets the generic sign-in
-    // prompt instead of the member-only goal card.
+    // The section links live in the shared tab-bar nav now (the old app cards
+    // are gone). One origin, so they are same-origin relative paths rather
+    // than the former cross-subdomain absolute URLs. A signed-out visitor gets
+    // the generic sign-in prompt instead of the member-only goal card.
     await expect(page.getByRole('link', { name: 'Reservations', exact: true })).toHaveAttribute(
       'href',
-      'https://reservations.millerfamilyreunions.org/reservations',
+      '/reservations',
     )
     await expect(page.getByRole('link', { name: 'Accounting', exact: true })).toHaveAttribute(
       'href',
-      'https://accounting.millerfamilyreunions.org/accounting',
+      '/accounting',
     )
     await expect(page.getByText(/Sign in to see this year/)).toBeVisible()
   })
