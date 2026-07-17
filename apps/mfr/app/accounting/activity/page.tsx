@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { redirect } from 'next/navigation'
 
 /**
  * Activity folded into the Admin area in the Organic redesign (shareholder
@@ -6,5 +6,5 @@ import { redirect } from "next/navigation";
  * old links and bookmarks survive; the admin layout still gates the target.
  */
 export default function ActivityPage() {
-  redirect("/accounting/admin/activity");
+  redirect('/accounting/admin/activity')
 }

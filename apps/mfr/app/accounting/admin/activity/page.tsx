@@ -1,10 +1,10 @@
-import Link from "next/link";
-import { desc } from "drizzle-orm";
-import { db } from "@/lib/db/client";
-import { formatUSD, formatDate } from "@/lib/accounting/format";
-import { transactionTypeTag, approvalStatusTag } from "@/lib/accounting/tags";
-import { ApprovalStatus } from "@/lib/accounting/enums";
-import { ResolveDisputeForm } from "./resolve-dispute-form";
+import Link from 'next/link'
+import { desc } from 'drizzle-orm'
+import { db } from '@/lib/db/client'
+import { formatUSD, formatDate } from '@/lib/accounting/format'
+import { transactionTypeTag, approvalStatusTag } from '@/lib/accounting/tags'
+import { ApprovalStatus } from '@/lib/accounting/enums'
+import { ResolveDisputeForm } from './resolve-dispute-form'
 
 /**
  * The full transaction ledger with the dispute-resolution workflow.
@@ -20,7 +20,7 @@ export default async function AdminActivityPage() {
       approvals: { with: { shareholder: { columns: { name: true } } } },
       correctsTransaction: { columns: { id: true, type: true } },
     },
-  });
+  })
 
   return (
     <div>
@@ -31,20 +31,20 @@ export default async function AdminActivityPage() {
 
       <div className="flex flex-col gap-2">
         {transactions.map((t) => {
-          const typeTag = transactionTypeTag(t.type);
+          const typeTag = transactionTypeTag(t.type)
           const entryLine = t.entries
             .map((e) => {
-              const shares = Number(e.shares);
-              return `${e.shareholder.name} ${shares >= 0 ? "+" : ""}${formatUSD(e.shares.toString())}`;
+              const shares = Number(e.shares)
+              return `${e.shareholder.name} ${shares >= 0 ? '+' : ''}${formatUSD(e.shares.toString())}`
             })
-            .join(" · ");
-          const disputedApprovals = t.approvals.filter((a) => a.status === ApprovalStatus.DISPUTED);
+            .join(' · ')
+          const disputedApprovals = t.approvals.filter((a) => a.status === ApprovalStatus.DISPUTED)
           return (
             <div key={t.id} className="card elev-sm px-4 py-3 text-sm" style={{ gap: 5 }}>
               <div className="flex items-center gap-2.5">
                 <span className={`${typeTag.className} flex-none`}>{typeTag.label}</span>
                 <span
-                  className={`min-w-0 text-sm font-semibold ${t.deleted ? "line-through opacity-60" : ""}`}
+                  className={`min-w-0 text-sm font-semibold ${t.deleted ? 'line-through opacity-60' : ''}`}
                 >
                   {entryLine}
                 </span>
@@ -66,16 +66,16 @@ export default async function AdminActivityPage() {
                 )}
                 <span className="ml-auto flex flex-wrap items-center gap-[5px]">
                   {t.approvals.map((a) => {
-                    const tag = approvalStatusTag(a.status);
+                    const tag = approvalStatusTag(a.status)
                     const label =
                       a.status === ApprovalStatus.DISPUTED && a.resolvedAt
-                        ? "Disputed (resolved)"
-                        : tag.label;
+                        ? 'Disputed (resolved)'
+                        : tag.label
                     return (
                       <span key={a.id} className={`${tag.className} px-[7px] py-0 text-[10px]`}>
                         {a.shareholder.name} · {label}
                       </span>
-                    );
+                    )
                   })}
                   {!t.deleted && (
                     <Link
@@ -92,17 +92,17 @@ export default async function AdminActivityPage() {
                   key={a.id}
                   className="rounded-2xl px-3.5 py-2.5 text-xs"
                   style={{
-                    background: "var(--color-accent-100)",
-                    border: "1px solid var(--color-accent-300)",
-                    color: "var(--color-accent-900)",
+                    background: 'var(--color-accent-100)',
+                    border: '1px solid var(--color-accent-300)',
+                    color: 'var(--color-accent-900)',
                   }}
                 >
                   <p className="m-0">
-                    <span className="font-semibold">{a.shareholder.name} disputed:</span>{" "}
+                    <span className="font-semibold">{a.shareholder.name} disputed:</span>{' '}
                     {a.disputeReason}
                   </p>
                   {a.resolvedAt ? (
-                    <p className="m-0 mt-1" style={{ color: "var(--color-accent-700)" }}>
+                    <p className="m-0 mt-1" style={{ color: 'var(--color-accent-700)' }}>
                       Resolved {formatDate(a.resolvedAt)}
                       {a.resolutionTransactionId &&
                         ` — correction #${a.resolutionTransactionId.slice(-6)}`}
@@ -121,13 +121,13 @@ export default async function AdminActivityPage() {
                 </div>
               ))}
               <div className="text-muted text-xs">
-                Recorded by {t.createdByName ?? t.createdByEmail ?? "an admin"}
+                Recorded by {t.createdByName ?? t.createdByEmail ?? 'an admin'}
               </div>
             </div>
-          );
+          )
         })}
         {transactions.length === 0 && <p className="text-muted">No transactions yet.</p>}
       </div>
     </div>
-  );
+  )
 }

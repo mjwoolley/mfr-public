@@ -3,23 +3,23 @@
 // combo chart. All grouping is pure and keyed by fiscal year (Mar–Feb, see
 // @/lib/fiscalYear) — `year` fields hold fiscal years throughout.
 
-import { db } from "@/lib/db/client";
-import { expense } from "@/lib/db/schema";
-import { Decimal } from "@/lib/accounting/decimal";
-import type { ContributionYearGroup } from "@/lib/accounting/ledger";
-import { fiscalYear } from "@/lib/accounting/fiscalYear";
+import { db } from '@/lib/db/client'
+import { expense } from '@/lib/db/schema'
+import { Decimal } from '@/lib/accounting/decimal'
+import type { ContributionYearGroup } from '@/lib/accounting/ledger'
+import { fiscalYear } from '@/lib/accounting/fiscalYear'
 
 export type ExpenseYearGroup = {
-  year: number;
-  total: Decimal;
-};
+  year: number
+  total: Decimal
+}
 
 type ExpenseForGrouping = {
   // Decimal.Value = string | number | Decimal, so raw Drizzle rows (numeric
   // columns come back as strings) pass straight in; Decimal.add() accepts it.
-  amount: Decimal.Value;
-  incurredAt: Date;
-};
+  amount: Decimal.Value
+  incurredAt: Date
+}
 
 /**
  * Groups Expense rows by the fiscal year of `incurredAt` (see
@@ -29,37 +29,37 @@ type ExpenseForGrouping = {
  * shortcut here. The `year` field holds the fiscal year.
  */
 export function groupExpensesByYear(expenses: ExpenseForGrouping[]): ExpenseYearGroup[] {
-  const byYear = new Map<number, ExpenseYearGroup>();
+  const byYear = new Map<number, ExpenseYearGroup>()
 
   for (const expense of expenses) {
-    const year = fiscalYear(expense.incurredAt);
-    let group = byYear.get(year);
+    const year = fiscalYear(expense.incurredAt)
+    let group = byYear.get(year)
     if (!group) {
-      group = { year, total: new Decimal(0) };
-      byYear.set(year, group);
+      group = { year, total: new Decimal(0) }
+      byYear.set(year, group)
     }
-    group.total = group.total.add(expense.amount);
+    group.total = group.total.add(expense.amount)
   }
 
-  return Array.from(byYear.values()).sort((a, b) => a.year - b.year);
+  return Array.from(byYear.values()).sort((a, b) => a.year - b.year)
 }
 
 export async function getExpensesByYear(): Promise<ExpenseYearGroup[]> {
-  const rows = await db.query.expense.findMany();
+  const rows = await db.query.expense.findMany()
   const expenses: ExpenseForGrouping[] = rows.map((row) => ({
     amount: new Decimal(row.amount),
     incurredAt: row.incurredAt,
-  }));
-  return groupExpensesByYear(expenses);
+  }))
+  return groupExpensesByYear(expenses)
 }
 
 export type ExpenseSplitYearGroup = {
-  year: number;
-  operating: Decimal;
-  capital: Decimal;
-};
+  year: number
+  operating: Decimal
+  capital: Decimal
+}
 
-type ExpenseForSplitting = ExpenseForGrouping & { capital: boolean };
+type ExpenseForSplitting = ExpenseForGrouping & { capital: boolean }
 
 /**
  * Groups expenses by fiscal year of `incurredAt` (see @/lib/fiscalYear),
@@ -68,30 +68,30 @@ type ExpenseForSplitting = ExpenseForGrouping & { capital: boolean };
  * net table consume. The `year` field holds the fiscal year.
  */
 export function splitExpensesByYear(expenses: ExpenseForSplitting[]): ExpenseSplitYearGroup[] {
-  const byYear = new Map<number, ExpenseSplitYearGroup>();
+  const byYear = new Map<number, ExpenseSplitYearGroup>()
 
   for (const expense of expenses) {
-    const year = fiscalYear(expense.incurredAt);
-    let group = byYear.get(year);
+    const year = fiscalYear(expense.incurredAt)
+    let group = byYear.get(year)
     if (!group) {
-      group = { year, operating: new Decimal(0), capital: new Decimal(0) };
-      byYear.set(year, group);
+      group = { year, operating: new Decimal(0), capital: new Decimal(0) }
+      byYear.set(year, group)
     }
     if (expense.capital) {
-      group.capital = group.capital.add(expense.amount);
+      group.capital = group.capital.add(expense.amount)
     } else {
-      group.operating = group.operating.add(expense.amount);
+      group.operating = group.operating.add(expense.amount)
     }
   }
 
-  return Array.from(byYear.values()).sort((a, b) => a.year - b.year);
+  return Array.from(byYear.values()).sort((a, b) => a.year - b.year)
 }
 
 export type IncomeExpenseYear = {
-  year: number;
-  income: Decimal;
-  expenses: Decimal;
-};
+  year: number
+  income: Decimal
+  expenses: Decimal
+}
 
 /**
  * Merges an already-computed per-year contribution total (income) with
@@ -107,7 +107,7 @@ export function mergeIncomeAndExpenses(
   const years = new Set<number>([
     ...contributionsByYear.map((c) => c.year),
     ...expensesByYear.map((e) => e.year),
-  ]);
+  ])
 
   return Array.from(years)
     .sort((a, b) => a - b)
@@ -115,12 +115,12 @@ export function mergeIncomeAndExpenses(
       year,
       income: contributionsByYear.find((c) => c.year === year)?.total ?? new Decimal(0),
       expenses: expensesByYear.find((e) => e.year === year)?.total ?? new Decimal(0),
-    }));
+    }))
 }
 
 export async function getIncomeExpensesByYear(
   contributionsByYear: ContributionYearGroup[],
 ): Promise<IncomeExpenseYear[]> {
-  const expensesByYear = await getExpensesByYear();
-  return mergeIncomeAndExpenses(contributionsByYear, expensesByYear);
+  const expensesByYear = await getExpensesByYear()
+  return mergeIncomeAndExpenses(contributionsByYear, expensesByYear)
 }

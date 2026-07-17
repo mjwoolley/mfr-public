@@ -1,21 +1,21 @@
-"use client";
+'use client'
 
-import { useState, useTransition } from "react";
-import { confirmTransaction, disputeTransaction } from "@/actions/accounting/approvals";
+import { useState, useTransition } from 'react'
+import { confirmTransaction, disputeTransaction } from '@/actions/accounting/approvals'
 
 export function InboxApprovalActions({ approvalId }: { approvalId: string }) {
-  const [disputing, setDisputing] = useState(false);
-  const [reason, setReason] = useState("");
-  const [pending, startTransition] = useTransition();
+  const [disputing, setDisputing] = useState(false)
+  const [reason, setReason] = useState('')
+  const [pending, startTransition] = useTransition()
 
   if (disputing) {
     return (
       <form
         onSubmit={(e) => {
-          e.preventDefault();
+          e.preventDefault()
           startTransition(async () => {
-            await disputeTransaction(approvalId, reason);
-          });
+            await disputeTransaction(approvalId, reason)
+          })
         }}
         className="mt-1 flex flex-col gap-2"
       >
@@ -32,16 +32,16 @@ export function InboxApprovalActions({ approvalId }: { approvalId: string }) {
             type="submit"
             disabled={pending || !reason.trim()}
             className="btn btn-primary"
-            style={{ background: "var(--color-accent-800)" }}
+            style={{ background: 'var(--color-accent-800)' }}
           >
-            {pending ? "Submitting…" : "Submit dispute"}
+            {pending ? 'Submitting…' : 'Submit dispute'}
           </button>
           <button type="button" onClick={() => setDisputing(false)} className="btn btn-secondary">
             Cancel
           </button>
         </div>
       </form>
-    );
+    )
   }
 
   return (
@@ -51,7 +51,7 @@ export function InboxApprovalActions({ approvalId }: { approvalId: string }) {
         disabled={pending}
         onClick={() =>
           startTransition(async () => {
-            await confirmTransaction(approvalId);
+            await confirmTransaction(approvalId)
           })
         }
         className="btn btn-primary"
@@ -62,5 +62,5 @@ export function InboxApprovalActions({ approvalId }: { approvalId: string }) {
         Dispute
       </button>
     </div>
-  );
+  )
 }

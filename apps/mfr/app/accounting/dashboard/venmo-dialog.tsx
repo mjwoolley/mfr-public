@@ -1,13 +1,13 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import { ModalDialog } from "@mfr/ui";
+import { useState } from 'react'
+import { ModalDialog } from '@mfr/ui'
 
 interface VenmoDialogButtonProps {
   /** Server-generated QR data URL encoding the Venmo link. */
-  qrDataUrl: string;
-  venmoUrl: string;
-  venmoHandle: string;
+  qrDataUrl: string
+  venmoUrl: string
+  venmoHandle: string
 }
 
 /**
@@ -15,7 +15,7 @@ interface VenmoDialogButtonProps {
  * config is present; the QR code is generated server-side and passed in.
  */
 export function VenmoDialogButton({ qrDataUrl, venmoUrl, venmoHandle }: VenmoDialogButtonProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false)
 
   return (
     <>
@@ -52,9 +52,9 @@ export function VenmoDialogButton({ qrDataUrl, venmoUrl, venmoHandle }: VenmoDia
               alt="Venmo QR code"
               className="h-[210px] w-[210px]"
               style={{
-                imageRendering: "pixelated",
-                borderRadius: "var(--radius-md)",
-                border: "1px solid var(--color-divider)",
+                imageRendering: 'pixelated',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--color-divider)',
               }}
             />
           </div>
@@ -63,7 +63,7 @@ export function VenmoDialogButton({ qrDataUrl, venmoUrl, venmoHandle }: VenmoDia
             target="_blank"
             rel="noopener noreferrer"
             className="btn btn-primary btn-block font-bold no-underline"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: 'var(--font-body)' }}
           >
             Open Venmo — {venmoHandle}
           </a>
@@ -75,5 +75,5 @@ export function VenmoDialogButton({ qrDataUrl, venmoUrl, venmoHandle }: VenmoDia
         </ModalDialog>
       )}
     </>
-  );
+  )
 }

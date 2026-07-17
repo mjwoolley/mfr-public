@@ -1,13 +1,13 @@
-"use client";
+'use client'
 
-import { useActionState } from "react";
-import { createShareholder, type ActionState } from "@/actions/accounting/shareholders";
+import { useActionState } from 'react'
+import { createShareholder, type ActionState } from '@/actions/accounting/shareholders'
 
 export function ShareholderForm() {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     createShareholder,
     undefined,
-  );
+  )
 
   return (
     <form
@@ -23,15 +23,15 @@ export function ShareholderForm() {
         <input id="sh-email" name="email" type="email" className="input" />
       </div>
       {state?.error && (
-        <p className="m-0 text-[13px] font-semibold" style={{ color: "var(--color-accent-800)" }}>
+        <p className="m-0 text-[13px] font-semibold" style={{ color: 'var(--color-accent-800)' }}>
           {state.error}
         </p>
       )}
       <div>
         <button type="submit" disabled={pending} className="btn btn-primary">
-          {pending ? "Adding…" : "Add shareholder"}
+          {pending ? 'Adding…' : 'Add shareholder'}
         </button>
       </div>
     </form>
-  );
+  )
 }

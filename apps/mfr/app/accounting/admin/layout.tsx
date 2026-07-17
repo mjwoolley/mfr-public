@@ -1,9 +1,9 @@
-import { requireAdmin } from "@/lib/accounting/authz";
-import { getAppSettings } from "@/lib/accounting/settings";
-import { getContributionGoal } from "@/lib/accounting/goals";
-import { currentFiscalYear } from "@/lib/accounting/fiscalYear";
-import { AdminSubNav } from "./AdminSubNav";
-import { AdminSettingsCards } from "./settings-cards";
+import { requireAdmin } from '@/lib/accounting/authz'
+import { getAppSettings } from '@/lib/accounting/settings'
+import { getContributionGoal } from '@/lib/accounting/goals'
+import { currentFiscalYear } from '@/lib/accounting/fiscalYear'
+import { AdminSubNav } from './AdminSubNav'
+import { AdminSettingsCards } from './settings-cards'
 
 /**
  * The consolidated Admin area: seg sub-nav over four sub-views (Share
@@ -12,10 +12,10 @@ import { AdminSettingsCards } from "./settings-cards";
  * requireAdmin() here is the server-side gate for everything nested below.
  */
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  await requireAdmin();
+  await requireAdmin()
 
-  const currentFY = currentFiscalYear();
-  const [settings, goal] = await Promise.all([getAppSettings(), getContributionGoal(currentFY)]);
+  const currentFY = currentFiscalYear()
+  const [settings, goal] = await Promise.all([getAppSettings(), getContributionGoal(currentFY)])
 
   return (
     <div>
@@ -28,5 +28,5 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       />
       {children}
     </div>
-  );
+  )
 }

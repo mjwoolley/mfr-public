@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 // Admin transactions view (client half): the table plus the four record
 // dialogs (contribution / transfer / adjustment / correction), each wired to
@@ -6,33 +6,33 @@
 // field per entry on the original — the convention actions/corrections.ts
 // parses.
 
-import { useActionState, useEffect, useState } from "react";
-import { ModalDialog } from "@mfr/ui";
-import { createContribution } from "@/actions/accounting/contributions";
-import { createTransfer } from "@/actions/accounting/transfers";
-import { createAdjustment } from "@/actions/accounting/adjustments";
-import { createCorrection } from "@/actions/accounting/corrections";
+import { useActionState, useEffect, useState } from 'react'
+import { ModalDialog } from '@mfr/ui'
+import { createContribution } from '@/actions/accounting/contributions'
+import { createTransfer } from '@/actions/accounting/transfers'
+import { createAdjustment } from '@/actions/accounting/adjustments'
+import { createCorrection } from '@/actions/accounting/corrections'
 
-type ActionState = { error?: string; success?: boolean } | undefined;
-type FormAction = (prevState: ActionState, formData: FormData) => Promise<ActionState>;
+type ActionState = { error?: string; success?: boolean } | undefined
+type FormAction = (prevState: ActionState, formData: FormData) => Promise<ActionState>
 
 export interface TxRow {
-  id: string;
-  typeLabel: string;
-  typeClassName: string;
-  dateFmt: string;
-  description: string | null;
-  recordedBy: string;
-  correctsNote: string;
-  deleted: boolean;
-  entryLine: string;
-  entries: { shareholderId: string; shareholderName: string; shares: number }[];
-  approvals: { label: string; className: string }[];
+  id: string
+  typeLabel: string
+  typeClassName: string
+  dateFmt: string
+  description: string | null
+  recordedBy: string
+  correctsNote: string
+  deleted: boolean
+  entryLine: string
+  entries: { shareholderId: string; shareholderName: string; shares: number }[]
+  approvals: { label: string; className: string }[]
 }
 
 interface Shareholder {
-  id: string;
-  name: string;
+  id: string
+  name: string
 }
 
 /** Shared dialog chrome: runs the server action, closes itself on success. */
@@ -43,24 +43,24 @@ function ActionDialog({
   onClose,
   children,
 }: {
-  title: string;
-  action: FormAction;
-  submitLabel: string;
-  onClose: () => void;
-  children: React.ReactNode;
+  title: string
+  action: FormAction
+  submitLabel: string
+  onClose: () => void
+  children: React.ReactNode
 }) {
-  const [state, formAction, pending] = useActionState<ActionState, FormData>(action, undefined);
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(action, undefined)
 
   useEffect(() => {
-    if (state?.success) onClose();
-  }, [state, onClose]);
+    if (state?.success) onClose()
+  }, [state, onClose])
 
   return (
     <ModalDialog title={title} onClose={onClose}>
       <form action={formAction} className="flex flex-col gap-3">
         {children}
         {state?.error && (
-          <p className="m-0 text-[13px] font-semibold" style={{ color: "var(--color-accent-800)" }}>
+          <p className="m-0 text-[13px] font-semibold" style={{ color: 'var(--color-accent-800)' }}>
             {state.error}
           </p>
         )}
@@ -69,12 +69,12 @@ function ActionDialog({
             Cancel
           </button>
           <button type="submit" className="btn btn-primary" disabled={pending}>
-            {pending ? "Recording…" : submitLabel}
+            {pending ? 'Recording…' : submitLabel}
           </button>
         </div>
       </form>
     </ModalDialog>
-  );
+  )
 }
 
 function ShareholderSelect({
@@ -82,9 +82,9 @@ function ShareholderSelect({
   label,
   shareholders,
 }: {
-  name: string;
-  label: string;
-  shareholders: Shareholder[];
+  name: string
+  label: string
+  shareholders: Shareholder[]
 }) {
   return (
     <div className="field flex-1">
@@ -100,7 +100,7 @@ function ShareholderSelect({
         ))}
       </select>
     </div>
-  );
+  )
 }
 
 function AmountField({ label, allowNegative }: { label: string; allowNegative?: boolean }) {
@@ -113,19 +113,19 @@ function AmountField({ label, allowNegative }: { label: string; allowNegative?: 
         className="input"
         type="number"
         step="0.01"
-        min={allowNegative ? undefined : "0.01"}
+        min={allowNegative ? undefined : '0.01'}
         required
       />
     </div>
-  );
+  )
 }
 
 function DescriptionField({
   required,
-  label = "Description",
+  label = 'Description',
 }: {
-  required: boolean;
-  label?: string;
+  required: boolean
+  label?: string
 }) {
   return (
     <div className="field">
@@ -138,33 +138,33 @@ function DescriptionField({
         required={required}
       />
     </div>
-  );
+  )
 }
 
 type Modal =
-  | { mode: "contribution" }
-  | { mode: "transfer" }
-  | { mode: "adjustment" }
-  | { mode: "correction"; row: TxRow }
-  | null;
+  | { mode: 'contribution' }
+  | { mode: 'transfer' }
+  | { mode: 'adjustment' }
+  | { mode: 'correction'; row: TxRow }
+  | null
 
 export function TransactionsClient({
   rows,
   shareholders,
   initialCorrectId,
 }: {
-  rows: TxRow[];
-  shareholders: Shareholder[];
-  initialCorrectId: string | null;
+  rows: TxRow[]
+  shareholders: Shareholder[]
+  initialCorrectId: string | null
 }) {
   const initialCorrectRow = initialCorrectId
     ? (rows.find((r) => r.id === initialCorrectId) ?? null)
-    : null;
+    : null
   const [modal, setModal] = useState<Modal>(
-    initialCorrectRow ? { mode: "correction", row: initialCorrectRow } : null,
-  );
+    initialCorrectRow ? { mode: 'correction', row: initialCorrectRow } : null,
+  )
 
-  const close = () => setModal(null);
+  const close = () => setModal(null)
 
   return (
     <div>
@@ -172,21 +172,21 @@ export function TransactionsClient({
         <button
           type="button"
           className="btn btn-primary"
-          onClick={() => setModal({ mode: "contribution" })}
+          onClick={() => setModal({ mode: 'contribution' })}
         >
           Record contribution
         </button>
         <button
           type="button"
           className="btn btn-secondary"
-          onClick={() => setModal({ mode: "transfer" })}
+          onClick={() => setModal({ mode: 'transfer' })}
         >
           Record transfer
         </button>
         <button
           type="button"
           className="btn btn-secondary"
-          onClick={() => setModal({ mode: "adjustment" })}
+          onClick={() => setModal({ mode: 'adjustment' })}
         >
           Record adjustment
         </button>
@@ -199,7 +199,7 @@ export function TransactionsClient({
             <div className="flex items-center gap-2.5">
               <span className={`${t.typeClassName} flex-none`}>{t.typeLabel}</span>
               <span
-                className={`min-w-0 text-sm font-semibold ${t.deleted ? "line-through opacity-60" : ""}`}
+                className={`min-w-0 text-sm font-semibold ${t.deleted ? 'line-through opacity-60' : ''}`}
               >
                 {t.entryLine}
               </span>
@@ -225,8 +225,8 @@ export function TransactionsClient({
                   <button
                     type="button"
                     className="btn btn-ghost px-1.5 py-0.5 text-xs font-semibold"
-                    style={{ fontFamily: "var(--font-body)" }}
-                    onClick={() => setModal({ mode: "correction", row: t })}
+                    style={{ fontFamily: 'var(--font-body)' }}
+                    onClick={() => setModal({ mode: 'correction', row: t })}
                   >
                     Correct
                   </button>
@@ -238,7 +238,7 @@ export function TransactionsClient({
         {rows.length === 0 && <p className="text-muted">No transactions yet.</p>}
       </div>
 
-      {modal?.mode === "contribution" && (
+      {modal?.mode === 'contribution' && (
         <ActionDialog
           title="Record contribution"
           action={createContribution}
@@ -251,7 +251,7 @@ export function TransactionsClient({
         </ActionDialog>
       )}
 
-      {modal?.mode === "transfer" && (
+      {modal?.mode === 'transfer' && (
         <ActionDialog
           title="Record transfer"
           action={createTransfer}
@@ -267,7 +267,7 @@ export function TransactionsClient({
         </ActionDialog>
       )}
 
-      {modal?.mode === "adjustment" && (
+      {modal?.mode === 'adjustment' && (
         <ActionDialog
           title="Record adjustment"
           action={createAdjustment}
@@ -280,7 +280,7 @@ export function TransactionsClient({
         </ActionDialog>
       )}
 
-      {modal?.mode === "correction" && (
+      {modal?.mode === 'correction' && (
         <ActionDialog
           title="Record correction"
           action={createCorrection}
@@ -296,7 +296,7 @@ export function TransactionsClient({
           {modal.row.entries.map((e) => (
             <div className="field" key={e.shareholderId}>
               <label htmlFor={`amount_${e.shareholderId}`}>
-                Correction ($) for {e.shareholderName} — originally {e.shares >= 0 ? "+" : ""}
+                Correction ($) for {e.shareholderName} — originally {e.shares >= 0 ? '+' : ''}
                 {e.shares}
               </label>
               <input
@@ -314,5 +314,5 @@ export function TransactionsClient({
         </ActionDialog>
       )}
     </div>
-  );
+  )
 }

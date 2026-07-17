@@ -2,17 +2,17 @@
 // transactions, with confirm/dispute actions. Purely informational — items
 // already count toward balances (see actions/approvals.ts).
 
-import { requireShareholder } from "@/lib/accounting/authz";
-import { db } from "@/lib/db/client";
-import { transactionApproval } from "@/lib/db/schema";
-import { and, eq, desc } from "drizzle-orm";
-import { formatUSD, formatDate } from "@/lib/accounting/format";
-import { transactionTypeTag } from "@/lib/accounting/tags";
-import { ApprovalStatus } from "@/lib/accounting/enums";
-import { InboxApprovalActions } from "./inbox-approval-actions";
+import { requireShareholder } from '@/lib/accounting/authz'
+import { db } from '@/lib/db/client'
+import { transactionApproval } from '@/lib/db/schema'
+import { and, eq, desc } from 'drizzle-orm'
+import { formatUSD, formatDate } from '@/lib/accounting/format'
+import { transactionTypeTag } from '@/lib/accounting/tags'
+import { ApprovalStatus } from '@/lib/accounting/enums'
+import { InboxApprovalActions } from './inbox-approval-actions'
 
 export default async function InboxPage() {
-  const session = await requireShareholder();
+  const session = await requireShareholder()
 
   const pending = await db.query.transactionApproval.findMany({
     where: and(
@@ -29,7 +29,7 @@ export default async function InboxPage() {
         },
       },
     },
-  });
+  })
 
   return (
     <div>
@@ -42,28 +42,28 @@ export default async function InboxPage() {
       {pending.length === 0 ? (
         <div
           className="p-11 text-center"
-          style={{ background: "var(--color-accent-2-100)", borderRadius: "var(--radius-lg)" }}
+          style={{ background: 'var(--color-accent-2-100)', borderRadius: 'var(--radius-lg)' }}
         >
           <div
             className="text-[22px]"
-            style={{ fontFamily: "var(--font-heading)", color: "var(--color-accent-2-800)" }}
+            style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-accent-2-800)' }}
           >
             You&apos;re all caught up
           </div>
-          <div className="mt-1.5 text-sm" style={{ color: "var(--color-accent-2-800)" }}>
+          <div className="mt-1.5 text-sm" style={{ color: 'var(--color-accent-2-800)' }}>
             Nothing pending your approval.
           </div>
         </div>
       ) : (
         <div className="flex flex-col gap-3.5">
           {pending.map((approval) => {
-            const entry = approval.transaction.entries[0];
+            const entry = approval.transaction.entries[0]
             const recordedBy =
               approval.transaction.createdByName ??
               approval.transaction.createdByEmail ??
-              "an admin";
-            const typeTag = transactionTypeTag(approval.transaction.type);
-            const shares = entry ? Number(entry.shares) : 0;
+              'an admin'
+            const typeTag = transactionTypeTag(approval.transaction.type)
+            const shares = entry ? Number(entry.shares) : 0
             return (
               <div key={approval.id} className="card elev-sm px-5 py-4" style={{ gap: 8 }}>
                 <div className="flex items-center gap-2.5">
@@ -72,12 +72,12 @@ export default async function InboxPage() {
                     <span
                       className="ml-0.5 text-[19px]"
                       style={{
-                        fontFamily: "var(--font-heading)",
+                        fontFamily: 'var(--font-heading)',
                         color:
-                          shares >= 0 ? "var(--color-accent-2-800)" : "var(--color-accent-800)",
+                          shares >= 0 ? 'var(--color-accent-2-800)' : 'var(--color-accent-800)',
                       }}
                     >
-                      {shares >= 0 ? "+" : ""}
+                      {shares >= 0 ? '+' : ''}
                       {formatUSD(entry.shares.toString())}
                     </span>
                   )}
@@ -91,10 +91,10 @@ export default async function InboxPage() {
                 <div className="text-muted text-xs">Recorded by {recordedBy}</div>
                 <InboxApprovalActions approvalId={approval.id} />
               </div>
-            );
+            )
           })}
         </div>
       )}
     </div>
-  );
+  )
 }

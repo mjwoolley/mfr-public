@@ -1,14 +1,14 @@
-import { computeIncomeExpenseChart, type YearFinancials } from "@/lib/accounting/expenseChart";
-import { fiscalYearLabel } from "@/lib/accounting/fiscalYear";
+import { computeIncomeExpenseChart, type YearFinancials } from '@/lib/accounting/expenseChart'
+import { fiscalYearLabel } from '@/lib/accounting/fiscalYear'
 
 const SERIES_COLORS = {
-  contributions: "#aebf92",
-  operating: "#d67f48",
-  capital: "#643312",
-} as const;
+  contributions: '#aebf92',
+  operating: '#d67f48',
+  capital: '#643312',
+} as const
 
-const LINE_COLOR = "#8c491a";
-const TICK_COLOR = "#82796a";
+const LINE_COLOR = '#8c491a'
+const TICK_COLOR = '#82796a'
 
 /**
  * The "Income vs. expenses by year" combo chart — plain server-rendered SVG.
@@ -17,7 +17,7 @@ const TICK_COLOR = "#82796a";
  * segment and line point.
  */
 export function IncomeExpenseChart({ data }: { data: YearFinancials[] }) {
-  const chart = computeIncomeExpenseChart(data);
+  const chart = computeIncomeExpenseChart(data)
 
   return (
     <>
@@ -52,7 +52,7 @@ export function IncomeExpenseChart({ data }: { data: YearFinancials[] }) {
       <svg
         viewBox="0 0 660 240"
         width="100%"
-        style={{ height: "auto", overflow: "visible", display: "block" }}
+        style={{ height: 'auto', overflow: 'visible', display: 'block' }}
       >
         {chart.gridTicks.map((tick, i) => (
           <g key={`tick-${i}`}>
@@ -107,11 +107,11 @@ export function IncomeExpenseChart({ data }: { data: YearFinancials[] }) {
           strokeWidth={2.5}
           strokeLinecap="round"
           strokeLinejoin="round"
-          style={{ pointerEvents: "none" }}
+          style={{ pointerEvents: 'none' }}
         />
         {chart.dots.map((dot, i) => (
           <g key={`dot-${i}`}>
-            <circle cx={dot.cx} cy={dot.cy} r={11} fill="transparent" style={{ cursor: "default" }}>
+            <circle cx={dot.cx} cy={dot.cy} r={11} fill="transparent" style={{ cursor: 'default' }}>
               <title>{dot.title}</title>
             </circle>
             <circle
@@ -119,7 +119,7 @@ export function IncomeExpenseChart({ data }: { data: YearFinancials[] }) {
               cy={dot.cy}
               r={chart.dotR}
               fill={LINE_COLOR}
-              style={{ pointerEvents: "none" }}
+              style={{ pointerEvents: 'none' }}
             />
           </g>
         ))}
@@ -143,5 +143,5 @@ export function IncomeExpenseChart({ data }: { data: YearFinancials[] }) {
         (line). Hover any bar or point for the exact figure.
       </p>
     </>
-  );
+  )
 }

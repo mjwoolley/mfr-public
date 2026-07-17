@@ -7,5 +7,5 @@ export default function BlockedPage() {
         you believe this is a mistake.
       </p>
     </div>
-  );
+  )
 }

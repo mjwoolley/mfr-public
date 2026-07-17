@@ -1,19 +1,19 @@
-"use server";
+'use server'
 
 // Shareholder-facing approval workflow (confirm/dispute from the inbox) plus
 // the admin-side resolveDispute. Approval is informational — it never blocks a
 // transaction from counting toward balances. Every mutation is scoped to the
 // caller's own approval row via the update WHERE filter, not checked-then-updated.
 
-import { revalidatePath } from "next/cache";
-import { and, eq, inArray } from "drizzle-orm";
-import { db } from "@/lib/db/client";
-import { transactionApproval } from "@/lib/db/schema";
-import { requireShareholder, requireAdmin } from "@/lib/accounting/authz";
-import { ApprovalStatus } from "@/lib/accounting/enums";
+import { revalidatePath } from 'next/cache'
+import { and, eq, inArray } from 'drizzle-orm'
+import { db } from '@/lib/db/client'
+import { transactionApproval } from '@/lib/db/schema'
+import { requireShareholder, requireAdmin } from '@/lib/accounting/authz'
+import { ApprovalStatus } from '@/lib/accounting/enums'
 
 export async function confirmTransaction(approvalId: string) {
-  const session = await requireShareholder();
+  const session = await requireShareholder()
 
   // Scope the update to the current shareholder's own approval row so nobody
   // can confirm on another shareholder's behalf via a crafted request.
@@ -30,24 +30,21 @@ export async function confirmTransaction(approvalId: string) {
       and(
         eq(transactionApproval.id, approvalId),
         eq(transactionApproval.shareholderId, session.user.shareholderId),
-        inArray(transactionApproval.status, [
-          ApprovalStatus.PENDING,
-          ApprovalStatus.DISPUTED,
-        ]),
+        inArray(transactionApproval.status, [ApprovalStatus.PENDING, ApprovalStatus.DISPUTED]),
       ),
-    );
+    )
 
-  revalidatePath("/accounting/inbox");
-  revalidatePath("/accounting/admin/activity");
-  revalidatePath("/accounting/dashboard");
+  revalidatePath('/accounting/inbox')
+  revalidatePath('/accounting/admin/activity')
+  revalidatePath('/accounting/dashboard')
 }
 
 export async function disputeTransaction(approvalId: string, reason: string) {
-  const session = await requireShareholder();
+  const session = await requireShareholder()
 
-  const trimmedReason = reason.trim();
+  const trimmedReason = reason.trim()
   if (!trimmedReason) {
-    throw new Error("A reason is required to dispute a transaction");
+    throw new Error('A reason is required to dispute a transaction')
   }
 
   // Same self-scoping pattern as confirmTransaction — only the owning
@@ -65,19 +62,19 @@ export async function disputeTransaction(approvalId: string, reason: string) {
         eq(transactionApproval.shareholderId, session.user.shareholderId),
         eq(transactionApproval.status, ApprovalStatus.PENDING),
       ),
-    );
+    )
 
-  revalidatePath("/accounting/inbox");
-  revalidatePath("/accounting/admin/activity");
-  revalidatePath("/accounting/dashboard");
+  revalidatePath('/accounting/inbox')
+  revalidatePath('/accounting/admin/activity')
+  revalidatePath('/accounting/dashboard')
 }
 
 export async function updateDisputeReason(approvalId: string, reason: string) {
-  const session = await requireShareholder();
+  const session = await requireShareholder()
 
-  const trimmedReason = reason.trim();
+  const trimmedReason = reason.trim()
   if (!trimmedReason) {
-    throw new Error("A reason is required to dispute a transaction");
+    throw new Error('A reason is required to dispute a transaction')
   }
 
   // Same self-scoping pattern as disputeTransaction — only the owning
@@ -92,10 +89,10 @@ export async function updateDisputeReason(approvalId: string, reason: string) {
         eq(transactionApproval.shareholderId, session.user.shareholderId),
         eq(transactionApproval.status, ApprovalStatus.DISPUTED),
       ),
-    );
+    )
 
-  revalidatePath("/accounting/admin/activity");
-  revalidatePath("/accounting/dashboard");
+  revalidatePath('/accounting/admin/activity')
+  revalidatePath('/accounting/dashboard')
 }
 
 /**
@@ -106,7 +103,7 @@ export async function updateDisputeReason(approvalId: string, reason: string) {
  * resolvedAt/resolutionTransactionId now set, preserving the audit trail.
  */
 export async function resolveDispute(approvalId: string, resolutionTransactionId?: string) {
-  await requireAdmin();
+  await requireAdmin()
 
   await db
     .update(transactionApproval)
@@ -119,7 +116,7 @@ export async function resolveDispute(approvalId: string, resolutionTransactionId
         eq(transactionApproval.id, approvalId),
         eq(transactionApproval.status, ApprovalStatus.DISPUTED),
       ),
-    );
+    )
 
-  revalidatePath("/accounting/admin/activity");
+  revalidatePath('/accounting/admin/activity')
 }

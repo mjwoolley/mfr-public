@@ -1,9 +1,9 @@
-import { db } from "@/lib/db/client";
-import { ledgerEntry, transaction, shareholder } from "@/lib/db/schema";
-import { and, eq, gte, lt, sql } from "drizzle-orm";
-import { Decimal } from "@/lib/accounting/decimal";
-import { TransactionType } from "@/lib/accounting/enums";
-import { fiscalYear, currentFiscalYear, fiscalYearRange } from "@/lib/accounting/fiscalYear";
+import { db } from '@/lib/db/client'
+import { ledgerEntry, transaction, shareholder } from '@/lib/db/schema'
+import { and, eq, gte, lt, sql } from 'drizzle-orm'
+import { Decimal } from '@/lib/accounting/decimal'
+import { TransactionType } from '@/lib/accounting/enums'
+import { fiscalYear, currentFiscalYear, fiscalYearRange } from '@/lib/accounting/fiscalYear'
 
 /**
  * Total dollars contributed in the current fiscal year ($1 = 1 share, so the
@@ -11,8 +11,8 @@ import { fiscalYear, currentFiscalYear, fiscalYearRange } from "@/lib/accounting
  * aggregate so the portal's fundraising API can reuse the exact same query.
  */
 export async function getRaisedThisYear(): Promise<{ year: number; raised: number }> {
-  const year = currentFiscalYear();
-  const { start, end } = fiscalYearRange(year);
+  const year = currentFiscalYear()
+  const { start, end } = fiscalYearRange(year)
   const [aggregate] = await db
     .select({ sum: sql<string>`coalesce(sum(${ledgerEntry.shares}), 0)` })
     .from(ledgerEntry)
@@ -24,8 +24,8 @@ export async function getRaisedThisYear(): Promise<{ year: number; raised: numbe
         lt(transaction.createdAt, end),
         eq(transaction.deleted, false),
       ),
-    );
-  return { year, raised: Number(aggregate.sum ?? 0) };
+    )
+  return { year, raised: Number(aggregate.sum ?? 0) }
 }
 
 export async function getShareholderBalance(shareholderId: string): Promise<Decimal> {
@@ -33,8 +33,8 @@ export async function getShareholderBalance(shareholderId: string): Promise<Deci
     .select({ sum: sql<string>`coalesce(sum(${ledgerEntry.shares}), 0)` })
     .from(ledgerEntry)
     .innerJoin(transaction, eq(transaction.id, ledgerEntry.transactionId))
-    .where(and(eq(ledgerEntry.shareholderId, shareholderId), eq(transaction.deleted, false)));
-  return new Decimal(result.sum);
+    .where(and(eq(ledgerEntry.shareholderId, shareholderId), eq(transaction.deleted, false)))
+  return new Decimal(result.sum)
 }
 
 export async function getTotalSharesOutstanding(): Promise<Decimal> {
@@ -42,8 +42,8 @@ export async function getTotalSharesOutstanding(): Promise<Decimal> {
     .select({ sum: sql<string>`coalesce(sum(${ledgerEntry.shares}), 0)` })
     .from(ledgerEntry)
     .innerJoin(transaction, eq(transaction.id, ledgerEntry.transactionId))
-    .where(eq(transaction.deleted, false));
-  return new Decimal(result.sum);
+    .where(eq(transaction.deleted, false))
+  return new Decimal(result.sum)
 }
 
 export async function getAllShareholderBalances() {
@@ -62,44 +62,42 @@ export async function getAllShareholderBalances() {
       .where(eq(transaction.deleted, false))
       .groupBy(ledgerEntry.shareholderId),
     getTotalSharesOutstanding(),
-  ]);
+  ])
 
-  const balanceByShareholder = new Map(
-    grouped.map((g) => [g.shareholderId, new Decimal(g.sum)]),
-  );
+  const balanceByShareholder = new Map(grouped.map((g) => [g.shareholderId, new Decimal(g.sum)]))
 
   const rows = shareholders.map((s) => {
-    const shares = balanceByShareholder.get(s.id) ?? new Decimal(0);
-    const percent = total.isZero() ? new Decimal(0) : shares.div(total).mul(100);
-    return { shareholder: s, shares, percent };
-  });
+    const shares = balanceByShareholder.get(s.id) ?? new Decimal(0)
+    const percent = total.isZero() ? new Decimal(0) : shares.div(total).mul(100)
+    return { shareholder: s, shares, percent }
+  })
 
-  return { rows, total };
+  return { rows, total }
 }
 
 // ---------- Contributions by Year (Phase 13 — Reports) ----------
 
 export type ContributionPurchase = {
-  shareholderId: string;
-  shareholderName: string;
-  date: Date;
-  shares: Decimal;
-};
+  shareholderId: string
+  shareholderName: string
+  date: Date
+  shares: Decimal
+}
 
 export type ContributionYearGroup = {
-  year: number;
-  total: Decimal;
-  purchases: ContributionPurchase[];
-};
+  year: number
+  total: Decimal
+  purchases: ContributionPurchase[]
+}
 
 /** The shape `getContributionsByYear`'s query fetches — kept narrow so the
  * pure grouping function below is easy to unit test with plain fixtures. */
 type ContributionEntryForGrouping = {
-  shareholderId: string;
-  shares: Decimal;
-  shareholder: { name: string };
-  transaction: { createdAt: Date };
-};
+  shareholderId: string
+  shares: Decimal
+  shareholder: { name: string }
+  transaction: { createdAt: Date }
+}
 
 /**
  * Groups CONTRIBUTION ledger entries by the fiscal year of their
@@ -113,25 +111,25 @@ type ContributionEntryForGrouping = {
 export function groupContributionsByYear(
   entries: ContributionEntryForGrouping[],
 ): ContributionYearGroup[] {
-  const byYear = new Map<number, ContributionYearGroup>();
+  const byYear = new Map<number, ContributionYearGroup>()
 
   for (const entry of entries) {
-    const year = fiscalYear(entry.transaction.createdAt);
-    let group = byYear.get(year);
+    const year = fiscalYear(entry.transaction.createdAt)
+    let group = byYear.get(year)
     if (!group) {
-      group = { year, total: new Decimal(0), purchases: [] };
-      byYear.set(year, group);
+      group = { year, total: new Decimal(0), purchases: [] }
+      byYear.set(year, group)
     }
-    group.total = group.total.add(entry.shares);
+    group.total = group.total.add(entry.shares)
     group.purchases.push({
       shareholderId: entry.shareholderId,
       shareholderName: entry.shareholder.name,
       date: entry.transaction.createdAt,
       shares: entry.shares,
-    });
+    })
   }
 
-  return Array.from(byYear.values()).sort((a, b) => a.year - b.year);
+  return Array.from(byYear.values()).sort((a, b) => a.year - b.year)
 }
 
 export async function getContributionsByYear(): Promise<ContributionYearGroup[]> {
@@ -145,19 +143,14 @@ export async function getContributionsByYear(): Promise<ContributionYearGroup[]>
     .from(ledgerEntry)
     .innerJoin(transaction, eq(transaction.id, ledgerEntry.transactionId))
     .innerJoin(shareholder, eq(shareholder.id, ledgerEntry.shareholderId))
-    .where(
-      and(
-        eq(transaction.type, TransactionType.CONTRIBUTION),
-        eq(transaction.deleted, false),
-      ),
-    );
+    .where(and(eq(transaction.type, TransactionType.CONTRIBUTION), eq(transaction.deleted, false)))
 
   const entries: ContributionEntryForGrouping[] = rows.map((r) => ({
     shareholderId: r.shareholderId,
     shares: new Decimal(r.shares),
     shareholder: { name: r.shareholderName },
     transaction: { createdAt: r.createdAt },
-  }));
+  }))
 
-  return groupContributionsByYear(entries);
+  return groupContributionsByYear(entries)
 }

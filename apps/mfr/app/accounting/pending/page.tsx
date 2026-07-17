@@ -7,5 +7,5 @@ export default function PendingPage() {
         notified by email once you&apos;re approved.
       </p>
     </div>
-  );
+  )
 }

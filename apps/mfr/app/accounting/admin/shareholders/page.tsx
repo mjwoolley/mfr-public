@@ -1,12 +1,12 @@
-import Link from "next/link";
-import { db } from "@/lib/db/client";
-import { shareholder } from "@/lib/db/schema";
-import { asc } from "drizzle-orm";
+import Link from 'next/link'
+import { db } from '@/lib/db/client'
+import { shareholder } from '@/lib/db/schema'
+import { asc } from 'drizzle-orm'
 
 export default async function AdminShareholdersPage() {
   const shareholders = await db.query.shareholder.findMany({
     orderBy: [asc(shareholder.name)],
-  });
+  })
 
   return (
     <div>
@@ -38,7 +38,7 @@ export default async function AdminShareholdersPage() {
               {shareholders.map((s) => (
                 <tr key={s.id}>
                   <td className="font-semibold">{s.name}</td>
-                  <td className="text-muted">{s.email ?? "—"}</td>
+                  <td className="text-muted">{s.email ?? '—'}</td>
                   <td>
                     {s.userId ? (
                       <span className="tag tag-accent-2">Linked</span>
@@ -75,5 +75,5 @@ export default async function AdminShareholdersPage() {
         </div>
       </div>
     </div>
-  );
+  )
 }

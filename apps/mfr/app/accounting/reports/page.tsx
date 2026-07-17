@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { redirect } from 'next/navigation'
 
 /**
  * The Reports tab became "Ownership" in the Organic redesign (its
@@ -6,5 +6,5 @@ import { redirect } from "next/navigation";
  * links and bookmarks survive.
  */
 export default function ReportsPage() {
-  redirect("/accounting/ownership");
+  redirect('/accounting/ownership')
 }

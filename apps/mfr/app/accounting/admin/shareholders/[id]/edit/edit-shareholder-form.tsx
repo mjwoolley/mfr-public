@@ -1,16 +1,20 @@
-"use client";
+'use client'
 
-import { useActionState, useState, useTransition } from "react";
-import { updateShareholder, setShareholderActive, type ActionState } from "@/actions/accounting/shareholders";
-import type { ShareholderRow } from "@/lib/db/schema";
+import { useActionState, useState, useTransition } from 'react'
+import {
+  updateShareholder,
+  setShareholderActive,
+  type ActionState,
+} from '@/actions/accounting/shareholders'
+import type { ShareholderRow } from '@/lib/db/schema'
 
 export function EditShareholderForm({ shareholder }: { shareholder: ShareholderRow }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     updateShareholder,
     undefined,
-  );
-  const [active, setActive] = useState(shareholder.active);
-  const [isTogglePending, startToggleTransition] = useTransition();
+  )
+  const [active, setActive] = useState(shareholder.active)
+  const [isTogglePending, startToggleTransition] = useTransition()
 
   return (
     <div className="mt-5 flex max-w-sm flex-col gap-6">
@@ -32,18 +36,18 @@ export function EditShareholderForm({ shareholder }: { shareholder: ShareholderR
             id="edit-sh-email"
             name="email"
             type="email"
-            defaultValue={shareholder.email ?? ""}
+            defaultValue={shareholder.email ?? ''}
             className="input"
           />
         </div>
         {state?.error && (
-          <p className="m-0 text-[13px] font-semibold" style={{ color: "var(--color-accent-800)" }}>
+          <p className="m-0 text-[13px] font-semibold" style={{ color: 'var(--color-accent-800)' }}>
             {state.error}
           </p>
         )}
         <div>
           <button type="submit" disabled={pending} className="btn btn-primary">
-            {pending ? "Saving…" : "Save"}
+            {pending ? 'Saving…' : 'Save'}
           </button>
         </div>
       </form>
@@ -54,15 +58,15 @@ export function EditShareholderForm({ shareholder }: { shareholder: ShareholderR
           checked={active}
           disabled={isTogglePending}
           onChange={(e) => {
-            const next = e.target.checked;
-            setActive(next);
+            const next = e.target.checked
+            setActive(next)
             startToggleTransition(async () => {
-              await setShareholderActive(shareholder.id, next);
-            });
+              await setShareholderActive(shareholder.id, next)
+            })
           }}
         />
         Active
       </label>
     </div>
-  );
+  )
 }

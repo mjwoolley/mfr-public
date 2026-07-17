@@ -8,28 +8,28 @@ import {
   Preview,
   Section,
   Text,
-} from "@react-email/components";
+} from '@react-email/components'
 
 export function AdjustmentNotification(props: {
-  shareholderName: string;
-  amount: string;
-  description: string;
-  date: string;
-  adminName: string;
-  inboxUrl: string;
+  shareholderName: string
+  amount: string
+  description: string
+  date: string
+  adminName: string
+  inboxUrl: string
 }) {
-  const { shareholderName, amount, description, date, adminName, inboxUrl } = props;
+  const { shareholderName, amount, description, date, adminName, inboxUrl } = props
   return (
     <Html>
       <Head />
       <Preview>A share balance adjustment of {amount} was recorded for you</Preview>
-      <Body style={{ fontFamily: "sans-serif", backgroundColor: "#f6f6f6" }}>
+      <Body style={{ fontFamily: 'sans-serif', backgroundColor: '#f6f6f6' }}>
         <Container
           style={{
-            backgroundColor: "#ffffff",
-            padding: "24px",
-            borderRadius: "8px",
-            maxWidth: "480px",
+            backgroundColor: '#ffffff',
+            padding: '24px',
+            borderRadius: '8px',
+            maxWidth: '480px',
           }}
         >
           <Heading as="h2">Share balance adjustment</Heading>
@@ -44,13 +44,13 @@ export function AdjustmentNotification(props: {
           <Section>
             <Link href={inboxUrl}>Review and acknowledge in your inbox</Link>
           </Section>
-          <Text style={{ color: "#666", fontSize: "12px" }}>
+          <Text style={{ color: '#666', fontSize: '12px' }}>
             If this doesn&apos;t look right, just reply to this email.
           </Text>
         </Container>
       </Body>
     </Html>
-  );
+  )
 }
 
-export default AdjustmentNotification;
+export default AdjustmentNotification

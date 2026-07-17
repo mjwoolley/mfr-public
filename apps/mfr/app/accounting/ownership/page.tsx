@@ -1,24 +1,24 @@
 // Ownership report: every shareholder's shares and percent of the total,
 // largest holder first, with the viewer's own row highlighted.
 
-import { requireAuthorized } from "@/lib/accounting/authz";
-import { getAllShareholderBalances } from "@/lib/accounting/ledger";
-import { formatUSD } from "@/lib/accounting/format";
+import { requireAuthorized } from '@/lib/accounting/authz'
+import { getAllShareholderBalances } from '@/lib/accounting/ledger'
+import { formatUSD } from '@/lib/accounting/format'
 
 export default async function OwnershipPage() {
-  const session = await requireAuthorized();
-  const { rows, total } = await getAllShareholderBalances();
+  const session = await requireAuthorized()
+  const { rows, total } = await getAllShareholderBalances()
 
   // Largest holder first.
-  const sorted = [...rows].sort((a, b) => Number(b.shares) - Number(a.shares));
-  const currentShareholderId = session.user.shareholderId ?? null;
+  const sorted = [...rows].sort((a, b) => Number(b.shares) - Number(a.shares))
+  const currentShareholderId = session.user.shareholderId ?? null
 
   return (
     <div>
       <h1 className="mb-2 text-4xl">Ownership report</h1>
       <p className="text-muted mb-6 text-[15px]">
         {formatUSD(total.toString())} shares outstanding across {rows.length} shareholder
-        {rows.length === 1 ? "" : "s"}.
+        {rows.length === 1 ? '' : 's'}.
       </p>
 
       <div className="card elev-sm bg-white px-4 pt-2 pb-1 sm:px-5">
@@ -37,7 +37,7 @@ export default async function OwnershipPage() {
                   key={shareholder.id}
                   style={
                     shareholder.id === currentShareholderId
-                      ? { background: "var(--color-accent-100)" }
+                      ? { background: 'var(--color-accent-100)' }
                       : undefined
                   }
                 >
@@ -49,12 +49,12 @@ export default async function OwnershipPage() {
                       )}
                     </span>
                   </td>
-                  <td className="text-right" style={{ fontVariantNumeric: "tabular-nums" }}>
+                  <td className="text-right" style={{ fontVariantNumeric: 'tabular-nums' }}>
                     {formatUSD(shares.toString())}
                   </td>
                   <td
                     className="text-right font-semibold"
-                    style={{ fontVariantNumeric: "tabular-nums" }}
+                    style={{ fontVariantNumeric: 'tabular-nums' }}
                   >
                     {percent.toFixed(2)}%
                   </td>
@@ -62,7 +62,7 @@ export default async function OwnershipPage() {
               ))}
             </tbody>
             <tfoot>
-              <tr style={{ fontFamily: "var(--font-heading)" }}>
+              <tr style={{ fontFamily: 'var(--font-heading)' }}>
                 <td className="pt-3">Total</td>
                 <td className="pt-3 text-right">{formatUSD(total.toString())}</td>
                 <td className="pt-3 text-right">100.00%</td>
@@ -72,5 +72,5 @@ export default async function OwnershipPage() {
         </div>
       </div>
     </div>
-  );
+  )
 }

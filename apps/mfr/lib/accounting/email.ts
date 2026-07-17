@@ -3,34 +3,34 @@
 // everywhere else mail is redirected to EMAIL_OVERRIDE_TO or dropped. Send
 // failures are logged, never thrown — email must not break a ledger action.
 
-import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
-import { render } from "@react-email/render";
+import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2'
+import { render } from '@react-email/render'
 
-let client: SESv2Client | null = null;
+let client: SESv2Client | null = null
 
 function getClient() {
   if (!client) {
     client = new SESv2Client({
-      region: process.env.SES_REGION ?? "us-east-1",
+      region: process.env.SES_REGION ?? 'us-east-1',
       // Vercel reserves the AWS_* env names for its own runtime, so the
       // credentials use SES_-prefixed names and are passed explicitly.
       credentials: process.env.SES_ACCESS_KEY_ID
         ? {
             accessKeyId: process.env.SES_ACCESS_KEY_ID,
-            secretAccessKey: process.env.SES_SECRET_ACCESS_KEY ?? "",
+            secretAccessKey: process.env.SES_SECRET_ACCESS_KEY ?? '',
           }
         : undefined,
-    });
+    })
   }
-  return client;
+  return client
 }
 
 export function appUrl(path: string) {
   // Plain string join, not `new URL(path, base)` — that constructor treats a
   // leading-slash path as absolute and silently drops any path segment
   // already in `base` (relevant now that APP_BASE_URL includes /accounting).
-  const base = (process.env.APP_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
-  return `${base}${path.startsWith("/") ? path : `/${path}`}`;
+  const base = (process.env.APP_BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '')
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`
 }
 
 /**
@@ -44,16 +44,16 @@ export function appUrl(path: string) {
  * back to the bare inbox if either address is malformed.
  */
 export function plusAddress(inbox: string, original: string): string {
-  const at = inbox.lastIndexOf("@");
-  if (at === -1) return inbox;
-  const baseLocal = inbox.slice(0, at).split("+")[0]; // drop any existing +tag
-  const domain = inbox.slice(at + 1);
+  const at = inbox.lastIndexOf('@')
+  if (at === -1) return inbox
+  const baseLocal = inbox.slice(0, at).split('+')[0] // drop any existing +tag
+  const domain = inbox.slice(at + 1)
   const tag = original
     .trim()
     .toLowerCase()
-    .replace(/@/g, "=")
-    .replace(/[^a-z0-9._=-]/g, "-");
-  return tag ? `${baseLocal}+${tag}@${domain}` : inbox;
+    .replace(/@/g, '=')
+    .replace(/[^a-z0-9._=-]/g, '-')
+  return tag ? `${baseLocal}+${tag}@${domain}` : inbox
 }
 
 /**
@@ -67,39 +67,39 @@ export function plusAddress(inbox: string, original: string): string {
 export function resolveRecipient(
   to: string,
 ): { deliver: true; to: string; redirectedFrom?: string } | { deliver: false; reason: string } {
-  if (process.env.EMAIL_ENABLED === "true") {
-    return { deliver: true, to };
+  if (process.env.EMAIL_ENABLED === 'true') {
+    return { deliver: true, to }
   }
-  const override = process.env.EMAIL_OVERRIDE_TO;
+  const override = process.env.EMAIL_OVERRIDE_TO
   if (override) {
-    return { deliver: true, to: plusAddress(override, to), redirectedFrom: to };
+    return { deliver: true, to: plusAddress(override, to), redirectedFrom: to }
   }
   return {
     deliver: false,
     reason: `email disabled (no EMAIL_ENABLED, no EMAIL_OVERRIDE_TO); would have sent to ${to}`,
-  };
+  }
 }
 
 export async function sendEmail(opts: {
-  to: string;
-  subject: string;
-  react: React.ReactElement;
-  replyTo?: string;
+  to: string
+  subject: string
+  react: React.ReactElement
+  replyTo?: string
 }) {
-  const routing = resolveRecipient(opts.to);
+  const routing = resolveRecipient(opts.to)
   if (!routing.deliver) {
-    console.warn(`[email] skipped — ${routing.reason}`);
-    return;
+    console.warn(`[email] skipped — ${routing.reason}`)
+    return
   }
   const subject = routing.redirectedFrom
     ? `[dev→${routing.redirectedFrom}] ${opts.subject}`
-    : opts.subject;
+    : opts.subject
 
   try {
-    const html = await render(opts.react);
+    const html = await render(opts.react)
     await getClient().send(
       new SendEmailCommand({
-        FromEmailAddress: process.env.EMAIL_FROM ?? "accounting@millerfamilyreunions.org",
+        FromEmailAddress: process.env.EMAIL_FROM ?? 'accounting@millerfamilyreunions.org',
         Destination: { ToAddresses: [routing.to] },
         ReplyToAddresses: opts.replyTo ? [opts.replyTo] : undefined,
         Content: {
@@ -109,8 +109,8 @@ export async function sendEmail(opts: {
           },
         },
       }),
-    );
+    )
   } catch (error) {
-    console.error("Failed to send email:", error);
+    console.error('Failed to send email:', error)
   }
 }

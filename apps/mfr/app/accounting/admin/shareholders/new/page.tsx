@@ -1,4 +1,4 @@
-import { ShareholderForm } from "./shareholder-form";
+import { ShareholderForm } from './shareholder-form'
 
 export default function NewShareholderPage() {
   return (
@@ -10,5 +10,5 @@ export default function NewShareholderPage() {
       </p>
       <ShareholderForm />
     </div>
-  );
+  )
 }

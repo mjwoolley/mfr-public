@@ -1,76 +1,76 @@
-"use client";
+'use client'
 
 // Search-and-link UI binding a Shareholder to an identity-DB login: searches
 // users by email via the admin shareholder-search API, then links/unlinks
 // through the shareholders server actions. Complements the automatic by-email
 // link that happens at sign-in (see @/lib/auth.ts).
 
-import { useState, useTransition } from "react";
-import { linkShareholderToUser, unlinkShareholder } from "@/actions/accounting/shareholders";
+import { useState, useTransition } from 'react'
+import { linkShareholderToUser, unlinkShareholder } from '@/actions/accounting/shareholders'
 
-type SearchResult = { id: string; email: string; name: string | null };
+type SearchResult = { id: string; email: string; name: string | null }
 
 export function LinkLoginControl({
   shareholderId,
   linkedEmail,
 }: {
-  shareholderId: string;
-  linkedEmail: string | null;
+  shareholderId: string
+  linkedEmail: string | null
 }) {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [currentlyLinked, setCurrentlyLinked] = useState(linkedEmail);
-  const [isPending, startTransition] = useTransition();
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<SearchResult[]>([])
+  const [searching, setSearching] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [currentlyLinked, setCurrentlyLinked] = useState(linkedEmail)
+  const [isPending, startTransition] = useTransition()
 
   async function handleSearch() {
-    setSearching(true);
-    setError(null);
+    setSearching(true)
+    setError(null)
     try {
       const res = await fetch(
         `/accounting/api/admin/shareholder-search?email=${encodeURIComponent(query)}`,
-      );
+      )
       if (!res.ok) {
-        setError("Search failed");
-        return;
+        setError('Search failed')
+        return
       }
-      const data: { users: SearchResult[] } = await res.json();
-      setResults(data.users ?? []);
+      const data: { users: SearchResult[] } = await res.json()
+      setResults(data.users ?? [])
     } catch {
-      setError("Search failed");
+      setError('Search failed')
     } finally {
-      setSearching(false);
+      setSearching(false)
     }
   }
 
   function handleLink(userId: string, email: string) {
-    setError(null);
+    setError(null)
     startTransition(async () => {
-      const result = await linkShareholderToUser(shareholderId, userId);
+      const result = await linkShareholderToUser(shareholderId, userId)
       if (result?.error) {
-        setError(result.error);
-        return;
+        setError(result.error)
+        return
       }
-      setCurrentlyLinked(email);
-      setResults([]);
-      setQuery("");
-    });
+      setCurrentlyLinked(email)
+      setResults([])
+      setQuery('')
+    })
   }
 
   function handleUnlink() {
-    setError(null);
+    setError(null)
     startTransition(async () => {
-      await unlinkShareholder(shareholderId);
-      setCurrentlyLinked(null);
-    });
+      await unlinkShareholder(shareholderId)
+      setCurrentlyLinked(null)
+    })
   }
 
   return (
-    <div className="mt-2 max-w-sm pt-6" style={{ borderTop: "1px solid var(--color-divider)" }}>
+    <div className="mt-2 max-w-sm pt-6" style={{ borderTop: '1px solid var(--color-divider)' }}>
       <h2 className="text-base">Linked login</h2>
       <p className="text-muted mt-1 text-sm">
-        {currentlyLinked ? `Linked to ${currentlyLinked}` : "Not yet signed in / linked."}
+        {currentlyLinked ? `Linked to ${currentlyLinked}` : 'Not yet signed in / linked.'}
       </p>
       {currentlyLinked && (
         <button
@@ -78,7 +78,7 @@ export function LinkLoginControl({
           onClick={handleUnlink}
           disabled={isPending}
           className="mt-2 cursor-pointer text-sm font-semibold underline underline-offset-[3px] disabled:opacity-50"
-          style={{ color: "var(--color-accent)" }}
+          style={{ color: 'var(--color-accent)' }}
         >
           Unlink
         </button>
@@ -98,12 +98,12 @@ export function LinkLoginControl({
           disabled={searching || query.trim().length === 0}
           className="btn btn-primary flex-none"
         >
-          {searching ? "Searching…" : "Search"}
+          {searching ? 'Searching…' : 'Search'}
         </button>
       </div>
 
       {error && (
-        <p className="mt-2 text-sm font-semibold" style={{ color: "var(--color-accent-800)" }}>
+        <p className="mt-2 text-sm font-semibold" style={{ color: 'var(--color-accent-800)' }}>
           {error}
         </p>
       )}
@@ -118,7 +118,7 @@ export function LinkLoginControl({
                 onClick={() => handleLink(u.id, u.email)}
                 disabled={isPending}
                 className="cursor-pointer font-semibold underline underline-offset-[3px] disabled:opacity-50"
-                style={{ color: "var(--color-accent)" }}
+                style={{ color: 'var(--color-accent)' }}
               >
                 Link
               </button>
@@ -127,5 +127,5 @@ export function LinkLoginControl({
         </ul>
       )}
     </div>
-  );
+  )
 }

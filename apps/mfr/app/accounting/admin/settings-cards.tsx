@@ -1,15 +1,15 @@
-"use client";
+'use client'
 
-import { useActionState, useTransition } from "react";
-import { setContributionsVisibility } from "@/actions/accounting/settings";
-import { setContributionGoal, type ActionState } from "@/actions/accounting/goals";
+import { useActionState, useTransition } from 'react'
+import { setContributionsVisibility } from '@/actions/accounting/settings'
+import { setContributionGoal, type ActionState } from '@/actions/accounting/goals'
 
 interface AdminSettingsCardsProps {
-  contributionsVisibleToAll: boolean;
+  contributionsVisibleToAll: boolean
   /** Current fiscal year (see @/lib/fiscalYear) — the goal is keyed by it. */
-  currentFiscalYear: number;
+  currentFiscalYear: number
   /** Current goal amount for the current fiscal year, if one is set. */
-  goalAmount: number | null;
+  goalAmount: number | null
 }
 
 /**
@@ -21,38 +21,38 @@ export function AdminSettingsCards({
   currentFiscalYear,
   goalAmount,
 }: AdminSettingsCardsProps) {
-  const [visibilityPending, startVisibility] = useTransition();
+  const [visibilityPending, startVisibility] = useTransition()
   const [goalState, goalAction, goalPending] = useActionState<ActionState, FormData>(
     setContributionGoal,
     undefined,
-  );
+  )
 
   function setVisibility(visibleToAll: boolean) {
-    if (visibleToAll === contributionsVisibleToAll) return;
+    if (visibleToAll === contributionsVisibleToAll) return
     startVisibility(async () => {
-      await setContributionsVisibility(visibleToAll);
-    });
+      await setContributionsVisibility(visibleToAll)
+    })
   }
 
   return (
     <div className="mb-6 flex flex-col gap-3">
       <div
         className="card elev-sm flex-wrap bg-white px-5 py-4"
-        style={{ flexDirection: "row", alignItems: "center", gap: 16 }}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}
       >
         <div className="min-w-[200px] flex-1">
-          <div className="text-base" style={{ fontFamily: "var(--font-heading)" }}>
+          <div className="text-base" style={{ fontFamily: 'var(--font-heading)' }}>
             Contributions tab visibility
           </div>
           <div className="text-muted mt-0.5 text-[13px]">
             {contributionsVisibleToAll
-              ? "All shareholders can open the Contributions tab."
-              : "Only admins can open the Contributions tab. Shareholders still see their dashboard, ownership and expenses."}
+              ? 'All shareholders can open the Contributions tab.'
+              : 'Only admins can open the Contributions tab. Shareholders still see their dashboard, ownership and expenses.'}
           </div>
         </div>
         <div
           className="seg"
-          style={{ background: "var(--color-surface)", opacity: visibilityPending ? 0.6 : 1 }}
+          style={{ background: 'var(--color-surface)', opacity: visibilityPending ? 0.6 : 1 }}
         >
           <label className="seg-opt">
             <input
@@ -80,10 +80,10 @@ export function AdminSettingsCards({
       <form
         action={goalAction}
         className="card elev-sm flex-wrap bg-white px-5 py-4"
-        style={{ flexDirection: "row", alignItems: "flex-end", gap: 16 }}
+        style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 16 }}
       >
         <div className="min-w-[200px] flex-1">
-          <div className="text-base" style={{ fontFamily: "var(--font-heading)" }}>
+          <div className="text-base" style={{ fontFamily: 'var(--font-heading)' }}>
             Fiscal-year contribution goal
           </div>
           <div className="text-muted mt-0.5 text-[13px]">
@@ -113,18 +113,18 @@ export function AdminSettingsCards({
             type="number"
             min="1"
             step="1"
-            defaultValue={goalAmount ?? ""}
+            defaultValue={goalAmount ?? ''}
             required
           />
         </div>
         <div className="flex items-center gap-3 pb-0.5">
           <button type="submit" className="btn btn-primary" disabled={goalPending}>
-            {goalPending ? "Saving…" : "Save goal"}
+            {goalPending ? 'Saving…' : 'Save goal'}
           </button>
           {goalState?.saved && (
             <span
               className="text-[13px] font-semibold"
-              style={{ color: "var(--color-accent-2-700)" }}
+              style={{ color: 'var(--color-accent-2-700)' }}
             >
               Saved.
             </span>
@@ -133,12 +133,12 @@ export function AdminSettingsCards({
         {goalState?.error && (
           <p
             className="m-0 w-full text-[13px] font-semibold"
-            style={{ color: "var(--color-accent-800)" }}
+            style={{ color: 'var(--color-accent-800)' }}
           >
             {goalState.error}
           </p>
         )}
       </form>
     </div>
-  );
+  )
 }
