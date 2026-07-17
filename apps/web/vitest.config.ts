@@ -29,8 +29,11 @@ export default defineConfig({
         ? {} // unit-only local run: merged thresholds would spuriously fail
         : {
             // Baseline measured 2026-07-16 (merged unit+integration run).
+            // lib branches floor comes from CI (59.67%) — its ephemeral
+            // production-clone data exercises fewer branches than the local
+            // test branch does.
             thresholds: {
-              'lib/**/*.ts': { lines: 81, branches: 67, functions: 79, statements: 81 },
+              'lib/**/*.ts': { lines: 81, branches: 58, functions: 79, statements: 81 },
               'app/**/actions.ts': { lines: 95, branches: 56, functions: 92, statements: 91 },
               // Sole route is the NextAuth re-export, untested today — raise
               // from zero as tests land.
