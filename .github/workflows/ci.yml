@@ -104,6 +104,12 @@ jobs:
     name: Integration tests + coverage (accounting)
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    # The identity Neon project fits only ONE CI run's ephemeral branches
+    # (4 per run + 5 permanent vs a 10-branch cap), so DB-using jobs queue
+    # per job name across runs instead of failing branch creation with 422.
+    concurrency:
+      group: neon-integration-accounting
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -178,6 +184,10 @@ jobs:
     name: Integration tests + coverage (reservations)
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    # See integration-accounting: serialize Neon-branch-using jobs across runs.
+    concurrency:
+      group: neon-integration-reservations
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -266,6 +276,10 @@ jobs:
     name: Integration tests + coverage (web)
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    # See integration-accounting: serialize Neon-branch-using jobs across runs.
+    concurrency:
+      group: neon-integration-web
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -331,6 +345,10 @@ jobs:
     name: E2E tests (Playwright)
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    # See integration-accounting: serialize Neon-branch-using jobs across runs.
+    concurrency:
+      group: neon-e2e
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
