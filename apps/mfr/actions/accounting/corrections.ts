@@ -7,12 +7,14 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/accounting/prisma";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db/client";
+import { transaction, ledgerEntry, transactionApproval } from "@/lib/db/schema";
 import { requireAdmin } from "@/lib/accounting/authz";
 import { sendEmail, appUrl } from "@/lib/accounting/email";
 import { formatUSD, formatDate } from "@/lib/accounting/format";
 import { CorrectionNotification } from "@/emails/accounting/CorrectionNotification";
-import { TransactionType } from "@/generated/prisma/client";
+import { TransactionType } from "@/lib/accounting/enums";
 
 const metaSchema = z.object({
   originalTransactionId: z.string().min(1),
@@ -36,9 +38,9 @@ export async function createCorrection(
   }
   const { originalTransactionId, description } = meta.data;
 
-  const original = await prisma.transaction.findUnique({
-    where: { id: originalTransactionId },
-    include: { entries: { include: { shareholder: true } } },
+  const original = await db.query.transaction.findFirst({
+    where: eq(transaction.id, originalTransactionId),
+    with: { entries: { with: { shareholder: true } } },
   });
   if (!original) {
     return { error: "Original transaction not found" };
@@ -60,27 +62,44 @@ export async function createCorrection(
     return { error: "The original transaction has nothing to correct" };
   }
 
-  const [correction] = await prisma.$transaction([
-    prisma.transaction.create({
-      data: {
+  const correction = await db.transaction(async (tx) => {
+    const [created] = await tx
+      .insert(transaction)
+      .values({
         type: TransactionType.CORRECTION,
         description,
         createdById: session.user.id,
         createdByName: session.user.name ?? null,
         createdByEmail: session.user.email ?? null,
         correctsTransactionId: original.id,
-        entries: { create: entries },
-        approvals: { create: entries.map((e) => ({ shareholderId: e.shareholderId })) },
-      },
-    }),
+      })
+      .returning();
+
+    await tx.insert(ledgerEntry).values(
+      entries.map((e) => ({
+        transactionId: created.id,
+        shareholderId: e.shareholderId,
+        shares: e.shares.toString(),
+      })),
+    );
+
+    await tx.insert(transactionApproval).values(
+      entries.map((e) => ({
+        transactionId: created.id,
+        shareholderId: e.shareholderId,
+      })),
+    );
+
     // The correction fully replaces the original on the ledger — the
     // original is soft-deleted (stays visible, struck through, everywhere
     // it's listed) but excluded from every balance/total.
-    prisma.transaction.update({
-      where: { id: original.id },
-      data: { deleted: true, deletedAt: new Date() },
-    }),
-  ]);
+    await tx
+      .update(transaction)
+      .set({ deleted: true, deletedAt: new Date() })
+      .where(eq(transaction.id, original.id));
+
+    return created;
+  });
 
   const adminName = session.user.name ?? session.user.email ?? "The admin";
   const dateStr = formatDate(correction.createdAt);

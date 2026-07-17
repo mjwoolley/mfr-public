@@ -1,4 +1,4 @@
-import type { TransactionType, ExpenseCategory, ApprovalStatus } from "@/generated/prisma/enums";
+import type { TransactionType, ExpenseCategory, ApprovalStatus } from "@/lib/accounting/enums";
 
 /** Organic tag class + display label for a transaction type. */
 export function transactionTypeTag(type: TransactionType): { label: string; className: string } {

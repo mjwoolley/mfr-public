@@ -6,9 +6,11 @@
 import { PortalHeader, AuthStatus, HOME_URL } from "@mfr/ui";
 import { canAdminAccounting } from "@mfr/auth";
 import { auth, signOut } from "@/lib/accounting/auth";
-import { prisma } from "@/lib/accounting/prisma";
+import { db } from "@/lib/db/client";
+import { transactionApproval } from "@/lib/db/schema";
 import { getAppSettings } from "@/lib/accounting/settings";
-import { ApprovalStatus } from "@/generated/prisma/client";
+import { ApprovalStatus } from "@/lib/accounting/enums";
+import { and, eq, sql } from "drizzle-orm";
 import { NavTabs, type NavTab } from "./nav-tabs";
 
 export async function Nav() {
@@ -18,12 +20,20 @@ export async function Nav() {
   let tabs: NavTab[] = [];
   if (user) {
     const isAccountingAdmin = canAdminAccounting(user.roles);
+    const shareholderId = user.shareholderId;
     const [settings, pendingCount] = await Promise.all([
       getAppSettings(),
-      user.shareholderId
-        ? prisma.transactionApproval.count({
-            where: { shareholderId: user.shareholderId, status: ApprovalStatus.PENDING },
-          })
+      shareholderId
+        ? db
+            .select({ count: sql<number>`count(*)` })
+            .from(transactionApproval)
+            .where(
+              and(
+                eq(transactionApproval.shareholderId, shareholderId),
+                eq(transactionApproval.status, ApprovalStatus.PENDING),
+              ),
+            )
+            .then((rows) => Number(rows[0].count))
         : Promise.resolve(0),
     ]);
 

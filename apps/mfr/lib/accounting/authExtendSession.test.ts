@@ -1,11 +1,12 @@
 // The extendSession hook in @/lib/auth — accounting's one app-specific
 // session field (the linked Shareholder id) plus the once-only email link
-// and its P2002 race handling. The module wires NextAuth at load time, so
+// and its 23505 race handling. The module wires NextAuth at load time, so
 // next-auth and the DB singletons are mocked and the hook is captured from
 // the createAuthConfig options.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Session } from "next-auth";
-import { Prisma } from "@/generated/prisma/client";
+import { eq } from "drizzle-orm";
+import { shareholder } from "@/lib/db/schema";
 
 const captured: { extendSession?: (session: Session, user: unknown) => Promise<void> } = {};
 
@@ -32,18 +33,17 @@ vi.mock("@mfr/auth", () => ({
 
 vi.mock("@/lib/accounting/identityDb", () => ({ identityDb: {} }));
 
-const findUnique = vi.fn();
-const update = vi.fn();
-vi.mock("@/lib/accounting/prisma", () => ({
-  prisma: {
-    shareholder: {
-      get findUnique() {
-        return findUnique;
-      },
-      get update() {
-        return update;
-      },
-    },
+// The Drizzle client: the hook reads via db.query.shareholder.findFirst and
+// writes via the db.update(...).set(...).where(...) builder chain. The awaited
+// value is whatever the terminal .where() resolves/rejects with.
+const findFirst = vi.fn();
+const updateWhere = vi.fn();
+const updateSet = vi.fn(() => ({ where: updateWhere }));
+const update = vi.fn(() => ({ set: updateSet }));
+vi.mock("@/lib/db/client", () => ({
+  db: {
+    query: { shareholder: { findFirst } },
+    update,
   },
 }));
 
@@ -55,15 +55,17 @@ function session(): Session {
   return { user: {} } as Session;
 }
 
-const p2002 = () =>
-  new Prisma.PrismaClientKnownRequestError("unique", {
-    code: "P2002",
-    clientVersion: "test",
+// A Postgres unique_violation, as postgres-js surfaces it — code "23505".
+const duplicate = () =>
+  Object.assign(new Error("duplicate key value violates unique constraint"), {
+    code: "23505",
   });
 
 beforeEach(() => {
-  findUnique.mockReset();
-  update.mockReset();
+  findFirst.mockReset();
+  updateWhere.mockReset();
+  update.mockClear();
+  updateSet.mockClear();
 });
 
 describe("extendSession", () => {
@@ -76,11 +78,11 @@ describe("extendSession", () => {
     await captured.extendSession!(s, { id: "u1", email: null });
 
     expect(s.user.shareholderId).toBeNull();
-    expect(findUnique).not.toHaveBeenCalled();
+    expect(findFirst).not.toHaveBeenCalled();
   });
 
   it("attaches null when no shareholder matches the email", async () => {
-    findUnique.mockResolvedValue(null);
+    findFirst.mockResolvedValue(null);
     const s = session();
     await captured.extendSession!(s, { id: "u1", email: "nobody@example.com" });
 
@@ -88,14 +90,16 @@ describe("extendSession", () => {
   });
 
   it("lowercases the email for the lookup", async () => {
-    findUnique.mockResolvedValue(null);
+    findFirst.mockResolvedValue(null);
     await captured.extendSession!(session(), { id: "u1", email: "Mixed@Example.COM" });
 
-    expect(findUnique).toHaveBeenCalledWith({ where: { email: "mixed@example.com" } });
+    expect(findFirst).toHaveBeenCalledWith({
+      where: eq(shareholder.email, "mixed@example.com"),
+    });
   });
 
   it("attaches the id without relinking when the shareholder is already linked to this user", async () => {
-    findUnique.mockResolvedValue({ id: "sh1", userId: "u1" });
+    findFirst.mockResolvedValue({ id: "sh1", userId: "u1" });
     const s = session();
     await captured.extendSession!(s, { id: "u1", email: "a@b.c" });
 
@@ -104,27 +108,29 @@ describe("extendSession", () => {
   });
 
   it("links the shareholder to this user on first sign-in", async () => {
-    findUnique.mockResolvedValue({ id: "sh1", userId: null });
-    update.mockResolvedValue({});
+    findFirst.mockResolvedValue({ id: "sh1", userId: null });
+    updateWhere.mockResolvedValue({});
     const s = session();
     await captured.extendSession!(s, { id: "u1", email: "a@b.c" });
 
-    expect(update).toHaveBeenCalledWith({ where: { id: "sh1" }, data: { userId: "u1" } });
+    expect(update).toHaveBeenCalledWith(shareholder);
+    expect(updateSet).toHaveBeenCalledWith({ userId: "u1" });
+    expect(updateWhere).toHaveBeenCalledWith(eq(shareholder.id, "sh1"));
     expect(s.user.shareholderId).toBe("sh1");
   });
 
-  it("swallows a lost P2002 relink race and still attaches the id", async () => {
-    findUnique.mockResolvedValue({ id: "sh1", userId: "other-user" });
-    update.mockRejectedValue(p2002());
+  it("swallows a lost 23505 relink race and still attaches the id", async () => {
+    findFirst.mockResolvedValue({ id: "sh1", userId: "other-user" });
+    updateWhere.mockRejectedValue(duplicate());
     const s = session();
 
     await captured.extendSession!(s, { id: "u1", email: "a@b.c" });
     expect(s.user.shareholderId).toBe("sh1");
   });
 
-  it("rethrows non-P2002 errors from the relink", async () => {
-    findUnique.mockResolvedValue({ id: "sh1", userId: "other-user" });
-    update.mockRejectedValue(new Error("connection lost"));
+  it("rethrows non-23505 errors from the relink", async () => {
+    findFirst.mockResolvedValue({ id: "sh1", userId: "other-user" });
+    updateWhere.mockRejectedValue(new Error("connection lost"));
 
     await expect(captured.extendSession!(session(), { id: "u1", email: "a@b.c" })).rejects.toThrow(
       "connection lost",

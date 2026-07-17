@@ -6,9 +6,11 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/accounting/prisma";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db/client";
+import { expense } from "@/lib/db/schema";
 import { requireAdmin } from "@/lib/accounting/authz";
-import { ExpenseCategory } from "@/generated/prisma/enums";
+import { ExpenseCategory } from "@/lib/accounting/enums";
 
 const createSchema = z.object({
   description: z.string().trim().min(1, "Description is required"),
@@ -47,17 +49,16 @@ export async function createExpense(
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  await prisma.expense.create({
-    data: {
-      description: parsed.data.description,
-      amount: parsed.data.amount,
-      category: parsed.data.category,
-      capital: parsed.data.capital,
-      incurredAt: parsed.data.incurredAt,
-      createdByUserId: session.user.id,
-      createdByName: session.user.name ?? null,
-      createdByEmail: session.user.email ?? null,
-    },
+  await db.insert(expense).values({
+    description: parsed.data.description,
+    amount: parsed.data.amount.toString(),
+    category: parsed.data.category,
+    capital: parsed.data.capital,
+    incurredAt: parsed.data.incurredAt,
+    createdByUserId: session.user.id,
+    createdByName: session.user.name ?? null,
+    createdByEmail: session.user.email ?? null,
+    updatedAt: new Date(),
   });
 
   revalidateExpenseViews();
@@ -81,21 +82,24 @@ export async function updateExpense(
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  const existing = await prisma.expense.findUnique({ where: { id: expenseId } });
+  const existing = await db.query.expense.findFirst({
+    where: eq(expense.id, expenseId),
+  });
   if (!existing) {
     return { error: "Expense not found" };
   }
 
-  await prisma.expense.update({
-    where: { id: expenseId },
-    data: {
+  await db
+    .update(expense)
+    .set({
       description: parsed.data.description,
-      amount: parsed.data.amount,
+      amount: parsed.data.amount.toString(),
       category: parsed.data.category,
       capital: parsed.data.capital,
+      updatedAt: new Date(),
       // incurredAt intentionally untouched — see updateSchema comment.
-    },
-  });
+    })
+    .where(eq(expense.id, expenseId));
 
   revalidateExpenseViews();
   return { success: true };
@@ -111,12 +115,14 @@ export async function deleteExpense(
 ): Promise<ActionState> {
   await requireAdmin();
 
-  const existing = await prisma.expense.findUnique({ where: { id: expenseId } });
+  const existing = await db.query.expense.findFirst({
+    where: eq(expense.id, expenseId),
+  });
   if (!existing) {
     return { error: "Expense not found" };
   }
 
-  await prisma.expense.delete({ where: { id: expenseId } });
+  await db.delete(expense).where(eq(expense.id, expenseId));
 
   revalidateExpenseViews();
   return { success: true };

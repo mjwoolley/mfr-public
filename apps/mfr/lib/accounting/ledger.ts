@@ -1,9 +1,9 @@
-import { prisma } from "@/lib/accounting/prisma";
-import { Prisma, TransactionType } from "@/generated/prisma/client";
+import { db } from "@/lib/db/client";
+import { ledgerEntry, transaction, shareholder } from "@/lib/db/schema";
+import { and, eq, gte, lt, sql } from "drizzle-orm";
+import { Decimal } from "@/lib/accounting/decimal";
+import { TransactionType } from "@/lib/accounting/enums";
 import { fiscalYear, currentFiscalYear, fiscalYearRange } from "@/lib/accounting/fiscalYear";
-
-const { Decimal } = Prisma;
-type Decimal = Prisma.Decimal;
 
 /**
  * Total dollars contributed in the current fiscal year ($1 = 1 share, so the
@@ -13,48 +13,59 @@ type Decimal = Prisma.Decimal;
 export async function getRaisedThisYear(): Promise<{ year: number; raised: number }> {
   const year = currentFiscalYear();
   const { start, end } = fiscalYearRange(year);
-  const aggregate = await prisma.ledgerEntry.aggregate({
-    where: {
-      transaction: {
-        type: TransactionType.CONTRIBUTION,
-        createdAt: { gte: start, lt: end },
-        deleted: false,
-      },
-    },
-    _sum: { shares: true },
-  });
-  return { year, raised: Number(aggregate._sum.shares ?? 0) };
+  const [aggregate] = await db
+    .select({ sum: sql<string>`coalesce(sum(${ledgerEntry.shares}), 0)` })
+    .from(ledgerEntry)
+    .innerJoin(transaction, eq(transaction.id, ledgerEntry.transactionId))
+    .where(
+      and(
+        eq(transaction.type, TransactionType.CONTRIBUTION),
+        gte(transaction.createdAt, start),
+        lt(transaction.createdAt, end),
+        eq(transaction.deleted, false),
+      ),
+    );
+  return { year, raised: Number(aggregate.sum ?? 0) };
 }
 
 export async function getShareholderBalance(shareholderId: string): Promise<Decimal> {
-  const result = await prisma.ledgerEntry.aggregate({
-    where: { shareholderId, transaction: { deleted: false } },
-    _sum: { shares: true },
-  });
-  return result._sum.shares ?? new Decimal(0);
+  const [result] = await db
+    .select({ sum: sql<string>`coalesce(sum(${ledgerEntry.shares}), 0)` })
+    .from(ledgerEntry)
+    .innerJoin(transaction, eq(transaction.id, ledgerEntry.transactionId))
+    .where(and(eq(ledgerEntry.shareholderId, shareholderId), eq(transaction.deleted, false)));
+  return new Decimal(result.sum);
 }
 
 export async function getTotalSharesOutstanding(): Promise<Decimal> {
-  const result = await prisma.ledgerEntry.aggregate({
-    where: { transaction: { deleted: false } },
-    _sum: { shares: true },
-  });
-  return result._sum.shares ?? new Decimal(0);
+  const [result] = await db
+    .select({ sum: sql<string>`coalesce(sum(${ledgerEntry.shares}), 0)` })
+    .from(ledgerEntry)
+    .innerJoin(transaction, eq(transaction.id, ledgerEntry.transactionId))
+    .where(eq(transaction.deleted, false));
+  return new Decimal(result.sum);
 }
 
 export async function getAllShareholderBalances() {
   const [shareholders, grouped, total] = await Promise.all([
-    prisma.shareholder.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
-    prisma.ledgerEntry.groupBy({
-      by: ["shareholderId"],
-      where: { transaction: { deleted: false } },
-      _sum: { shares: true },
+    db.query.shareholder.findMany({
+      where: eq(shareholder.active, true),
+      orderBy: (s, { asc }) => [asc(s.name)],
     }),
+    db
+      .select({
+        shareholderId: ledgerEntry.shareholderId,
+        sum: sql<string>`coalesce(sum(${ledgerEntry.shares}), 0)`,
+      })
+      .from(ledgerEntry)
+      .innerJoin(transaction, eq(transaction.id, ledgerEntry.transactionId))
+      .where(eq(transaction.deleted, false))
+      .groupBy(ledgerEntry.shareholderId),
     getTotalSharesOutstanding(),
   ]);
 
   const balanceByShareholder = new Map(
-    grouped.map((g) => [g.shareholderId, g._sum.shares ?? new Decimal(0)]),
+    grouped.map((g) => [g.shareholderId, new Decimal(g.sum)]),
   );
 
   const rows = shareholders.map((s) => {
@@ -93,9 +104,9 @@ type ContributionEntryForGrouping = {
 /**
  * Groups CONTRIBUTION ledger entries by the fiscal year of their
  * transaction's `createdAt` (see @/lib/fiscalYear). Pure/synchronous so it
- * can be unit tested against fixture data without touching Prisma — mirrors
+ * can be unit tested against fixture data without touching the DB — mirrors
  * the fetch-then-group-in-JS pattern used throughout this app for
- * aggregations Prisma's `groupBy` can't express directly (grouping by a year
+ * aggregations SQL `GROUP BY` can't express directly (grouping by a year
  * extracted from a joined table's DateTime column). The `year` field holds
  * the fiscal year.
  */
@@ -124,9 +135,29 @@ export function groupContributionsByYear(
 }
 
 export async function getContributionsByYear(): Promise<ContributionYearGroup[]> {
-  const entries = await prisma.ledgerEntry.findMany({
-    where: { transaction: { type: TransactionType.CONTRIBUTION, deleted: false } },
-    include: { transaction: true, shareholder: true },
-  });
+  const rows = await db
+    .select({
+      shareholderId: ledgerEntry.shareholderId,
+      shares: ledgerEntry.shares,
+      shareholderName: shareholder.name,
+      createdAt: transaction.createdAt,
+    })
+    .from(ledgerEntry)
+    .innerJoin(transaction, eq(transaction.id, ledgerEntry.transactionId))
+    .innerJoin(shareholder, eq(shareholder.id, ledgerEntry.shareholderId))
+    .where(
+      and(
+        eq(transaction.type, TransactionType.CONTRIBUTION),
+        eq(transaction.deleted, false),
+      ),
+    );
+
+  const entries: ContributionEntryForGrouping[] = rows.map((r) => ({
+    shareholderId: r.shareholderId,
+    shares: new Decimal(r.shares),
+    shareholder: { name: r.shareholderName },
+    transaction: { createdAt: r.createdAt },
+  }));
+
   return groupContributionsByYear(entries);
 }

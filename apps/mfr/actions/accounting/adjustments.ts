@@ -6,12 +6,14 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/accounting/prisma";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db/client";
+import { shareholder, transaction, ledgerEntry, transactionApproval } from "@/lib/db/schema";
 import { requireAdmin } from "@/lib/accounting/authz";
 import { sendEmail, appUrl } from "@/lib/accounting/email";
 import { formatUSD, formatDate } from "@/lib/accounting/format";
 import { AdjustmentNotification } from "@/emails/accounting/AdjustmentNotification";
-import { TransactionType } from "@/generated/prisma/client";
+import { TransactionType } from "@/lib/accounting/enums";
 
 const schema = z.object({
   shareholderId: z.string().min(1, "Select a shareholder"),
@@ -37,33 +39,46 @@ export async function createAdjustment(
   }
   const { shareholderId, amount, description } = parsed.data;
 
-  const shareholder = await prisma.shareholder.findUnique({ where: { id: shareholderId } });
-  if (!shareholder || !shareholder.active) {
+  const shareholderRow = await db.query.shareholder.findFirst({
+    where: eq(shareholder.id, shareholderId),
+  });
+  if (!shareholderRow || !shareholderRow.active) {
     return { error: "Shareholder not found or inactive" };
   }
 
-  const transaction = await prisma.transaction.create({
-    data: {
-      type: TransactionType.ADJUSTMENT,
-      description,
-      createdById: session.user.id,
-      createdByName: session.user.name ?? null,
-      createdByEmail: session.user.email ?? null,
-      entries: { create: { shareholderId: shareholder.id, shares: amount } },
-      approvals: { create: { shareholderId: shareholder.id } },
-    },
+  const createdTransaction = await db.transaction(async (tx) => {
+    const [t] = await tx
+      .insert(transaction)
+      .values({
+        type: TransactionType.ADJUSTMENT,
+        description,
+        createdById: session.user.id,
+        createdByName: session.user.name ?? null,
+        createdByEmail: session.user.email ?? null,
+      })
+      .returning();
+    await tx.insert(ledgerEntry).values({
+      transactionId: t.id,
+      shareholderId: shareholderRow.id,
+      shares: amount.toString(),
+    });
+    await tx.insert(transactionApproval).values({
+      transactionId: t.id,
+      shareholderId: shareholderRow.id,
+    });
+    return t;
   });
 
   // Shareholder.email is optional (Phase 11) — no address to notify if unset.
-  if (shareholder.email) {
+  if (shareholderRow.email) {
     await sendEmail({
-      to: shareholder.email,
+      to: shareholderRow.email,
       subject: `Balance adjustment of ${formatUSD(amount)} recorded`,
       react: AdjustmentNotification({
-        shareholderName: shareholder.name,
+        shareholderName: shareholderRow.name,
         amount: formatUSD(amount),
         description,
-        date: formatDate(transaction.createdAt),
+        date: formatDate(createdTransaction.createdAt),
         adminName: session.user.name ?? session.user.email ?? "The admin",
         inboxUrl: appUrl("/inbox"),
       }),

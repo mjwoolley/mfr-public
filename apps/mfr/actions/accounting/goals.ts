@@ -5,7 +5,8 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/accounting/prisma";
+import { db } from "@/lib/db/client";
+import { contributionGoal } from "@/lib/db/schema";
 import { requireAdmin } from "@/lib/accounting/authz";
 
 const schema = z.object({
@@ -31,11 +32,14 @@ export async function setContributionGoal(
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  await prisma.contributionGoal.upsert({
-    where: { year: parsed.data.year },
-    update: { amount: parsed.data.amount },
-    create: { year: parsed.data.year, amount: parsed.data.amount },
-  });
+  const amount = parsed.data.amount.toString();
+  await db
+    .insert(contributionGoal)
+    .values({ year: parsed.data.year, amount, updatedAt: new Date() })
+    .onConflictDoUpdate({
+      target: contributionGoal.year,
+      set: { amount, updatedAt: new Date() },
+    });
 
   revalidatePath("/accounting/dashboard");
   revalidatePath("/accounting/admin");

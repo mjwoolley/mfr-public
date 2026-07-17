@@ -4,7 +4,9 @@
 // only one side still gets a row.
 
 import { requireAuthorized } from "@/lib/accounting/authz";
-import { prisma } from "@/lib/accounting/prisma";
+import { db } from "@/lib/db/client";
+import { expense } from "@/lib/db/schema";
+import { desc } from "drizzle-orm";
 import { getContributionsByYear } from "@/lib/accounting/ledger";
 import { splitExpensesByYear } from "@/lib/accounting/expenses";
 import type { YearFinancials } from "@/lib/accounting/expenseChart";
@@ -33,7 +35,7 @@ export default async function ExpensesPage() {
 
   const [contributionsByYear, expenses] = await Promise.all([
     getContributionsByYear(),
-    prisma.expense.findMany({ orderBy: { incurredAt: "desc" } }),
+    db.query.expense.findMany({ orderBy: [desc(expense.incurredAt)] }),
   ]);
 
   const expenseSplit = splitExpensesByYear(expenses);

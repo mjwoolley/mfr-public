@@ -1,23 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 
-const mockExpenseFindMany = vi.fn();
-
-vi.mock("@/lib/accounting/prisma", () => ({
-  prisma: {
-    expense: {
-      findMany: (...args: unknown[]) => mockExpenseFindMany(...args),
-    },
-  },
-}));
-
-const { groupExpensesByYear, getExpensesByYear, mergeIncomeAndExpenses, splitExpensesByYear } =
-  await import("@/lib/accounting/expenses");
-const { Prisma } = await import("@/generated/prisma/client");
-const { Decimal } = Prisma;
-
-beforeEach(() => {
-  mockExpenseFindMany.mockReset();
-});
+// getExpensesByYear (the DB fetch) is covered against a real Neon test branch by
+// the integration suite; here we test the pure fiscal-year grouping/splitting/merge.
+import { groupExpensesByYear, mergeIncomeAndExpenses, splitExpensesByYear } from "@/lib/accounting/expenses";
+import { Decimal } from "@/lib/accounting/decimal";
 
 describe("groupExpensesByYear", () => {
   it("groups expenses by the fiscal year of incurredAt", () => {
@@ -63,20 +49,6 @@ describe("splitExpensesByYear", () => {
 
   it("returns an empty array when there are no expenses", () => {
     expect(splitExpensesByYear([])).toEqual([]);
-  });
-});
-
-describe("getExpensesByYear", () => {
-  it("fetches all expenses and groups them by fiscal year", async () => {
-    mockExpenseFindMany.mockResolvedValue([
-      { amount: new Decimal(500), incurredAt: new Date("2022-06-01") }, // FY2022
-    ]);
-
-    const groups = await getExpensesByYear();
-
-    expect(mockExpenseFindMany).toHaveBeenCalled();
-    expect(groups).toEqual([{ year: 2022, total: expect.any(Decimal) }]);
-    expect(groups[0].total.toString()).toBe("500");
   });
 });
 

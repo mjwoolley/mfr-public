@@ -3,22 +3,29 @@
 // already count toward balances (see actions/approvals.ts).
 
 import { requireShareholder } from "@/lib/accounting/authz";
-import { prisma } from "@/lib/accounting/prisma";
+import { db } from "@/lib/db/client";
+import { transactionApproval } from "@/lib/db/schema";
+import { and, eq, desc } from "drizzle-orm";
 import { formatUSD, formatDate } from "@/lib/accounting/format";
 import { transactionTypeTag } from "@/lib/accounting/tags";
-import { ApprovalStatus } from "@/generated/prisma/client";
+import { ApprovalStatus } from "@/lib/accounting/enums";
 import { InboxApprovalActions } from "./inbox-approval-actions";
 
 export default async function InboxPage() {
   const session = await requireShareholder();
 
-  const pending = await prisma.transactionApproval.findMany({
-    where: { shareholderId: session.user.shareholderId, status: ApprovalStatus.PENDING },
-    orderBy: { createdAt: "desc" },
-    include: {
+  const pending = await db.query.transactionApproval.findMany({
+    where: and(
+      eq(transactionApproval.shareholderId, session.user.shareholderId),
+      eq(transactionApproval.status, ApprovalStatus.PENDING),
+    ),
+    orderBy: [desc(transactionApproval.createdAt)],
+    with: {
       transaction: {
-        include: {
-          entries: { where: { shareholderId: session.user.shareholderId } },
+        with: {
+          entries: {
+            where: (entry, { eq }) => eq(entry.shareholderId, session.user.shareholderId),
+          },
         },
       },
     },

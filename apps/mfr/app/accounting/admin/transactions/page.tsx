@@ -3,7 +3,9 @@
 // shareholders the record dialogs need. `?correct=<id>` deep-links straight
 // into the correction dialog for that transaction.
 
-import { prisma } from "@/lib/accounting/prisma";
+import { db } from "@/lib/db/client";
+import { shareholder, transaction } from "@/lib/db/schema";
+import { eq, asc, desc } from "drizzle-orm";
 import { formatDate } from "@/lib/accounting/format";
 import { transactionTypeTag, approvalStatusTag } from "@/lib/accounting/tags";
 import { TransactionsClient, type TxRow } from "./transactions-client";
@@ -25,18 +27,18 @@ export default async function AdminTransactionsPage({
   const { correct } = await searchParams;
 
   const [transactions, shareholders] = await Promise.all([
-    prisma.transaction.findMany({
-      orderBy: { createdAt: "desc" },
-      include: {
-        entries: { include: { shareholder: { select: { name: true } } } },
-        approvals: { include: { shareholder: { select: { name: true } } } },
-        correctsTransaction: { select: { id: true, type: true } },
+    db.query.transaction.findMany({
+      orderBy: [desc(transaction.createdAt)],
+      with: {
+        entries: { with: { shareholder: { columns: { name: true } } } },
+        approvals: { with: { shareholder: { columns: { name: true } } } },
+        correctsTransaction: { columns: { id: true, type: true } },
       },
     }),
-    prisma.shareholder.findMany({
-      where: { active: true },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true },
+    db.query.shareholder.findMany({
+      where: eq(shareholder.active, true),
+      orderBy: [asc(shareholder.name)],
+      columns: { id: true, name: true },
     }),
   ]);
 

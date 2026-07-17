@@ -5,10 +5,10 @@
 import { redirect } from "next/navigation";
 import { canAdminAccounting } from "@mfr/auth";
 import { requireAuthorized } from "@/lib/accounting/authz";
-import { prisma } from "@/lib/accounting/prisma";
+import { db } from "@/lib/db/client";
 import { getAllShareholderBalances } from "@/lib/accounting/ledger";
 import { getAppSettings } from "@/lib/accounting/settings";
-import { TransactionType } from "@/generated/prisma/client";
+import { TransactionType } from "@/lib/accounting/enums";
 import {
   contributionTotalsByYear,
   groupEntriesByShareholder,
@@ -38,8 +38,8 @@ export default async function ContributionsPage() {
   }
 
   const [entries, { rows: balanceRows, total }] = await Promise.all([
-    prisma.ledgerEntry.findMany({
-      include: { transaction: true, shareholder: true },
+    db.query.ledgerEntry.findMany({
+      with: { transaction: true, shareholder: true },
     }),
     getAllShareholderBalances(),
   ]);

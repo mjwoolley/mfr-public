@@ -8,12 +8,12 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { ilike } from "drizzle-orm";
+import { eq, ilike } from "drizzle-orm";
 import { users } from "@mfr/auth";
-import { prisma } from "@/lib/accounting/prisma";
+import { db } from "@/lib/db/client";
+import { shareholder } from "@/lib/db/schema";
 import { identityDb } from "@/lib/accounting/identityDb";
 import { requireAdmin } from "@/lib/accounting/authz";
-import { Prisma } from "@/generated/prisma/client";
 
 // Looks up an identity-DB user id by exact (case-insensitive) email, so a newly
 // created/edited shareholder can be linked to their login straight away — the
@@ -65,9 +65,11 @@ export async function createShareholder(
 
   // Only pre-check uniqueness when an email was actually given — Postgres
   // allows multiple NULLs under the unique constraint, so there's nothing to
-  // check (and calling findUnique with a null email would be meaningless).
+  // check (and calling findFirst with a null email would be meaningless).
   if (email) {
-    const existing = await prisma.shareholder.findUnique({ where: { email } });
+    const existing = await db.query.shareholder.findFirst({
+      where: eq(shareholder.email, email),
+    });
     if (existing) {
       return { error: "A shareholder with that email already exists" };
     }
@@ -78,13 +80,11 @@ export async function createShareholder(
   const userId = email ? await findIdentityUserIdByEmail(email) : null;
 
   try {
-    await prisma.shareholder.create({
-      data: { name, email, userId },
-    });
+    await db.insert(shareholder).values({ name, email, userId });
   } catch (err) {
     // Shareholder.userId is @unique — the matched login may already belong to a
-    // different shareholder. Fail friendly rather than with a raw Prisma error.
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+    // different shareholder. Fail friendly rather than with a raw DB error.
+    if ((err as { code?: string })?.code === "23505") {
       return { error: "That login is already linked to a different shareholder" };
     }
     throw err;
@@ -118,13 +118,17 @@ export async function updateShareholder(
 
   const { shareholderId, name, email } = parsed.data;
 
-  const current = await prisma.shareholder.findUnique({ where: { id: shareholderId } });
+  const current = await db.query.shareholder.findFirst({
+    where: eq(shareholder.id, shareholderId),
+  });
   if (!current) {
     return { error: "Shareholder not found" };
   }
 
   if (email) {
-    const existing = await prisma.shareholder.findUnique({ where: { email } });
+    const existing = await db.query.shareholder.findFirst({
+      where: eq(shareholder.email, email),
+    });
     if (existing && existing.id !== shareholderId) {
       return { error: "A shareholder with that email already exists" };
     }
@@ -140,12 +144,12 @@ export async function updateShareholder(
   }
 
   try {
-    await prisma.shareholder.update({
-      where: { id: shareholderId },
-      data: { name, email, userId },
-    });
+    await db
+      .update(shareholder)
+      .set({ name, email, userId })
+      .where(eq(shareholder.id, shareholderId));
   } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+    if ((err as { code?: string })?.code === "23505") {
       return { error: "That login is already linked to a different shareholder" };
     }
     throw err;
@@ -157,10 +161,7 @@ export async function updateShareholder(
 
 export async function setShareholderActive(shareholderId: string, active: boolean) {
   await requireAdmin();
-  await prisma.shareholder.update({
-    where: { id: shareholderId },
-    data: { active },
-  });
+  await db.update(shareholder).set({ active }).where(eq(shareholder.id, shareholderId));
   revalidatePath("/accounting/admin/shareholders");
   revalidatePath(`/accounting/admin/shareholders/${shareholderId}/edit`);
 }
@@ -169,7 +170,7 @@ export async function setShareholderActive(shareholderId: string, active: boolea
  * Links a shareholder to an identity-DB user found via the shareholder-search
  * API route. `Shareholder.userId` is `@unique`, so linking to a user already
  * linked to a different shareholder fails with a friendly error rather than a
- * raw Prisma exception.
+ * raw DB exception.
  */
 export async function linkShareholderToUser(
   shareholderId: string,
@@ -178,12 +179,12 @@ export async function linkShareholderToUser(
   await requireAdmin();
 
   try {
-    await prisma.shareholder.update({
-      where: { id: shareholderId },
-      data: { userId },
-    });
+    await db
+      .update(shareholder)
+      .set({ userId })
+      .where(eq(shareholder.id, shareholderId));
   } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+    if ((err as { code?: string })?.code === "23505") {
       return { error: "That login is already linked to a different shareholder" };
     }
     throw err;
@@ -195,10 +196,10 @@ export async function linkShareholderToUser(
 
 export async function unlinkShareholder(shareholderId: string) {
   await requireAdmin();
-  await prisma.shareholder.update({
-    where: { id: shareholderId },
-    data: { userId: null },
-  });
+  await db
+    .update(shareholder)
+    .set({ userId: null })
+    .where(eq(shareholder.id, shareholderId));
   revalidatePath("/accounting/admin/shareholders");
   revalidatePath(`/accounting/admin/shareholders/${shareholderId}/edit`);
 }

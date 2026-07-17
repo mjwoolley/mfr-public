@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { prisma } from "@/lib/accounting/prisma";
+import { db } from "@/lib/db/client";
+import { shareholder } from "@/lib/db/schema";
+import { asc } from "drizzle-orm";
 
 export default async function AdminShareholdersPage() {
-  const shareholders = await prisma.shareholder.findMany({
-    orderBy: { name: "asc" },
+  const shareholders = await db.query.shareholder.findMany({
+    orderBy: [asc(shareholder.name)],
   });
 
   return (

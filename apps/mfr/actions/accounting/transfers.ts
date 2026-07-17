@@ -6,12 +6,20 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/accounting/prisma";
+import { db } from "@/lib/db/client";
+import {
+  shareholder,
+  transaction,
+  ledgerEntry,
+  transactionApproval,
+} from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import { Decimal } from "@/lib/accounting/decimal";
 import { requireAdmin } from "@/lib/accounting/authz";
 import { sendEmail, appUrl } from "@/lib/accounting/email";
 import { formatUSD, formatDate } from "@/lib/accounting/format";
 import { TransferNotification } from "@/emails/accounting/TransferNotification";
-import { TransactionType } from "@/generated/prisma/client";
+import { TransactionType } from "@/lib/accounting/enums";
 
 const schema = z
   .object({
@@ -45,38 +53,56 @@ export async function createTransfer(
   const { fromShareholderId, toShareholderId, amount, description } = parsed.data;
 
   const [from, to] = await Promise.all([
-    prisma.shareholder.findUnique({ where: { id: fromShareholderId } }),
-    prisma.shareholder.findUnique({ where: { id: toShareholderId } }),
+    db.query.shareholder.findFirst({
+      where: eq(shareholder.id, fromShareholderId),
+    }),
+    db.query.shareholder.findFirst({
+      where: eq(shareholder.id, toShareholderId),
+    }),
   ]);
   if (!from || !from.active || !to || !to.active) {
     return { error: "Shareholder not found or inactive" };
   }
 
-  const transaction = await prisma.transaction.create({
-    data: {
-      type: TransactionType.TRANSFER,
-      description,
-      createdById: session.user.id,
-      createdByName: session.user.name ?? null,
-      createdByEmail: session.user.email ?? null,
-      // Double-entry: a negative row for the sender and a positive row for
-      // the receiver, so the transfer nets to zero and each side's balance is
-      // just the sum of their own entries.
-      entries: {
-        create: [
-          { shareholderId: from.id, shares: -amount },
-          { shareholderId: to.id, shares: amount },
-        ],
+  const txn = await db.transaction(async (tx) => {
+    const [t] = await tx
+      .insert(transaction)
+      .values({
+        type: TransactionType.TRANSFER,
+        description,
+        createdById: session.user.id,
+        createdByName: session.user.name ?? null,
+        createdByEmail: session.user.email ?? null,
+      })
+      .returning();
+
+    // Double-entry: a negative row for the sender and a positive row for
+    // the receiver, so the transfer nets to zero and each side's balance is
+    // just the sum of their own entries.
+    await tx.insert(ledgerEntry).values([
+      {
+        transactionId: t.id,
+        shareholderId: from.id,
+        shares: new Decimal(amount).neg().toString(),
       },
-      approvals: {
-        create: [{ shareholderId: from.id }, { shareholderId: to.id }],
+      {
+        transactionId: t.id,
+        shareholderId: to.id,
+        shares: new Decimal(amount).toString(),
       },
-    },
+    ]);
+
+    await tx.insert(transactionApproval).values([
+      { transactionId: t.id, shareholderId: from.id },
+      { transactionId: t.id, shareholderId: to.id },
+    ]);
+
+    return t;
   });
 
   const adminName = session.user.name ?? session.user.email ?? "The admin";
   const amountStr = formatUSD(amount);
-  const dateStr = formatDate(transaction.createdAt);
+  const dateStr = formatDate(txn.createdAt);
 
   // Shareholder.email is optional (Phase 11) — no address to notify if unset.
   await Promise.all([

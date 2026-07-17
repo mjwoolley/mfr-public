@@ -5,8 +5,9 @@
 import NextAuth from "next-auth";
 import { createAuthConfig, createRolesReaderFromEnv } from "@mfr/auth";
 import { identityDb } from "@/lib/accounting/identityDb";
-import { prisma } from "@/lib/accounting/prisma";
-import { Prisma } from "@/generated/prisma/client";
+import { db } from "@/lib/db/client";
+import { shareholder } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 export const {
   handlers: { GET, POST },
@@ -33,25 +34,27 @@ export const {
       let shareholderId: string | null = null;
 
       if (email) {
-        const shareholder = await prisma.shareholder.findUnique({ where: { email } });
-        if (shareholder) {
-          if (shareholder.userId !== user.id) {
+        const row = await db.query.shareholder.findFirst({
+          where: eq(shareholder.email, email),
+        });
+        if (row) {
+          if (row.userId !== user.id) {
             try {
-              await prisma.shareholder.update({
-                where: { id: shareholder.id },
-                data: { userId: user.id },
-              });
+              await db
+                .update(shareholder)
+                .set({ userId: user.id })
+                .where(eq(shareholder.id, row.id));
             } catch (err) {
               // An admin can now manually link a different shareholder to this
               // same user.id via linkShareholderToUser. If that already
               // happened, this write loses the race — don't let it crash the
               // session callback; just skip the (re)link for this read.
-              if (!(err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002")) {
+              if ((err as { code?: string })?.code !== "23505") {
                 throw err;
               }
             }
           }
-          shareholderId = shareholder.id;
+          shareholderId = row.id;
         }
       }
 

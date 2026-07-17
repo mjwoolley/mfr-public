@@ -3,15 +3,18 @@
 // shareholder's full entry history with approval/dispute states inline.
 
 import QRCode from "qrcode";
+import { and, eq, gte, lt, desc, sql } from "drizzle-orm";
 import { requireShareholder } from "@/lib/accounting/authz";
-import { prisma } from "@/lib/accounting/prisma";
+import { db } from "@/lib/db/client";
+import { shareholder as shareholderTable, transaction, ledgerEntry } from "@/lib/db/schema";
+import { Decimal } from "@/lib/accounting/decimal";
 import { getShareholderBalance, getTotalSharesOutstanding } from "@/lib/accounting/ledger";
 import { getContributionGoal, computeGoalProgress } from "@/lib/accounting/goals";
 import { currentFiscalYear, fiscalYearRange, fiscalYearLabel } from "@/lib/accounting/fiscalYear";
 import { getVenmoConfig } from "@/lib/accounting/venmo";
 import { formatUSD, formatDate } from "@/lib/accounting/format";
 import { transactionTypeTag } from "@/lib/accounting/tags";
-import { ApprovalStatus, TransactionType } from "@/generated/prisma/client";
+import { ApprovalStatus, TransactionType } from "@/lib/accounting/enums";
 import { VenmoDialogButton } from "./venmo-dialog";
 import { DisputeEntryActions } from "./dispute-actions";
 
@@ -32,37 +35,48 @@ export default async function DashboardPage() {
   // sums contribution entries across ALL shareholders inside the current
   // fiscal-year range (Mar 1 → Mar 1, half-open) — it feeds the shared goal
   // tracker, not this shareholder's personal totals.
-  const [shareholder, balance, total, entries, goal, raisedAggregate] = await Promise.all([
-    prisma.shareholder.findUniqueOrThrow({ where: { id: shareholderId } }),
+  const [shareholder, balance, total, entries, goal, raised] = await Promise.all([
+    (async () => {
+      const row = await db.query.shareholder.findFirst({
+        where: eq(shareholderTable.id, shareholderId),
+      });
+      if (!row) throw new Error(`Shareholder ${shareholderId} not found`);
+      return row;
+    })(),
     getShareholderBalance(shareholderId),
     getTotalSharesOutstanding(),
-    prisma.ledgerEntry.findMany({
-      where: { shareholderId },
-      orderBy: { createdAt: "desc" },
-      include: {
+    db.query.ledgerEntry.findMany({
+      where: eq(ledgerEntry.shareholderId, shareholderId),
+      orderBy: [desc(ledgerEntry.createdAt)],
+      with: {
         transaction: {
-          include: {
-            approvals: { where: { shareholderId } },
-            correctsTransaction: { select: { id: true, type: true } },
+          with: {
+            approvals: { where: (t, { eq }) => eq(t.shareholderId, shareholderId) },
+            correctsTransaction: { columns: { id: true, type: true } },
           },
         },
       },
     }),
     getContributionGoal(currentFY),
-    prisma.ledgerEntry.aggregate({
-      where: {
-        transaction: {
-          type: TransactionType.CONTRIBUTION,
-          createdAt: { gte: yearStart, lt: nextYearStart },
-          deleted: false,
-        },
-      },
-      _sum: { shares: true },
-    }),
+    (async () => {
+      const [r] = await db
+        .select({ sum: sql<string>`coalesce(sum(${ledgerEntry.shares}),0)` })
+        .from(ledgerEntry)
+        .innerJoin(transaction, eq(transaction.id, ledgerEntry.transactionId))
+        .where(
+          and(
+            eq(transaction.type, TransactionType.CONTRIBUTION),
+            gte(transaction.createdAt, yearStart),
+            lt(transaction.createdAt, nextYearStart),
+            eq(transaction.deleted, false),
+          ),
+        );
+      return new Decimal(r.sum);
+    })(),
   ]);
 
   const ownershipPct = total.isZero() ? 0 : balance.div(total).mul(100).toNumber();
-  const raisedThisYear = Number(raisedAggregate._sum.shares ?? 0);
+  const raisedThisYear = raised.toNumber();
   const goalAmount = goal ? Number(goal.amount) : null;
   const progress = goalAmount ? computeGoalProgress(goalAmount, raisedThisYear) : null;
 

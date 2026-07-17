@@ -4,7 +4,8 @@
 // Contributions-tab visibility toggle).
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/accounting/prisma";
+import { db } from "@/lib/db/client";
+import { appSettings } from "@/lib/db/schema";
 import { requireAdmin } from "@/lib/accounting/authz";
 
 /**
@@ -15,11 +16,17 @@ import { requireAdmin } from "@/lib/accounting/authz";
 export async function setContributionsVisibility(visibleToAll: boolean): Promise<void> {
   await requireAdmin();
 
-  await prisma.appSettings.upsert({
-    where: { id: "singleton" },
-    update: { contributionsVisibleToAll: visibleToAll },
-    create: { id: "singleton", contributionsVisibleToAll: visibleToAll },
-  });
+  await db
+    .insert(appSettings)
+    .values({
+      id: "singleton",
+      contributionsVisibleToAll: visibleToAll,
+      updatedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: appSettings.id,
+      set: { contributionsVisibleToAll: visibleToAll, updatedAt: new Date() },
+    });
 
   // The tab row renders on every page; revalidate the app root so the
   // Contributions tab appears/disappears without a hard refresh.

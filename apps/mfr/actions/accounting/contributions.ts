@@ -6,12 +6,14 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/accounting/prisma";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db/client";
+import { shareholder, transaction, ledgerEntry, transactionApproval } from "@/lib/db/schema";
 import { requireAdmin } from "@/lib/accounting/authz";
 import { sendEmail, appUrl } from "@/lib/accounting/email";
 import { formatUSD, formatDate } from "@/lib/accounting/format";
 import { ContributionNotification } from "@/emails/accounting/ContributionNotification";
-import { TransactionType } from "@/generated/prisma/client";
+import { TransactionType } from "@/lib/accounting/enums";
 
 const schema = z.object({
   shareholderId: z.string().min(1, "Select a shareholder"),
@@ -40,38 +42,48 @@ export async function createContribution(
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  const shareholder = await prisma.shareholder.findUnique({
-    where: { id: parsed.data.shareholderId },
+  const shareholderRow = await db.query.shareholder.findFirst({
+    where: eq(shareholder.id, parsed.data.shareholderId),
   });
-  if (!shareholder || !shareholder.active) {
+  if (!shareholderRow || !shareholderRow.active) {
     return { error: "Shareholder not found or inactive" };
   }
 
-  const transaction = await prisma.transaction.create({
-    data: {
-      type: TransactionType.CONTRIBUTION,
-      description: parsed.data.description ?? null,
-      createdById: session.user.id,
-      createdByName: session.user.name ?? null,
-      createdByEmail: session.user.email ?? null,
-      entries: {
-        create: { shareholderId: shareholder.id, shares: parsed.data.amount },
-      },
-      approvals: {
-        create: { shareholderId: shareholder.id },
-      },
-    },
+  const createdTransaction = await db.transaction(async (tx) => {
+    const [t] = await tx
+      .insert(transaction)
+      .values({
+        type: TransactionType.CONTRIBUTION,
+        description: parsed.data.description ?? null,
+        createdById: session.user.id,
+        createdByName: session.user.name ?? null,
+        createdByEmail: session.user.email ?? null,
+      })
+      .returning();
+
+    await tx.insert(ledgerEntry).values({
+      transactionId: t.id,
+      shareholderId: shareholderRow.id,
+      shares: parsed.data.amount.toString(),
+    });
+
+    await tx.insert(transactionApproval).values({
+      transactionId: t.id,
+      shareholderId: shareholderRow.id,
+    });
+
+    return t;
   });
 
   // Shareholder.email is optional (Phase 11) — no address to notify if unset.
-  if (shareholder.email) {
+  if (shareholderRow.email) {
     await sendEmail({
-      to: shareholder.email,
+      to: shareholderRow.email,
       subject: `Contribution of ${formatUSD(parsed.data.amount)} recorded`,
       react: ContributionNotification({
-        shareholderName: shareholder.name,
+        shareholderName: shareholderRow.name,
         amount: formatUSD(parsed.data.amount),
-        date: formatDate(transaction.createdAt),
+        date: formatDate(createdTransaction.createdAt),
         adminName: session.user.name ?? session.user.email ?? "The admin",
         inboxUrl: appUrl("/inbox"),
       }),

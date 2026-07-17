@@ -1,7 +1,10 @@
 // Contribution-goal lookup + the progress math behind the dashboard's goal
 // tracker. Goals are keyed by fiscal year (see @/lib/fiscalYear).
 
-import { prisma } from "@/lib/accounting/prisma";
+import { eq } from "drizzle-orm";
+
+import { db } from "@/lib/db/client";
+import { contributionGoal } from "@/lib/db/schema";
 
 export interface GoalProgress {
   /** 0–100, clamped. */
@@ -33,5 +36,9 @@ export function computeGoalProgress(goalAmount: number, raised: number): GoalPro
 }
 
 export async function getContributionGoal(year: number) {
-  return prisma.contributionGoal.findUnique({ where: { year } });
+  return (
+    (await db.query.contributionGoal.findFirst({
+      where: eq(contributionGoal.year, year),
+    })) ?? null
+  );
 }

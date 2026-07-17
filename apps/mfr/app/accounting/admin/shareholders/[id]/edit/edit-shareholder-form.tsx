@@ -2,9 +2,9 @@
 
 import { useActionState, useState, useTransition } from "react";
 import { updateShareholder, setShareholderActive, type ActionState } from "@/actions/accounting/shareholders";
-import type { Shareholder } from "@/generated/prisma/client";
+import type { ShareholderRow } from "@/lib/db/schema";
 
-export function EditShareholderForm({ shareholder }: { shareholder: Shareholder }) {
+export function EditShareholderForm({ shareholder }: { shareholder: ShareholderRow }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     updateShareholder,
     undefined,

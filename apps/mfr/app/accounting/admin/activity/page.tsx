@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { prisma } from "@/lib/accounting/prisma";
+import { desc } from "drizzle-orm";
+import { db } from "@/lib/db/client";
 import { formatUSD, formatDate } from "@/lib/accounting/format";
 import { transactionTypeTag, approvalStatusTag } from "@/lib/accounting/tags";
-import { ApprovalStatus } from "@/generated/prisma/client";
+import { ApprovalStatus } from "@/lib/accounting/enums";
 import { ResolveDisputeForm } from "./resolve-dispute-form";
 
 /**
@@ -12,12 +13,12 @@ import { ResolveDisputeForm } from "./resolve-dispute-form";
  * transparency view). The admin layout's requireAdmin() gates this.
  */
 export default async function AdminActivityPage() {
-  const transactions = await prisma.transaction.findMany({
-    orderBy: { createdAt: "desc" },
-    include: {
-      entries: { include: { shareholder: { select: { name: true } } } },
-      approvals: { include: { shareholder: { select: { name: true } } } },
-      correctsTransaction: { select: { id: true, type: true } },
+  const transactions = await db.query.transaction.findMany({
+    orderBy: (t) => [desc(t.createdAt)],
+    with: {
+      entries: { with: { shareholder: { columns: { name: true } } } },
+      approvals: { with: { shareholder: { columns: { name: true } } } },
+      correctsTransaction: { columns: { id: true, type: true } },
     },
   });
 

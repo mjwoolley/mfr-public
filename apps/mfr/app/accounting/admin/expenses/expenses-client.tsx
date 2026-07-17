@@ -7,7 +7,7 @@ import { useActionState, useEffect, useState } from "react";
 import { ModalDialog } from "@mfr/ui";
 import { createExpense, deleteExpense, updateExpense, type ActionState } from "@/actions/accounting/expenses";
 import { EXPENSE_CATEGORY_LABELS } from "@/lib/accounting/tags";
-import { ExpenseCategory } from "@/generated/prisma/enums";
+import { ExpenseCategory } from "@/lib/accounting/enums";
 
 export interface ExpenseRow {
   id: string;

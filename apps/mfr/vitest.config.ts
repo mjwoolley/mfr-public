@@ -53,7 +53,21 @@ export default defineConfig({
           name: 'unit',
           environment: 'node',
           include: ['**/*.test.{ts,tsx}'],
-          exclude: ['**/node_modules/**', '.next/**', 'tests/integration/**'],
+          exclude: [
+            '**/node_modules/**',
+            '.next/**',
+            'tests/integration/**',
+            'tests/accounting-integration/**',
+          ],
+          // The unified Drizzle client (and the identity/portal clients) throw
+          // at module load if their URL is unset. Pure unit tests that merely
+          // import a lib module which loads a client need a dummy URL — postgres
+          // is lazy and never connects unless a query runs.
+          env: {
+            DATABASE_URL: 'postgresql://unit:unit@localhost:5432/unit',
+            IDENTITY_DATABASE_URL: 'postgresql://unit:unit@localhost:5432/unit',
+            PORTAL_DATABASE_URL: 'postgresql://unit:unit@localhost:5432/unit',
+          },
         },
       },
       {

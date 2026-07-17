@@ -5,7 +5,7 @@ import {
   approvalStatusTag,
   EXPENSE_CATEGORY_LABELS,
 } from "./tags";
-import type { ExpenseCategory } from "@/generated/prisma/enums";
+import type { ExpenseCategory } from "@/lib/accounting/enums";
 
 describe("transactionTypeTag", () => {
   it("maps every transaction type to a label + Organic tag class", () => {

@@ -3,12 +3,14 @@
 // Shareholder-facing approval workflow (confirm/dispute from the inbox) plus
 // the admin-side resolveDispute. Approval is informational — it never blocks a
 // transaction from counting toward balances. Every mutation is scoped to the
-// caller's own approval row via updateMany filters, not checked-then-updated.
+// caller's own approval row via the update WHERE filter, not checked-then-updated.
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/accounting/prisma";
+import { and, eq, inArray } from "drizzle-orm";
+import { db } from "@/lib/db/client";
+import { transactionApproval } from "@/lib/db/schema";
 import { requireShareholder, requireAdmin } from "@/lib/accounting/authz";
-import { ApprovalStatus } from "@/generated/prisma/client";
+import { ApprovalStatus } from "@/lib/accounting/enums";
 
 export async function confirmTransaction(approvalId: string) {
   const session = await requireShareholder();
@@ -19,14 +21,21 @@ export async function confirmTransaction(approvalId: string) {
   // deciding, after the fact, that a transaction they'd disputed is fine
   // after all) — this shareholder-initiated path is distinct from admin's
   // resolveDispute below, which never reverts status away from DISPUTED.
-  await prisma.transactionApproval.updateMany({
-    where: {
-      id: approvalId,
-      shareholderId: session.user.shareholderId,
-      status: { in: [ApprovalStatus.PENDING, ApprovalStatus.DISPUTED] },
-    },
-    data: { status: ApprovalStatus.CONFIRMED, confirmedAt: new Date() },
-  });
+  // Drizzle update does not throw on 0 rows, preserving the updateMany
+  // no-existence-check security semantics.
+  await db
+    .update(transactionApproval)
+    .set({ status: ApprovalStatus.CONFIRMED, confirmedAt: new Date() })
+    .where(
+      and(
+        eq(transactionApproval.id, approvalId),
+        eq(transactionApproval.shareholderId, session.user.shareholderId),
+        inArray(transactionApproval.status, [
+          ApprovalStatus.PENDING,
+          ApprovalStatus.DISPUTED,
+        ]),
+      ),
+    );
 
   revalidatePath("/accounting/inbox");
   revalidatePath("/accounting/admin/activity");
@@ -43,18 +52,20 @@ export async function disputeTransaction(approvalId: string, reason: string) {
 
   // Same self-scoping pattern as confirmTransaction — only the owning
   // shareholder can dispute their own approval row, and only from PENDING.
-  await prisma.transactionApproval.updateMany({
-    where: {
-      id: approvalId,
-      shareholderId: session.user.shareholderId,
-      status: ApprovalStatus.PENDING,
-    },
-    data: {
+  await db
+    .update(transactionApproval)
+    .set({
       status: ApprovalStatus.DISPUTED,
       disputedAt: new Date(),
       disputeReason: trimmedReason,
-    },
-  });
+    })
+    .where(
+      and(
+        eq(transactionApproval.id, approvalId),
+        eq(transactionApproval.shareholderId, session.user.shareholderId),
+        eq(transactionApproval.status, ApprovalStatus.PENDING),
+      ),
+    );
 
   revalidatePath("/accounting/inbox");
   revalidatePath("/accounting/admin/activity");
@@ -72,14 +83,16 @@ export async function updateDisputeReason(approvalId: string, reason: string) {
   // Same self-scoping pattern as disputeTransaction — only the owning
   // shareholder can edit their own dispute's reason, and only while it's
   // still an open dispute.
-  await prisma.transactionApproval.updateMany({
-    where: {
-      id: approvalId,
-      shareholderId: session.user.shareholderId,
-      status: ApprovalStatus.DISPUTED,
-    },
-    data: { disputeReason: trimmedReason },
-  });
+  await db
+    .update(transactionApproval)
+    .set({ disputeReason: trimmedReason })
+    .where(
+      and(
+        eq(transactionApproval.id, approvalId),
+        eq(transactionApproval.shareholderId, session.user.shareholderId),
+        eq(transactionApproval.status, ApprovalStatus.DISPUTED),
+      ),
+    );
 
   revalidatePath("/accounting/admin/activity");
   revalidatePath("/accounting/dashboard");
@@ -95,16 +108,18 @@ export async function updateDisputeReason(approvalId: string, reason: string) {
 export async function resolveDispute(approvalId: string, resolutionTransactionId?: string) {
   await requireAdmin();
 
-  await prisma.transactionApproval.updateMany({
-    where: {
-      id: approvalId,
-      status: ApprovalStatus.DISPUTED,
-    },
-    data: {
+  await db
+    .update(transactionApproval)
+    .set({
       resolvedAt: new Date(),
       resolutionTransactionId: resolutionTransactionId?.trim() || null,
-    },
-  });
+    })
+    .where(
+      and(
+        eq(transactionApproval.id, approvalId),
+        eq(transactionApproval.status, ApprovalStatus.DISPUTED),
+      ),
+    );
 
   revalidatePath("/accounting/admin/activity");
 }

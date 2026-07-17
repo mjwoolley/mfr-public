@@ -4,14 +4,17 @@
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { users } from "@mfr/auth";
-import { prisma } from "@/lib/accounting/prisma";
+import { db } from "@/lib/db/client";
+import { shareholder as shareholderTable } from "@/lib/db/schema";
 import { identityDb } from "@/lib/accounting/identityDb";
 import { EditShareholderForm } from "./edit-shareholder-form";
 import { LinkLoginControl } from "./link-login-control";
 
 export default async function EditShareholderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const shareholder = await prisma.shareholder.findUnique({ where: { id } });
+  const shareholder = await db.query.shareholder.findFirst({
+    where: eq(shareholderTable.id, id),
+  });
   if (!shareholder) notFound();
 
   // No cross-database join is possible (Shareholder.userId is a plain string,

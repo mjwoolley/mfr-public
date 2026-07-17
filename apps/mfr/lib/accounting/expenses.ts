@@ -3,13 +3,11 @@
 // combo chart. All grouping is pure and keyed by fiscal year (Mar–Feb, see
 // @/lib/fiscalYear) — `year` fields hold fiscal years throughout.
 
-import { prisma } from "@/lib/accounting/prisma";
-import { Prisma } from "@/generated/prisma/client";
+import { db } from "@/lib/db/client";
+import { expense } from "@/lib/db/schema";
+import { Decimal } from "@/lib/accounting/decimal";
 import type { ContributionYearGroup } from "@/lib/accounting/ledger";
 import { fiscalYear } from "@/lib/accounting/fiscalYear";
-
-const { Decimal } = Prisma;
-type Decimal = Prisma.Decimal;
 
 export type ExpenseYearGroup = {
   year: number;
@@ -17,16 +15,18 @@ export type ExpenseYearGroup = {
 };
 
 type ExpenseForGrouping = {
-  amount: Decimal;
+  // Decimal.Value = string | number | Decimal, so raw Drizzle rows (numeric
+  // columns come back as strings) pass straight in; Decimal.add() accepts it.
+  amount: Decimal.Value;
   incurredAt: Date;
 };
 
 /**
  * Groups Expense rows by the fiscal year of `incurredAt` (see
  * @/lib/fiscalYear). Pure/synchronous, same fetch-then-group-in-JS pattern as
- * `groupContributionsByYear` in `@/lib/ledger` — Prisma's `groupBy` can't
- * extract a year from a DateTime column directly either, so there's no
- * query-layer shortcut here. The `year` field holds the fiscal year.
+ * `groupContributionsByYear` in `@/lib/ledger` — a `groupBy` can't extract a
+ * year from a DateTime column directly either, so there's no query-layer
+ * shortcut here. The `year` field holds the fiscal year.
  */
 export function groupExpensesByYear(expenses: ExpenseForGrouping[]): ExpenseYearGroup[] {
   const byYear = new Map<number, ExpenseYearGroup>();
@@ -45,7 +45,11 @@ export function groupExpensesByYear(expenses: ExpenseForGrouping[]): ExpenseYear
 }
 
 export async function getExpensesByYear(): Promise<ExpenseYearGroup[]> {
-  const expenses = await prisma.expense.findMany();
+  const rows = await db.query.expense.findMany();
+  const expenses: ExpenseForGrouping[] = rows.map((row) => ({
+    amount: new Decimal(row.amount),
+    incurredAt: row.incurredAt,
+  }));
   return groupExpensesByYear(expenses);
 }
 

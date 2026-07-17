@@ -1,7 +1,9 @@
 // Admin expenses view (server half): fetches and pre-formats expense rows,
 // then hands everything to the client component that owns the CRUD dialogs.
 
-import { prisma } from "@/lib/accounting/prisma";
+import { db } from "@/lib/db/client";
+import { expense } from "@/lib/db/schema";
+import { desc } from "drizzle-orm";
 import { formatDate } from "@/lib/accounting/format";
 import { expenseCategoryTag } from "@/lib/accounting/tags";
 import { ExpensesAdminClient, type ExpenseRow } from "./expenses-client";
@@ -14,7 +16,9 @@ const usd0 = (n: number) =>
   }).format(n);
 
 export default async function AdminExpensesPage() {
-  const expenses = await prisma.expense.findMany({ orderBy: { incurredAt: "desc" } });
+  const expenses = await db.query.expense.findMany({
+    orderBy: [desc(expense.incurredAt)],
+  });
 
   const rows: ExpenseRow[] = expenses.map((x) => {
     const cat = expenseCategoryTag(x.category);
