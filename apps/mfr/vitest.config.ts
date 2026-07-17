@@ -58,6 +58,7 @@ export default defineConfig({
             '.next/**',
             'tests/integration/**',
             'tests/accounting-integration/**',
+            'tests/reservations-integration/**',
           ],
           // The unified Drizzle client (and the identity/portal clients) throw
           // at module load if their URL is unset. Pure unit tests that merely
@@ -106,6 +107,31 @@ export default defineConfig({
           env: {
             DATABASE_URL: process.env.TEST_DATABASE_URL,
             IDENTITY_DATABASE_URL: process.env.TEST_IDENTITY_DATABASE_URL,
+          },
+        },
+      },
+      {
+        // Reservations integration suite (folded in from apps/reservations).
+        // Runs against the unified `test` branch: the reservations route
+        // handlers query the unified `db` (DATABASE_URL) and the transitional
+        // reservations NextAuth identity client reads IDENTITY_DATABASE_URL —
+        // both point at the one test branch now. PORTAL_DATABASE_URL is still
+        // read by the portalDb singleton that notifications use to resolve
+        // reservations admins.
+        plugins: [react()],
+        resolve: { alias },
+        test: {
+          name: 'reservations-integration',
+          environment: 'node',
+          include: ['tests/reservations-integration/**/*.test.ts'],
+          globalSetup: ['tests/reservations-integration/setup.ts'],
+          // booking_rules is a singleton row that admin.test.ts rewrites, so
+          // parallel files race on it — serialize (each manages its fixtures).
+          fileParallelism: false,
+          env: {
+            DATABASE_URL: process.env.TEST_DATABASE_URL,
+            IDENTITY_DATABASE_URL: process.env.TEST_IDENTITY_DATABASE_URL,
+            PORTAL_DATABASE_URL: process.env.TEST_PORTAL_DATABASE_URL,
           },
         },
       },
