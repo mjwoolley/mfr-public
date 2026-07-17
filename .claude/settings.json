@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./scripts/check-stale-worktrees.sh 2>/dev/null || true",
+            "timeout": 15,
+            "statusMessage": "Checking for stale worktrees/branches"
+          }
+        ]
+      }
+    ]
+  }
+}
