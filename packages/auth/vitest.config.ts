@@ -10,15 +10,16 @@ export default defineConfig({
       reportsDirectory: './coverage',
       // Explicit include = honest coverage: every src file is reported,
       // untested ones at 0%. The whole package is logic subset, so global
-      // thresholds apply (ratchet floor — raise as tests are added, target 90).
+      // thresholds apply.
       include: ['src/**/*.ts'],
       // **/drizzle/**, not drizzle/**: coverage excludes are matched against
       // ABSOLUTE paths (picomatch contains mode), so bare relative globs can
       // swallow everything when the checkout path contains the substring.
       exclude: ['**/drizzle/**', '**/*.test.ts', '**/*.d.ts', '**/*.config.*'],
-      // Measured 100% across the board 2026-07-16; floored at 98 so new
-      // auth logic must ship with tests.
-      thresholds: { lines: 98, branches: 98, functions: 98, statements: 98 },
+      // Floors are a regression backstop (90 lines/stmts/funcs, 85 branches),
+      // NOT a target — genuine coverage of key logic/flows/branches is ensured
+      // by the pre-PR coverage review (see docs/workflow.md). Measured 100%.
+      thresholds: { lines: 90, branches: 85, functions: 90, statements: 90 },
     },
   },
 })

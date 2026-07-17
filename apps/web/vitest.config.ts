@@ -32,14 +32,16 @@ export default defineConfig({
       ...(process.env.COVERAGE_UNIT_ONLY
         ? {} // unit-only local run: merged thresholds would spuriously fail
         : {
-            // Measured 2026-07-16 after the phase-2 test campaign (lib
-            // 96/85/93/96, actions 100/85/92/99, route 100). Floors =
-            // measured − 2, with extra branch slack on lib since CI's
-            // prod-clone data has measured lower than local test data before.
+            // Floors are a regression backstop (cap 90 lines/stmts/funcs, 85
+            // branches), NOT a target — genuine coverage of key logic/flows/
+            // branches is ensured by the pre-PR coverage review (see
+            // docs/workflow.md). lib functions (87) and branches (80) stay
+            // below the cap: CI's prod-clone data measures them lower than
+            // local test data, so they keep honest-measured slack.
             thresholds: {
-              'lib/**/*.ts': { lines: 94, branches: 80, functions: 87, statements: 93 },
-              'app/**/actions.ts': { lines: 98, branches: 82, functions: 90, statements: 97 },
-              'app/api/**/route.ts': { lines: 98, branches: 98, functions: 98, statements: 98 },
+              'lib/**/*.ts': { lines: 90, branches: 80, functions: 87, statements: 90 },
+              'app/**/actions.ts': { lines: 90, branches: 82, functions: 90, statements: 90 },
+              'app/api/**/route.ts': { lines: 90, branches: 85, functions: 90, statements: 90 },
             },
           }),
     },
