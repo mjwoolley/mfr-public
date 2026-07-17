@@ -5,7 +5,8 @@
 
 import { asc, desc, eq } from 'drizzle-orm'
 import { users } from '@mfr/auth'
-import { ACCOUNTING_URL } from '@mfr/ui'
+import { getRaisedThisYear } from '@/lib/accounting/ledger'
+import { getContributionGoal } from '@/lib/accounting/goals'
 import { buildDays, type ReunionDay } from '@/lib/reunionDays'
 import { identityDb } from '@/lib/identityDb'
 import { portalDb } from '@/lib/portalDb'
@@ -42,23 +43,15 @@ export interface Fundraising {
   goal: number | null
 }
 
-/** Live current-year contribution total + goal from the accounting app's public
- * API — not a duplicated number. Returns null if accounting is unreachable so
- * the home card can degrade gracefully. */
+/** Live current-year contribution total + goal — an in-process read of the
+ * accounting ledger (same computation the old public /api/contributions/
+ * current-year endpoint did), now that accounting lives in this app. Returns
+ * null on any error so the home card degrades gracefully. */
 export async function getFundraising(): Promise<Fundraising | null> {
   try {
-    // On staging, the accounting deployment sits behind Vercel Deployment
-    // Protection, which 401s server-to-server fetches. When ACCOUNTING_BYPASS_SECRET
-    // is set (staging Preview env only) send the bypass header so the request is
-    // authorized; in production, where protection is off, the env is unset and
-    // no header is sent — a plain public fetch.
-    const bypass = process.env.ACCOUNTING_BYPASS_SECRET
-    const res = await fetch(`${ACCOUNTING_URL}/api/contributions/current-year`, {
-      next: { revalidate: 60 },
-      ...(bypass ? { headers: { 'x-vercel-protection-bypass': bypass } } : {}),
-    })
-    if (!res.ok) return null
-    return (await res.json()) as Fundraising
+    const { year, raised } = await getRaisedThisYear()
+    const goalRow = await getContributionGoal(year)
+    return { year, raised, goal: goalRow ? Number(goalRow.amount) : null }
   } catch {
     return null
   }

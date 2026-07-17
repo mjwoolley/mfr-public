@@ -1,63 +1,41 @@
-// getFundraising's fetch behavior — mocked network, no database. The DB
-// singletons are mocked because importing @/lib/portal pulls them in, and
-// they throw at module load when their env vars are unset (unit runs).
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+// getFundraising now reads the accounting ledger in-process (accounting lives
+// in this app). The DB singletons + the two ledger/goal reads are mocked because
+// importing @/lib/portal pulls them in, and the clients throw at module load
+// when their env vars are unset (unit runs).
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/lib/identityDb', () => ({ identityDb: {} }))
 vi.mock('@/lib/portalDb', () => ({ portalDb: {} }))
+vi.mock('@/lib/accounting/ledger', () => ({ getRaisedThisYear: vi.fn() }))
+vi.mock('@/lib/accounting/goals', () => ({ getContributionGoal: vi.fn() }))
 
 import { getFundraising } from '@/lib/portal'
-import { ACCOUNTING_URL } from '@mfr/ui'
+import { getRaisedThisYear } from '@/lib/accounting/ledger'
+import { getContributionGoal } from '@/lib/accounting/goals'
 
-const fetchMock = vi.fn()
-
-beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock)
-  fetchMock.mockReset()
-})
-
-afterEach(() => {
-  vi.unstubAllGlobals()
-  vi.unstubAllEnvs()
-})
+afterEach(() => vi.resetAllMocks())
 
 describe('getFundraising', () => {
-  it('fetches the live totals from accounting with ISR revalidation', async () => {
-    fetchMock.mockResolvedValue({
-      ok: true,
-      json: async () => ({ year: 2026, raised: 1234, goal: 5000 }),
+  it('reads the live current-year total + goal in-process', async () => {
+    vi.mocked(getRaisedThisYear).mockResolvedValue({ year: 2026, raised: 1234 })
+    vi.mocked(getContributionGoal).mockResolvedValue({
+      year: 2026,
+      amount: '5000',
+      updatedAt: new Date(),
     })
 
-    const result = await getFundraising()
-
-    expect(result).toEqual({ year: 2026, raised: 1234, goal: 5000 })
-    const [url, init] = fetchMock.mock.calls[0]
-    expect(url).toBe(`${ACCOUNTING_URL}/api/contributions/current-year`)
-    expect(init.next).toEqual({ revalidate: 60 })
-    // production: no bypass secret, no protection header
-    expect(init.headers).toBeUndefined()
+    expect(await getFundraising()).toEqual({ year: 2026, raised: 1234, goal: 5000 })
   })
 
-  it('sends the Vercel protection bypass header when the secret is set (staging)', async () => {
-    vi.stubEnv('ACCOUNTING_BYPASS_SECRET', 'bypass-me')
-    fetchMock.mockResolvedValue({
-      ok: true,
-      json: async () => ({ year: 2026, raised: 0, goal: null }),
-    })
+  it('returns a null goal when no goal row is set for the year', async () => {
+    vi.mocked(getRaisedThisYear).mockResolvedValue({ year: 2026, raised: 0 })
+    vi.mocked(getContributionGoal).mockResolvedValue(null)
 
-    await getFundraising()
-
-    const [, init] = fetchMock.mock.calls[0]
-    expect(init.headers).toEqual({ 'x-vercel-protection-bypass': 'bypass-me' })
+    expect(await getFundraising()).toEqual({ year: 2026, raised: 0, goal: null })
   })
 
-  it('degrades to null on a non-OK response', async () => {
-    fetchMock.mockResolvedValue({ ok: false, status: 401 })
-    expect(await getFundraising()).toBeNull()
-  })
-
-  it('degrades to null when accounting is unreachable', async () => {
-    fetchMock.mockRejectedValue(new Error('ECONNREFUSED'))
+  it('degrades to null when the ledger read throws', async () => {
+    vi.mocked(getRaisedThisYear).mockRejectedValue(new Error('db down'))
     expect(await getFundraising()).toBeNull()
   })
 })

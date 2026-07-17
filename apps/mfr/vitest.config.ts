@@ -81,12 +81,14 @@ export default defineConfig({
           environment: 'node',
           include: ['tests/integration/**/*.test.ts'],
           globalSetup: ['tests/integration/setup.ts'],
-          // portalDb / identityDb are module-load-time singletons that read
-          // PORTAL_DATABASE_URL / IDENTITY_DATABASE_URL once at import time.
-          // Setting them via test.env (applied before the worker evaluates the
-          // module graph) reliably points those singletons at the test
-          // branches — see accounting/vitest.config.ts for the full rationale.
+          // portalDb / identityDb / the unified db are module-load-time
+          // singletons that read their URL once at import time. Set them via
+          // test.env (applied before the worker evaluates the module graph) so
+          // they point at the test branch. DATABASE_URL is needed because
+          // lib/portal.ts's getFundraising now reads the accounting ledger
+          // (the unified `db`) in-process instead of fetching a sibling app.
           env: {
+            DATABASE_URL: process.env.TEST_DATABASE_URL,
             PORTAL_DATABASE_URL: process.env.TEST_PORTAL_DATABASE_URL,
             IDENTITY_DATABASE_URL: process.env.TEST_IDENTITY_DATABASE_URL,
           },
