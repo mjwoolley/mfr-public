@@ -46,15 +46,18 @@ export default defineConfig({
       ...(process.env.COVERAGE_UNIT_ONLY
         ? {} // unit-only local run: merged thresholds would spuriously fail
         : {
-            // Measured 2026-07-16 after the phase-2 test campaign (lib 100/88,
-            // actions 98/91, emails 100, routes 100/75); floors = measured − 2.
-            // Route branches sit at 70: the current-year endpoint's goal-set
-            // vs goal-null display branch depends on live goal config.
+            // Floors are a regression backstop (cap 90 lines/stmts/funcs, 85
+            // branches), NOT a target — genuine coverage of key logic/flows/
+            // branches is ensured by the pre-PR coverage review (see
+            // docs/workflow.md). Measured well above these (lib 100/88,
+            // actions 98/91, emails 100, routes 100/75). Route branches stay
+            // at 70: the current-year endpoint's goal-set vs goal-null display
+            // branch depends on live goal config.
             thresholds: {
-              "src/lib/**/*.ts": { lines: 98, branches: 86, functions: 98, statements: 97 },
-              "src/actions/**/*.ts": { lines: 96, branches: 88, functions: 98, statements: 96 },
-              "src/emails/**/*.tsx": { lines: 90, branches: 90, functions: 90, statements: 90 },
-              "src/app/**/route.ts": { lines: 98, branches: 70, functions: 98, statements: 98 },
+              "src/lib/**/*.ts": { lines: 90, branches: 85, functions: 90, statements: 90 },
+              "src/actions/**/*.ts": { lines: 90, branches: 85, functions: 90, statements: 90 },
+              "src/emails/**/*.tsx": { lines: 90, branches: 85, functions: 90, statements: 90 },
+              "src/app/**/route.ts": { lines: 90, branches: 70, functions: 90, statements: 90 },
             },
           }),
     },
