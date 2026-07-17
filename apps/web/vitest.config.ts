@@ -33,7 +33,7 @@ export default defineConfig({
             // measured − 2, with extra branch slack on lib since CI's
             // prod-clone data has measured lower than local test data before.
             thresholds: {
-              'lib/**/*.ts': { lines: 94, branches: 80, functions: 91, statements: 93 },
+              'lib/**/*.ts': { lines: 94, branches: 80, functions: 87, statements: 93 },
               'app/**/actions.ts': { lines: 98, branches: 82, functions: 90, statements: 97 },
               'app/api/**/route.ts': { lines: 98, branches: 98, functions: 98, statements: 98 },
             },

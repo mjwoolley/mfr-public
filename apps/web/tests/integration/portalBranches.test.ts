@@ -115,8 +115,8 @@ describe('zod validation failures return friendly errors', () => {
     const owner = await makeIdentityUser()
     vi.mocked(auth).mockResolvedValue(ownerSession(owner.id) as never)
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await saveLinks({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       highlightsUrl: 42 as any,
       driveUrl: '',
       venmoUrl: '',
