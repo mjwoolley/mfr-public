@@ -131,7 +131,11 @@ test.describe('accounting flows', () => {
 
     await page.goto(`${ACCOUNTING_URL}/accounting/ownership`)
     await expect(page.getByRole('heading', { name: 'Ownership report' })).toBeVisible()
+    // E2E Member holds 250 shares (contribution, transfer then reversed).
     await expect(page.getByText('E2E Member').first()).toBeVisible()
+    // E2E Transferee's 100 shares were reversed by the correction, leaving a
+    // zero balance — the report hides zero-balance shareholders.
+    await expect(page.getByText('E2E Transferee')).toHaveCount(0)
 
     await member.close()
   })
