@@ -22,7 +22,8 @@ jobs:
           for project in \
             "${{ secrets.NEON_PROJECT_ID_ACCOUNTING }}" \
             "${{ secrets.NEON_PROJECT_ID_RESERVATIONS }}" \
-            "${{ secrets.NEON_PROJECT_ID_IDENTITY }}"; do
+            "${{ secrets.NEON_PROJECT_ID_IDENTITY }}" \
+            "${{ secrets.NEON_PROJECT_ID_PORTAL }}"; do
             echo "Checking project $project"
             branches=$(curl -sf -H "Authorization: Bearer $NEON_API_KEY" \
               "https://console.neon.tech/api/v2/projects/$project/branches" |
