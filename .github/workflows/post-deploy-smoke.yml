@@ -1,0 +1,80 @@
+# Post-deploy smoke test. Runs the (non-destructive, read-only) scripts/smoke.mjs
+# against the live site right after Vercel finishes a deploy, so a broken deploy
+# (down site, schema missing behind the auth gate, bad DB/R2 creds) surfaces
+# without anyone remembering to run it by hand.
+#
+# Trigger: Vercel's GitHub app emits a `deployment_status` event when a deploy
+# is ready. We smoke the *stable custom domain* (not the event's generated
+# *.vercel.app URL, which can sit behind deployment protection and lacks the
+# session-cookie domain the signed-in layer needs) — the event only tells us
+# WHICH environment deployed:
+#   - Production            → main was pushed  → millerfamilyreunions.org
+#   - Preview @ staging tip → staging branch   → staging.millerfamilyreunions.org
+#   - any other preview (PRs) → skipped
+#
+# Alerting: a smoke failure fails this job; GitHub's native failed-workflow email
+# notifies the maintainer. (Because the triggering actor is vercel[bot], GitHub
+# routes that email to whoever last edited this file on the default branch, so
+# enable Settings → Notifications → Actions email to actually receive it.)
+#
+# NOTE: `deployment_status` is a non-PR event, so GitHub always runs the copy of
+# this workflow on the DEFAULT branch — it only takes effect once merged to main.
+name: Post-deploy smoke
+
+on:
+  deployment_status: {}
+
+# One run per (environment, commit); a newer deploy of the same target supersedes.
+concurrency:
+  group: smoke-${{ github.event.deployment.environment }}-${{ github.event.deployment.sha }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    # Only when Vercel reports the deploy succeeded (ignores pending/error/failure).
+    if: github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Map the deploy to a target env + stable URL, or skip unrelated previews.
+      - id: target
+        run: |
+          ENV="${{ github.event.deployment.environment }}"
+          SHA="${{ github.event.deployment.sha }}"
+          STAGING_TIP="$(git ls-remote origin refs/heads/staging | cut -f1)"
+          if [ "$ENV" = "Production" ]; then
+            echo "which=prod" >> "$GITHUB_OUTPUT"
+            echo "base=https://millerfamilyreunions.org" >> "$GITHUB_OUTPUT"
+          elif [ -n "$SHA" ] && [ "$SHA" = "$STAGING_TIP" ]; then
+            echo "which=staging" >> "$GITHUB_OUTPUT"
+            echo "base=https://staging.millerfamilyreunions.org" >> "$GITHUB_OUTPUT"
+          else
+            echo "which=skip" >> "$GITHUB_OUTPUT"
+            echo "Deploy ($ENV @ ${SHA:0:7}) is not production or the staging-branch tip — skipping smoke." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # smoke.mjs has no npm deps (global fetch only) — no install needed.
+      # Each layer self-skips when its secret is absent, so partial secret setup
+      # degrades to a shallower smoke rather than failing.
+      - name: Run smoke
+        if: steps.target.outputs.which != 'skip'
+        env:
+          CRON_SECRET: ${{ steps.target.outputs.which == 'prod' && secrets.CRON_SECRET_PROD || secrets.CRON_SECRET_STAGING }}
+          SMOKE_SESSION_TOKEN: ${{ steps.target.outputs.which == 'prod' && secrets.SMOKE_SESSION_TOKEN_PROD || secrets.SMOKE_SESSION_TOKEN_STAGING }}
+        run: |
+          echo "### Smoke: ${{ steps.target.outputs.which }} → ${{ steps.target.outputs.base }}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          set +e
+          node scripts/smoke.mjs "${{ steps.target.outputs.base }}" | tee -a "$GITHUB_STEP_SUMMARY"
+          status=${PIPESTATUS[0]}
+          set -e
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
