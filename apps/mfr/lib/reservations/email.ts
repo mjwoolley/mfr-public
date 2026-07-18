@@ -118,7 +118,7 @@ export async function sendEmail(opts: {
     const html = await render(opts.react)
     await getClient().send(
       new SendEmailCommand({
-        FromEmailAddress: process.env.EMAIL_FROM ?? 'reservations@millerfamilyreunions.org',
+        FromEmailAddress: process.env.EMAIL_FROM ?? 'hello@millerfamilyreunions.org',
         Destination: {
           ToAddresses: [routing.to],
           CcAddresses: cc && cc.length > 0 ? cc : undefined,
