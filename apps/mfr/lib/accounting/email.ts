@@ -104,7 +104,7 @@ export async function sendEmail(opts: {
     const html = await render(opts.react)
     await getClient().send(
       new SendEmailCommand({
-        FromEmailAddress: process.env.EMAIL_FROM ?? 'hello@millerfamilyreunions.org',
+        FromEmailAddress: process.env.EMAIL_FROM ?? 'accounting@millerfamilyreunions.org',
         Destination: { ToAddresses: [routing.to] },
         ReplyToAddresses: opts.replyTo ? [opts.replyTo] : undefined,
         Content: {
