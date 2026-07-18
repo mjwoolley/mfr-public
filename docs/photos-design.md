@@ -148,5 +148,51 @@ collection is empty. "View"/"Add photos" always open the Google Photos album.
   `drizzle-kit push --force` — the latter drops the reservations push-only
   objects (GiST/CHECK/triggers). See the drizzle-push gotcha in project memory.
 - **Ships dark:** no visual change until an admin uploads slides.
-- Out of scope (see `docs/backlog.md` "member photo gallery"): member uploads,
-  captions, a full in-site gallery.
+
+## Member photo gallery (backlog §4)
+
+An in-site gallery any approved member can upload to — the site's own Postgres is
+the "read API" Google Photos no longer provides (Google removed the album-read
+API in March 2025). Coexists with the admin slides above (both are additive).
+
+- **Data:** `portal_photos` (`lib/db/schema/portal.ts`) — one row per photo:
+  `year`, `blob_url`/`blob_pathname`, `filename`, `byte_size`, `width`, `height`,
+  `caption`, `featured`/`featured_at`, `uploaded_by`, `created_at`.
+- **Views:** `/photos/[year]` (annual album, default), `/photos/people`
+  (browse-by-contributor with per-photo year/filename/size/resolution), and a
+  "Featured by the family" album on the home page. `/photos` year cards now open
+  the in-site gallery and prefer a member photo as the cover.
+- **Upload pipeline:** the browser streams the original **straight to Vercel
+  Blob** via `@vercel/blob/client` (`/api/photos/upload-token` authorizes +
+  constrains type/size) — a 25 MB photo can't pass through a Server Action body.
+  Then `finalizeUpload` (`app/photos/actions.ts`) normalizes it server-side
+  (`lib/photos/imageProcess.ts`): HEIC→JPEG via `heic-convert`, then `sharp`
+  auto-orients, **strips EXIF/GPS**, downscales to ≤2560px, re-encodes JPEG;
+  stores the processed image, records dimensions, deletes the temp original.
+- **Featuring:** members feature up to `FEATURED_PER_USER` (5) of their **own**
+  photos onto the home page (`setFeatured`); content-admins can unfeature/delete
+  anyone's (moderation). Editing (year/caption) + delete are owner-or-admin.
+
+## Backup & durability (Cloudflare R2)
+
+Member photos are often the only copy off a phone, so every stored blob is
+mirrored to an independent Cloudflare R2 bucket (`lib/photos/backupStore.ts`,
+S3-compatible). Mirrors the SES pattern: prod-only `BACKUP_ENABLED` guard,
+custom-prefixed `R2_*` env (Vercel reserves `AWS_*`), failures logged not thrown.
+`portal_blob_backups` tracks one row per object (keyed by pathname).
+
+- On upload, the processed blob is mirrored best-effort (never blocks the user).
+- On delete, the backup is **retained**: the row's `deleted_at` is set and the R2
+  object is kept for `BACKUP_RETENTION_DAYS` (30) as a recovery window.
+- Daily cron `app/api/cron/photo-backup/route.ts` (Vercel Cron, `vercel.json`,
+  guarded by `CRON_SECRET`): reconciles any un-backed-up blob (self-heals missed
+  mirrors) and purges R2 objects past the recovery window.
+
+**Restore (manual):** `portal_blob_backups` maps `blob_pathname` → R2
+`backup_key`. To recover, download the R2 object and `put` it back into Vercel
+Blob at the same pathname; if the DB row was lost, re-insert a `portal_photos`
+row pointing at the restored URL.
+
+## Out of scope
+
+Full-text/tag search, per-photo comments, and video are not built.

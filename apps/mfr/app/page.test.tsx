@@ -8,13 +8,15 @@ vi.mock('next/image', () => ({
 }))
 
 // Hoisted so the vi.mock factories (which run before the file body) can use them.
-const { authMock, settingsMock, fundraisingMock, eventsMock, highlightsMock } = vi.hoisted(() => ({
-  authMock: vi.fn(),
-  settingsMock: vi.fn(),
-  fundraisingMock: vi.fn(),
-  eventsMock: vi.fn(),
-  highlightsMock: vi.fn(),
-}))
+const { authMock, settingsMock, fundraisingMock, eventsMock, highlightsMock, featuredMock } =
+  vi.hoisted(() => ({
+    authMock: vi.fn(),
+    settingsMock: vi.fn(),
+    fundraisingMock: vi.fn(),
+    eventsMock: vi.fn(),
+    highlightsMock: vi.fn(),
+    featuredMock: vi.fn(),
+  }))
 
 vi.mock('@/lib/auth', () => ({ auth: authMock }))
 vi.mock('@/lib/portal', () => ({
@@ -23,6 +25,7 @@ vi.mock('@/lib/portal', () => ({
   getEvents: eventsMock,
 }))
 vi.mock('@/lib/photos/slides', () => ({ getHighlightSlides: highlightsMock }))
+vi.mock('@/lib/photos/gallery', () => ({ getFeaturedPhotos: featuredMock }))
 
 import Home from './page'
 
@@ -52,6 +55,7 @@ beforeEach(() => {
   fundraisingMock.mockResolvedValue({ year: 2026, raised: 7400, goal: 12000 })
   eventsMock.mockResolvedValue([])
   highlightsMock.mockResolvedValue([])
+  featuredMock.mockResolvedValue([])
 })
 
 describe('home page — hero slideshow source', () => {

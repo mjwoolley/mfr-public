@@ -114,38 +114,21 @@ with the cheap version and only go deeper if it's worth it:
 **Open questions:** one shared space vs per-topic; whether deep integration is
 worth the OAuth/API scope cost versus just a link; who administers the space.
 
-### 4. Member photo gallery (in-site uploads) — future
+### 4. Member photo gallery (in-site uploads) — SHIPPED
 
-**Shipped (portal `/photos`):** the config-driven link version — a per-year grid
-of Google Photos album links (managed in Admin) plus a home-page highlights album
-link and slideshow. What remains is the full in-site gallery below.
+The in-site gallery is built (see `docs/photos-design.md` → "Member photo
+gallery"): approved members upload per reunion year (`/photos/[year]`), browse by
+contributor (`/photos/people`), and feature up to 5 of their own photos onto the
+home page. Uploads stream client-direct to Vercel Blob, are normalized
+server-side (HEIC→JPEG, EXIF/GPS stripped, downscaled), and are mirrored to a
+Cloudflare R2 backup with a 30-day delete-recovery window (daily cron).
 
-**Problem.** Reunion and lake-house photos live scattered across people's
-phones and a shared Google Photos album; the links are one click away now, but
-there's still no in-site gallery members can contribute to directly.
+Google's album-read API was removed in March 2025, so the Google Photos link
+version and this self-hosted gallery coexist rather than sync.
 
-**Desired behavior (remaining):**
-
-- **Full feature:** an in-site **photo gallery members can upload to**. Signed-in
-  members upload photos; everyone can browse them in a gallery/grid with
-  lightbox view. Consider a captions field and sort-by-date.
-
-**Sketch (for the full gallery):**
-
-- Storage: use a blob store (e.g. Vercel Blob) for the image files; keep a
-  `Photo` model (id, uploader link to identity user, blob URL, caption,
-  takenAt/uploadedAt) in the DB for metadata and ordering. Generate/store a
-  thumbnail size to keep the grid fast.
-- Upload flow behind the shareholder auth gate; validate type/size; strip or
-  respect EXIF orientation. Append-only to start (no edits); uploader or admin
-  can delete.
-- Optionally sync with a shared Google Photos album via its API instead of (or
-  in addition to) self-hosting — decide based on how much control vs.
-  convenience the family wants.
-
-**Open questions:** self-host uploads vs. lean entirely on a Google Photos
-album; moderation (any review before a photo appears?); storage cost/limits;
-whether albums/tags are needed or one flat gallery is enough to start.
+**Follow-ups (optional):** retire the admin slide uploader once the gallery is
+populated (source the home hero from featured photos and album-card rotations
+from each year's photos); photo search/tags; per-photo comments; video.
 
 ### 5. Online staging environment — remaining one-time console setup
 

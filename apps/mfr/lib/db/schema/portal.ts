@@ -81,6 +81,53 @@ export const portalPhotoSlides = pgTable(
 export type PortalPhotoSlideRow = typeof portalPhotoSlides.$inferSelect
 
 /**
+ * Member-uploaded gallery photos (backlog §4). Images are stored in Vercel Blob
+ * after server-side normalization (HEIC→JPEG, auto-orient, EXIF/GPS stripped,
+ * downscaled). `year` buckets the photo into a reunion-year album; `featured`
+ * surfaces it in the home-page "Featured" album (capped per user in the action).
+ * `uploadedBy` is the identity users.id (text, matching portal_photo_slides).
+ */
+export const portalPhotos = pgTable(
+  'portal_photos',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    year: integer('year').notNull(),
+    blobUrl: text('blob_url').notNull(),
+    blobPathname: text('blob_pathname').notNull(),
+    filename: text('filename').notNull().default(''),
+    byteSize: integer('byte_size').notNull().default(0),
+    width: integer('width').notNull().default(0),
+    height: integer('height').notNull().default(0),
+    caption: text('caption'),
+    featured: boolean('featured').notNull().default(false),
+    featuredAt: timestamp('featured_at', { withTimezone: true }),
+    uploadedBy: text('uploaded_by').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('portal_photos_year_created_idx').on(t.year, t.createdAt),
+    index('portal_photos_uploader_created_idx').on(t.uploadedBy, t.createdAt),
+    index('portal_photos_featured_idx').on(t.featured, t.featuredAt),
+  ],
+)
+export type PortalPhotoRow = typeof portalPhotos.$inferSelect
+
+/**
+ * Durability tracking for photo blob objects: each stored blob is mirrored to an
+ * independent store (Cloudflare R2). One row per blob object, keyed by pathname.
+ * `deletedAt` is set when the source photo is deleted — it starts a recovery
+ * window (BACKUP_RETENTION_DAYS) after which the daily cron purges the backup.
+ */
+export const portalBlobBackups = pgTable('portal_blob_backups', {
+  blobPathname: text('blob_pathname').primaryKey(),
+  backupKey: text('backup_key').notNull(),
+  byteSize: integer('byte_size').notNull().default(0),
+  backedUpAt: timestamp('backed_up_at', { withTimezone: true }).notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+})
+export type PortalBlobBackupRow = typeof portalBlobBackups.$inferSelect
+
+/**
  * Upcoming events shown on the home page (sorted by start date). An event is
  * either a single day (with an optional `time`) or a multi-day range
  * (`endDate` set). `endDate` is inclusive; leave it null for a single day.

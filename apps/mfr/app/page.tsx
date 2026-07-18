@@ -3,9 +3,11 @@
 // content, rendered (and fetched) only for signed-in visitors.
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { auth } from '@/lib/auth'
 import { getPortalSettings, getFundraising, getEvents } from '@/lib/portal'
 import { getHighlightSlides } from '@/lib/photos/slides'
+import { getFeaturedPhotos } from '@/lib/photos/gallery'
 import { HomeSlideshow } from './HomeSlideshow'
 
 // Fallback hero image (public/) when no highlight slides have been uploaded.
@@ -64,9 +66,9 @@ export default async function Home() {
   // Rotate through the admin-curated highlights; fall back to the static image
   // when none are uploaded (the hero is public, same as the fallback today).
   const heroSlides = highlights.length ? highlights.map((s) => s.blobUrl) : FALLBACK_SLIDES
-  const [fundraising, events] = signedIn
-    ? await Promise.all([getFundraising(), getEvents()])
-    : [null, [] as Awaited<ReturnType<typeof getEvents>>]
+  const [fundraising, events, featured] = signedIn
+    ? await Promise.all([getFundraising(), getEvents(), getFeaturedPhotos()])
+    : [null, [] as Awaited<ReturnType<typeof getEvents>>, []]
 
   const raised = fundraising?.raised ?? 0
   const goal = fundraising?.goal ?? null
@@ -232,6 +234,39 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      {/* featured photos (member-only) — the family's picks; ships dark when empty */}
+      {signedIn && featured.length > 0 && (
+        <section className="mx-auto max-w-5xl px-7 pt-4.5 pb-1.5">
+          <div className="mb-3.5 flex flex-wrap items-baseline gap-3">
+            <h2 className="m-0 text-[22px]">Featured by the family</h2>
+            <Link href="/photos" className="ml-auto" style={{ fontSize: 13, fontWeight: 600 }}>
+              All photos &rarr;
+            </Link>
+          </div>
+          <div
+            className="grid gap-3"
+            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}
+          >
+            {featured.map((p) => (
+              <Link
+                key={p.id}
+                href={`/photos/${p.year}`}
+                className="card elev-sm relative block overflow-hidden"
+                style={{ padding: 0, aspectRatio: '1 / 1', background: 'var(--color-neutral-200)' }}
+              >
+                <Image
+                  src={p.blobUrl}
+                  alt={p.caption ?? `Featured photo from ${p.year}`}
+                  fill
+                  sizes="(max-width: 640px) 45vw, 200px"
+                  style={{ objectFit: 'cover' }}
+                />
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* upcoming events (member-only) */}
       {signedIn && (

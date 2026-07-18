@@ -8,16 +8,18 @@ import Image from 'next/image'
 import { requireApproved } from '@/lib/authz'
 import { getPhotoAlbums, getPortalSettings } from '@/lib/portal'
 import { getSlidesByCollection } from '@/lib/photos/slides'
+import { getYearSummaries } from '@/lib/photos/gallery'
 import { AlbumCardRotator } from './AlbumCardRotator'
 
 export const metadata: Metadata = { title: 'Photos' }
 
 export default async function PhotosPage() {
   await requireApproved()
-  const [albums, settings, slidesByYear] = await Promise.all([
+  const [albums, settings, slidesByYear, yearSummaries] = await Promise.all([
     getPhotoAlbums(),
     getPortalSettings(),
     getSlidesByCollection(),
+    getYearSummaries(),
   ])
 
   return (
@@ -48,12 +50,19 @@ export default async function PhotosPage() {
             the pictures &mdash; and if you have access, add your own straight from your phone.
           </p>
         </div>
+        <Link
+          href="/photos/people"
+          className="ml-auto self-center"
+          style={{ fontSize: 13.5, fontWeight: 700 }}
+        >
+          Browse by person &rarr;
+        </Link>
         {settings.highlightsUrl && (
           <a
             href={settings.highlightsUrl}
             target="_blank"
             rel="noopener"
-            className="btn btn-primary ml-auto"
+            className="btn btn-primary"
             style={{ fontFamily: 'var(--font-body)', fontWeight: 700 }}
           >
             <svg
@@ -82,17 +91,28 @@ export default async function PhotosPage() {
         {albums.map((al, i) => {
           const hasUrl = !!al.url.trim()
           const slides = slidesByYear.get(String(al.year)) ?? []
+          const summary = yearSummaries.get(al.year)
           return (
             <div
               key={al.id}
               className="albumcard card elev-sm bg-white overflow-hidden"
               style={{ padding: 0, gap: 0 }}
             >
-              <div
-                className="washed relative w-full overflow-hidden"
+              <Link
+                href={`/photos/${al.year}`}
+                className="washed relative block w-full overflow-hidden"
                 style={{ aspectRatio: '4 / 3', background: 'var(--color-neutral-200)' }}
+                aria-label={`Open ${al.year} photos`}
               >
-                {slides.length > 0 ? (
+                {summary ? (
+                  <Image
+                    src={summary.coverUrl}
+                    alt={`${al.year} album cover`}
+                    fill
+                    sizes="300px"
+                    style={{ objectFit: 'cover' }}
+                  />
+                ) : slides.length > 0 ? (
                   <AlbumCardRotator slides={slides.map((s) => s.blobUrl)} index={i} />
                 ) : i === 0 ? (
                   <Image
@@ -115,13 +135,22 @@ export default async function PhotosPage() {
                     {al.year}
                   </div>
                 )}
-              </div>
+              </Link>
               <div style={{ padding: '16px 18px 18px' }}>
                 <div className="flex items-baseline justify-between gap-2.5">
                   <span style={{ fontFamily: 'var(--font-heading)', fontSize: 24 }}>{al.year}</span>
                   <span style={{ fontSize: 13, color: 'var(--color-neutral-600)' }}>
-                    {hasUrl ? 'Shared album' : 'Not linked'}
+                    {summary
+                      ? `${summary.count} photo${summary.count === 1 ? '' : 's'}`
+                      : hasUrl
+                        ? 'Shared album'
+                        : 'Not linked'}
                   </span>
+                </div>
+                <div className="mt-3">
+                  <Link href={`/photos/${al.year}`} style={{ fontSize: 14, fontWeight: 700 }}>
+                    Open gallery &rarr;
+                  </Link>
                 </div>
                 {hasUrl ? (
                   <div className="mt-3 flex gap-4">
