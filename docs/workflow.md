@@ -95,35 +95,35 @@ restores the previous deployment; `git revert` the commit afterward (via a PR).
 
 ## Special cases
 
-### Schema changes (accounting / Prisma)
+### Schema changes (Drizzle migrations)
 
-- `npx prisma migrate dev --name whatever` locally — writes the migration file
-  and applies it to the `dev` branch.
-- Production applies migrations during the deploy build: Vercel runs the
-  `vercel-build` script (`prisma generate && prisma migrate deploy && next build`).
-  Plain `npm run build` deliberately does **not** migrate, so CI and local
-  builds never touch a database.
-- Merge the migration and its dependent code together.
-- Prefer additive changes (new nullable columns, new tables) so old code keeps
-  working against the new schema if a rollback is needed.
-- CI's ephemeral branches are cloned from `production`, so they already carry
-  the current schema. The accounting job additionally runs `prisma migrate
-deploy` (a clean no-op unless the PR adds a migration, since production's
-  Prisma journal is reliable). **The long-lived `test` branch still does not
-  self-update** — for _local_ integration runs, apply `migrate deploy` against
-  it after adding accounting migrations.
+The whole app is one Drizzle schema (`apps/mfr/lib/db/schema/`). Schema changes
+ship as **committed migration files** that deploys apply automatically.
 
-### Schema changes (reservations / identity — Drizzle)
+1. Edit `lib/db/schema/*.ts`, then **`npm run db:generate` on Node 22**
+   (`nvm use 22` — matches `.nvmrc`; generating on Node 24 also drifts the
+   lockfile). This writes a migration under `apps/mfr/drizzle/` and updates the
+   snapshot in `drizzle/meta/`.
+2. **Commit the migration with the code that needs it.** CI's `schema-check` job
+   re-runs `db:generate` and **fails the PR** (blocking `ci-ok`) if `schema.ts`
+   diverges from the committed migrations — so you can't forget it.
+3. Deploys apply schema themselves: the Vercel build runs `vercel-build`
+   (`node scripts/migrate-deploy.mjs && next build`), which runs the drizzle-orm
+   migrator (forward-only — safe, unlike `drizzle-kit push`) then re-applies
+   `lib/db/push-only.sql` (the GiST EXCLUDE / `booking_rules` CHECK / blocked-date
+   triggers drizzle-kit can't emit). Plain `npm run build` still never touches a DB.
+4. CI's integration/e2e jobs fork an ephemeral branch from `production` and run
+   the same `npm run db:migrate`, so pending migrations are exercised before merge.
 
-- These schemas were set up with `drizzle-kit push`, so their production
-  branches carry no usable migration journal (`drizzle-kit migrate` would
-  replay every file and collide). CI therefore runs **no** Drizzle step — the
-  production-clone branch already has the full schema, including the
-  migration-only constraints (the `booking_rules` id=1 CHECK, the reservations
-  GIST overlap exclusion) that `drizzle-kit push` would strip.
-- Consequence: a Drizzle schema change is only reflected in CI once it's on the
-  production branch. Apply `drizzle-kit push`/`migrate` to production (and the
-  `test` branch for local runs) as part of shipping the change.
+Notes:
+
+- Prefer additive changes (new nullable columns/tables) so old code still works
+  against the new schema during a rollback window.
+- **Never `drizzle-kit push --force`** against a real branch — it drops the
+  push-only objects. Use migrations (or targeted DDL) instead.
+- The migration journal was baselined 2026-07-18: `0000` is recorded as applied
+  on the dev/staging/test/production Neon branches (they already had the tables),
+  so `migrate` no-ops there and only applies genuinely new migrations.
 
 ### Refreshing dev with production data
 
@@ -188,11 +188,10 @@ production data, without touching the family's real data or email.
   unaffected.
 - **Email safety.** Leave `EMAIL_ENABLED` **unset** on staging, exactly as for dev
   — all mail is redirected to `EMAIL_OVERRIDE_TO`, never a real family address.
-- **Schema changes.** Accounting (Prisma) migrates automatically on each staging
-  deploy via `vercel-build`'s `prisma migrate deploy`. Reservations / identity
-  (Drizzle) need the same manual `drizzle-kit push` against the `staging` branch
-  that production requires — or just re-run the refresh script to re-fork the
-  schema from prod.
+- **Schema changes.** Migrations apply automatically on each staging deploy via
+  `vercel-build` → `db:migrate` (drizzle-orm migrator + `push-only.sql`), the same
+  as production — nothing manual. (Re-forking staging from prod via the refresh
+  script also carries the current schema.)
 - **OAuth / DNS / domains (one-time console setup).**
   - Google OAuth client → Authorized redirect URIs (basePath differs per app):
     `https://staging.millerfamilyreunions.org/api/auth/callback/google`,

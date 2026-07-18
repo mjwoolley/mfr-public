@@ -13,7 +13,11 @@
     "test:coverage:unit": "COVERAGE_UNIT_ONLY=1 vitest run --project unit --coverage",
     "test:integration": "vitest run --project integration --passWithNoTests",
     "test:mutation": "stryker run",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "db:generate": "drizzle-kit generate",
+    "db:check": "drizzle-kit check",
+    "db:migrate": "node scripts/migrate-deploy.mjs",
+    "vercel-build": "node scripts/migrate-deploy.mjs && next build"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

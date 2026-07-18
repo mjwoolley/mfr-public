@@ -43,6 +43,36 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
 
+  schema-check:
+    name: Schema migration check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # Regenerate migrations from schema.ts; if anything changed, the PR edited
+      # the schema without committing a migration. drizzle-kit generate needs no
+      # DB (it diffs schema.ts against the committed snapshot in drizzle/meta).
+      - name: Generate migrations from schema
+        working-directory: apps/mfr
+        # generate never connects — a dummy URL just satisfies the config guard.
+        env:
+          DIRECT_URL: postgresql://dummy:dummy@localhost:5432/dummy
+        run: npm run db:generate
+      - name: Fail if a migration is missing
+        run: |
+          if [ -n "$(git status --porcelain -- apps/mfr/drizzle)" ]; then
+            echo "::error::schema.ts changed without a committed migration. Run 'npm run db:generate' on Node 22 and commit apps/mfr/drizzle/."
+            git status --porcelain -- apps/mfr/drizzle
+            git --no-pager diff -- apps/mfr/drizzle
+            exit 1
+          fi
+          echo "schema.ts is in sync with committed migrations."
+
   unit:
     name: Unit tests + coverage
     runs-on: ubuntu-latest
@@ -125,16 +155,15 @@ jobs:
           parent_branch: ${{ env.NEON_PARENT_BRANCH }}
           branch_name: ci-${{ github.run_id }}-${{ github.run_attempt }}-int
           api_key: ${{ secrets.NEON_API_KEY }}
-      - name: Push Drizzle schema
+      - name: Apply Drizzle migrations
         working-directory: apps/mfr
         env:
           DIRECT_URL: ${{ steps.db.outputs.db_url }}
-        # db:push builds the schema from schema.ts; push-only.sql then adds the
-        # objects drizzle-kit can't emit (GiST overlap EXCLUDE, booking_rules
-        # CHECK, blocked-date triggers). psql ships on the ubuntu runner image.
-        run: |
-          npm run db:push
-          psql "$DIRECT_URL" -f lib/db/push-only.sql
+        # Same path as deploy: db:migrate applies pending migration files
+        # (forward-only) then push-only.sql (GiST EXCLUDE / booking_rules CHECK /
+        # blocked-date triggers drizzle-kit can't emit). The branch is forked from
+        # `production` (baselined), so this exercises exactly what a deploy would.
+        run: npm run db:migrate
       # Merged unit+integration coverage; the ratchet thresholds in
       # vitest.config.ts are enforced here (exit 1 on regression).
       - name: Run tests with coverage
@@ -187,13 +216,11 @@ jobs:
           parent_branch: ${{ env.NEON_PARENT_BRANCH }}
           branch_name: ci-${{ github.run_id }}-${{ github.run_attempt }}-e2e
           api_key: ${{ secrets.NEON_API_KEY }}
-      - name: Push Drizzle schema
+      - name: Apply Drizzle migrations
         working-directory: apps/mfr
         env:
           DIRECT_URL: ${{ steps.db.outputs.db_url }}
-        run: |
-          npm run db:push
-          psql "$DIRECT_URL" -f lib/db/push-only.sql
+        run: npm run db:migrate
       - name: Build app
         env:
           # Dummy build-time env; the real branch URL is injected at runtime by
@@ -289,7 +316,7 @@ jobs:
   ci-ok:
     name: CI OK
     runs-on: ubuntu-latest
-    needs: [static, unit, build, integration, e2e, gitleaks]
+    needs: [static, schema-check, unit, build, integration, e2e, gitleaks]
     if: always()
     steps:
       - name: Check all required jobs succeeded

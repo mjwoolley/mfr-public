@@ -15,12 +15,15 @@ vi.mock('@aws-sdk/client-s3', () => ({
   PutObjectCommand: class {
     constructor(public input: unknown) {}
   },
+  HeadObjectCommand: class {
+    constructor(public input: unknown) {}
+  },
   DeleteObjectCommand: class {
     constructor(public input: unknown) {}
   },
 }))
 
-import { backupObject, deleteBackupObject, backupEnabled } from './backupStore'
+import { backupObject, deleteBackupObject, backupEnabled, healthCheckR2 } from './backupStore'
 
 afterEach(() => {
   send.mockReset()
@@ -67,5 +70,29 @@ describe('deleteBackupObject', () => {
     send.mockResolvedValue({})
     expect(await deleteBackupObject('k')).toBe(true)
     expect(send).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('healthCheckR2', () => {
+  it('reports ok:true (disabled) without touching R2 when backups are off', async () => {
+    const res = await healthCheckR2()
+    expect(res).toEqual({ ok: true, detail: 'disabled' })
+    expect(send).not.toHaveBeenCalled()
+  })
+
+  it('does put → head → delete and returns ok when enabled', async () => {
+    process.env.BACKUP_ENABLED = 'true'
+    send.mockResolvedValue({})
+    const res = await healthCheckR2()
+    expect(res).toEqual({ ok: true })
+    expect(send).toHaveBeenCalledTimes(3)
+  })
+
+  it('returns ok:false with detail when the probe throws', async () => {
+    process.env.BACKUP_ENABLED = 'true'
+    send.mockRejectedValue(new Error('bad creds'))
+    const res = await healthCheckR2()
+    expect(res.ok).toBe(false)
+    expect(res.detail).toContain('bad creds')
   })
 })

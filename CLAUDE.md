@@ -16,6 +16,14 @@ finalizing any PR, deliberately verify the key business logic, flows, and
 important branches (validation / authz / error / edge) are genuinely tested and
 fill the gaps (see "Coverage policy & mutation testing" in the workflow doc).
 
+**Database schema changes:** the app uses Drizzle **migrations**. After editing
+`apps/mfr/lib/db/schema/*.ts`, run `npm run db:generate` **on Node 22**
+(`nvm use 22`) and commit the generated migration in `apps/mfr/drizzle/` with your
+code. CI's `schema-check` job blocks the PR if `schema.ts` diverges from the
+committed migrations; deploys apply them automatically (`vercel-build` →
+`db:migrate`). Never `drizzle-kit push --force` against a real branch. See the
+"Schema changes (Drizzle migrations)" section in the workflow doc.
+
 Future features and known defects are tracked in
 [docs/backlog.md](docs/backlog.md) — add new ideas/bugs there, delete items
 when they ship.
