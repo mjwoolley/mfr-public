@@ -5,11 +5,11 @@
 import Link from 'next/link'
 import { auth } from '@/lib/auth'
 import { getPortalSettings, getFundraising, getEvents } from '@/lib/portal'
+import { getHighlightSlides } from '@/lib/photos/slides'
 import { HomeSlideshow } from './HomeSlideshow'
 
-// Curated hero slideshow images (public/). First is the real family photo;
-// more can be dropped in and listed here.
-const SLIDES = ['/lake-house.jpg']
+// Fallback hero image (public/) when no highlight slides have been uploaded.
+const FALLBACK_SLIDES = ['/lake-house.jpg']
 
 const usd0 = (n: number) =>
   new Intl.NumberFormat('en-US', {
@@ -60,7 +60,10 @@ export default async function Home() {
   const session = await auth()
   const signedIn = !!session?.user
 
-  const settings = await getPortalSettings()
+  const [settings, highlights] = await Promise.all([getPortalSettings(), getHighlightSlides()])
+  // Rotate through the admin-curated highlights; fall back to the static image
+  // when none are uploaded (the hero is public, same as the fallback today).
+  const heroSlides = highlights.length ? highlights.map((s) => s.blobUrl) : FALLBACK_SLIDES
   const [fundraising, events] = signedIn
     ? await Promise.all([getFundraising(), getEvents()])
     : [null, [] as Awaited<ReturnType<typeof getEvents>>]
@@ -131,7 +134,7 @@ export default async function Home() {
           </div>
 
           <div className="flex min-w-[300px] flex-[0_1_480px] flex-col gap-4">
-            <HomeSlideshow images={SLIDES} albumUrl={settings.highlightsUrl} />
+            <HomeSlideshow images={heroSlides} albumUrl={settings.highlightsUrl} />
 
             {!signedIn && (
               /* signed-out: generic prompt in place of the member-only goal card */

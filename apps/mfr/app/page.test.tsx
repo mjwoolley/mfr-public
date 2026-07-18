@@ -8,11 +8,12 @@ vi.mock('next/image', () => ({
 }))
 
 // Hoisted so the vi.mock factories (which run before the file body) can use them.
-const { authMock, settingsMock, fundraisingMock, eventsMock } = vi.hoisted(() => ({
+const { authMock, settingsMock, fundraisingMock, eventsMock, highlightsMock } = vi.hoisted(() => ({
   authMock: vi.fn(),
   settingsMock: vi.fn(),
   fundraisingMock: vi.fn(),
   eventsMock: vi.fn(),
+  highlightsMock: vi.fn(),
 }))
 
 vi.mock('@/lib/auth', () => ({ auth: authMock }))
@@ -21,6 +22,7 @@ vi.mock('@/lib/portal', () => ({
   getFundraising: fundraisingMock,
   getEvents: eventsMock,
 }))
+vi.mock('@/lib/photos/slides', () => ({ getHighlightSlides: highlightsMock }))
 
 import Home from './page'
 
@@ -49,6 +51,28 @@ beforeEach(() => {
   settingsMock.mockResolvedValue(settings)
   fundraisingMock.mockResolvedValue({ year: 2026, raised: 7400, goal: 12000 })
   eventsMock.mockResolvedValue([])
+  highlightsMock.mockResolvedValue([])
+})
+
+describe('home page — hero slideshow source', () => {
+  it('falls back to the static image when no highlight slides exist', async () => {
+    authMock.mockResolvedValue(null)
+    highlightsMock.mockResolvedValue([])
+    const html = await render()
+    expect(html).toContain('/lake-house.jpg')
+  })
+
+  it('rotates through uploaded highlight slides when present', async () => {
+    authMock.mockResolvedValue(null)
+    highlightsMock.mockResolvedValue([
+      { id: 's1', blobUrl: 'https://blob/hi-1.jpg' },
+      { id: 's2', blobUrl: 'https://blob/hi-2.jpg' },
+    ])
+    const html = await render()
+    expect(html).toContain('https://blob/hi-1.jpg')
+    expect(html).toContain('https://blob/hi-2.jpg')
+    expect(html).not.toContain('/lake-house.jpg')
+  })
 })
 
 describe('home page — hero (always shown)', () => {

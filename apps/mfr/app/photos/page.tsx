@@ -7,12 +7,18 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { requireApproved } from '@/lib/authz'
 import { getPhotoAlbums, getPortalSettings } from '@/lib/portal'
+import { getSlidesByCollection } from '@/lib/photos/slides'
+import { AlbumCardRotator } from './AlbumCardRotator'
 
 export const metadata: Metadata = { title: 'Photos' }
 
 export default async function PhotosPage() {
   await requireApproved()
-  const [albums, settings] = await Promise.all([getPhotoAlbums(), getPortalSettings()])
+  const [albums, settings, slidesByYear] = await Promise.all([
+    getPhotoAlbums(),
+    getPortalSettings(),
+    getSlidesByCollection(),
+  ])
 
   return (
     <section
@@ -75,6 +81,7 @@ export default async function PhotosPage() {
       >
         {albums.map((al, i) => {
           const hasUrl = !!al.url.trim()
+          const slides = slidesByYear.get(String(al.year)) ?? []
           return (
             <div
               key={al.id}
@@ -85,7 +92,9 @@ export default async function PhotosPage() {
                 className="washed relative w-full overflow-hidden"
                 style={{ aspectRatio: '4 / 3', background: 'var(--color-neutral-200)' }}
               >
-                {i === 0 ? (
+                {slides.length > 0 ? (
+                  <AlbumCardRotator slides={slides.map((s) => s.blobUrl)} index={i} />
+                ) : i === 0 ? (
                   <Image
                     src="/lake-house.jpg"
                     alt={`${al.year} album cover`}

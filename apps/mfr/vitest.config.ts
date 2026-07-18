@@ -59,6 +59,7 @@ export default defineConfig({
             'tests/integration/**',
             'tests/accounting-integration/**',
             'tests/reservations-integration/**',
+            'tests/photos-integration/**',
           ],
           // Every client now reads the single DATABASE_URL and throws at module
           // load if it is unset. Pure unit tests that merely import a lib module
