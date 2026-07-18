@@ -12,11 +12,7 @@ import { portalDb } from '@/lib/portalDb'
 import { portalPhotoSlides } from '@/lib/db/schema'
 import { requirePortalContentAdmin } from '@/lib/authz'
 import { putSlideImage, deleteSlideImage } from '@/lib/photos/blobStore'
-
-export type ActionResult = { ok: true } | { error: string }
-
-/** Max slides per collection — keeps rotations sane. */
-export const SLIDE_CAP = 12
+import { SLIDE_CAP, type ActionResult } from './constants'
 
 const collectionSchema = z.string().regex(/^(highlights|\d{4})$/)
 

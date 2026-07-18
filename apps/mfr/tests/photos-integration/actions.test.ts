@@ -2,7 +2,6 @@
 // auth, next/cache, and the Blob wrapper are mocked; the DB writes are real.
 
 import { describe, it, expect, afterEach, vi } from 'vitest'
-import { eq } from 'drizzle-orm'
 import { testDb } from './testDb'
 import { portalPhotoSlides } from '../../lib/db/schema'
 
@@ -18,7 +17,8 @@ vi.mock('../../lib/photos/blobStore', () => ({
 }))
 
 import { auth } from '@/lib/auth'
-import { uploadSlides, removeSlide, reorderSlides, SLIDE_CAP } from '../../app/admin/photos/actions'
+import { uploadSlides, removeSlide, reorderSlides } from '../../app/admin/photos/actions'
+import { SLIDE_CAP } from '../../app/admin/photos/constants'
 
 function mockSession(roles: { siteOwner?: boolean; siteManager?: boolean }) {
   vi.mocked(auth).mockResolvedValue({
