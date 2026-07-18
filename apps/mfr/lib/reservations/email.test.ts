@@ -65,7 +65,7 @@ describe('sendEmail', () => {
   })
 
   it('sends from EMAIL_FROM with to/cc/replyTo and rendered HTML', async () => {
-    vi.stubEnv('EMAIL_FROM', 'reservations@millerfamilyreunions.org')
+    vi.stubEnv('EMAIL_FROM', 'custom@example.com')
     await sendEmail({
       to: 'owner@example.com',
       cc: ['admin@example.com'],
@@ -76,7 +76,7 @@ describe('sendEmail', () => {
     expect(sendMock).toHaveBeenCalledTimes(1)
     const input = sentInput()
     expect(input).toMatchObject({
-      FromEmailAddress: 'reservations@millerfamilyreunions.org',
+      FromEmailAddress: 'custom@example.com',
       Destination: { ToAddresses: ['owner@example.com'], CcAddresses: ['admin@example.com'] },
       ReplyToAddresses: ['actor@example.com'],
     })
@@ -85,6 +85,14 @@ describe('sendEmail', () => {
     }
     expect(content.Simple.Subject.Data).toBe('Test subject')
     expect(content.Simple.Body.Html.Data).toContain('hello')
+  })
+
+  it('falls back to hello@millerfamilyreunions.org when EMAIL_FROM is unset', async () => {
+    vi.stubEnv('EMAIL_FROM', undefined)
+    await sendEmail({ to: 'owner@example.com', cc: [], subject: 'Test', react })
+    expect(sentInput()).toMatchObject({
+      FromEmailAddress: 'hello@millerfamilyreunions.org',
+    })
   })
 
   it('omits cc and replyTo when not provided', async () => {
