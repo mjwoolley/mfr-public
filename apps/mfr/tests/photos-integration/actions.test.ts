@@ -90,6 +90,13 @@ describe('uploadSlides', () => {
     expect(result).toEqual({ error: 'Only image files can be uploaded.' })
   })
 
+  it('rejects when no files are provided', async () => {
+    mockSession({ siteManager: true })
+    const result = await uploadSlides('2026', [])
+    expect(result).toEqual({ error: 'No files selected' })
+    expect(putSlideImage).not.toHaveBeenCalled()
+  })
+
   it('redirects (rejects) a non-content-admin', async () => {
     mockSession({ siteManager: false, siteOwner: false })
     await expect(uploadSlides('2026', [image('a.jpg')])).rejects.toThrow()
@@ -117,6 +124,18 @@ describe('removeSlide', () => {
     expect(deleteSlideImage).toHaveBeenCalledWith('https://blob/pic.jpg')
     expect(await testDb.select().from(portalPhotoSlides)).toHaveLength(0)
   })
+
+  it('is idempotent when the slide does not exist', async () => {
+    mockSession({ siteManager: true })
+    const result = await removeSlide('00000000-0000-0000-0000-000000000000')
+    expect(result).toEqual({ ok: true })
+    expect(deleteSlideImage).not.toHaveBeenCalled()
+  })
+
+  it('rejects an invalid slide id', async () => {
+    mockSession({ siteManager: true })
+    expect(await removeSlide('not-a-uuid')).toEqual({ error: 'Invalid slide' })
+  })
 })
 
 describe('reorderSlides', () => {
@@ -140,5 +159,11 @@ describe('reorderSlides', () => {
     expect(orderById.get(c.id)).toBe(0)
     expect(orderById.get(a.id)).toBe(1)
     expect(orderById.get(b.id)).toBe(2)
+  })
+
+  it('rejects an invalid collection or a non-uuid in the order', async () => {
+    mockSession({ siteManager: true })
+    expect(await reorderSlides('nope', [])).toEqual({ error: 'Invalid collection' })
+    expect(await reorderSlides('2026', ['not-a-uuid'])).toEqual({ error: 'Invalid order' })
   })
 })
