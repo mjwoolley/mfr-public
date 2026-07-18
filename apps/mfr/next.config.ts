@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
   // allowlist and no cross-section redirects are needed (routes are already
   // /reservations and /accounting within this one app).
   transpilePackages: ['@mfr/ui', '@mfr/auth'],
+  // Photo-slide images are served from Vercel Blob.
+  images: {
+    remotePatterns: [{ protocol: 'https', hostname: '**.blob.vercel-storage.com' }],
+  },
 }
 
 export default nextConfig

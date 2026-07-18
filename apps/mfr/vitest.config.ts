@@ -59,6 +59,7 @@ export default defineConfig({
             'tests/integration/**',
             'tests/accounting-integration/**',
             'tests/reservations-integration/**',
+            'tests/photos-integration/**',
           ],
           // Every client now reads the single DATABASE_URL and throws at module
           // load if it is unset. Pure unit tests that merely import a lib module
@@ -121,6 +122,25 @@ export default defineConfig({
           globalSetup: ['tests/reservations-integration/setup.ts'],
           // booking_rules is a singleton row that admin.test.ts rewrites, so
           // parallel files race on it — serialize (each manages its fixtures).
+          fileParallelism: false,
+          env: {
+            DATABASE_URL: process.env.TEST_DATABASE_URL,
+          },
+        },
+      },
+      {
+        // Photo-slides integration suite: read helpers + admin server actions
+        // against the unified `test` branch (portal_photo_slides / albums /
+        // roles + identity users). Blob uploads are mocked in the tests.
+        plugins: [react()],
+        resolve: { alias },
+        test: {
+          name: 'photos-integration',
+          environment: 'node',
+          include: ['tests/photos-integration/**/*.test.ts'],
+          globalSetup: ['tests/photos-integration/setup.ts'],
+          // Files share the portal_photo_slides table — serialize so the
+          // global truncate and per-test fixtures don't race across files.
           fileParallelism: false,
           env: {
             DATABASE_URL: process.env.TEST_DATABASE_URL,

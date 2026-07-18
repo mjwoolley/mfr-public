@@ -48,6 +48,18 @@ export default async function globalSetup() {
       INSERT INTO portal_photo_albums (year, url) VALUES (2026, '')
       ON CONFLICT (year) DO NOTHING
     `
+    // Photo-slide rotation: seed one slide for the home hero (highlights) and
+    // one for the 2026 album card, pointing at a distinct /public asset so the
+    // e2e can tell a rotating slide apart from the static fallback without any
+    // Blob dependency. Reset first so re-runs stay deterministic.
+    const slideSrc = '/google-signup-existing-email.jpg'
+    await sql`TRUNCATE TABLE portal_photo_slides RESTART IDENTITY`
+    await sql`
+      INSERT INTO portal_photo_slides (collection, blob_url, blob_pathname, sort_order, uploaded_by)
+      VALUES
+        ('highlights', ${slideSrc}, 'seed/highlights', 0, 'e2e-seed'),
+        ('2026', ${slideSrc}, 'seed/2026', 0, 'e2e-seed')
+    `
     // Pin the reunion schedule: the Meals page derives its day grid from
     // these dates, and integration suites elsewhere rewrite the settings
     // singleton — upsert known dates so the meals tests are deterministic.

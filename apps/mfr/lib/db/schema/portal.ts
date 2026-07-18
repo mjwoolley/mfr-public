@@ -3,7 +3,17 @@
 // apps/web/lib/db/schema.ts. Every table keeps its `portal_` prefix. Rows
 // reference identity users.id logically (no cross-domain FK).
 
-import { pgTable, uuid, boolean, timestamp, integer, text, date, unique } from 'drizzle-orm/pg-core'
+import {
+  pgTable,
+  uuid,
+  boolean,
+  timestamp,
+  integer,
+  text,
+  date,
+  unique,
+  index,
+} from 'drizzle-orm/pg-core'
 
 /**
  * One row per user who holds any portal role. Absence of a row means the user
@@ -47,6 +57,28 @@ export const portalPhotoAlbums = pgTable('portal_photo_albums', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 export type PortalPhotoAlbumRow = typeof portalPhotoAlbums.$inferSelect
+
+/**
+ * Admin-curated preview images (stored in Vercel Blob) that power the rotating
+ * slideshows on the home hero and the /photos album cards. Additive to the
+ * Google Photos albums above — those remain the canonical archive. `collection`
+ * is either a 4-digit reunion year (tying slides to that album by value) or the
+ * literal "highlights" (the home hero set).
+ */
+export const portalPhotoSlides = pgTable(
+  'portal_photo_slides',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    collection: text('collection').notNull(),
+    blobUrl: text('blob_url').notNull(),
+    blobPathname: text('blob_pathname').notNull(),
+    sortOrder: integer('sort_order').notNull().default(0),
+    uploadedBy: text('uploaded_by').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('portal_photo_slides_collection_order_idx').on(t.collection, t.sortOrder)],
+)
+export type PortalPhotoSlideRow = typeof portalPhotoSlides.$inferSelect
 
 /**
  * Upcoming events shown on the home page (sorted by start date). An event is
