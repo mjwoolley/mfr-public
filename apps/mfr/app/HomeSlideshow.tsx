@@ -11,7 +11,7 @@ const INTERVAL_MS = 4800
  * public/ — starting with the real family photo. With a single image it simply
  * shows it (no dots, no timer).
  */
-export function HomeSlideshow({ images, albumUrl }: { images: string[]; albumUrl: string }) {
+export function HomeSlideshow({ images }: { images: string[] }) {
   const [slide, setSlide] = useState(0)
 
   useEffect(() => {
@@ -110,30 +110,6 @@ export function HomeSlideshow({ images, albumUrl }: { images: string[]; albumUrl
             </span>
           )}
         </figcaption>
-        {albumUrl && (
-          <a
-            href={albumUrl}
-            target="_blank"
-            rel="noopener"
-            className="inline-flex items-center gap-1.5"
-            style={{ margin: '2px 4px 0', fontSize: 12, fontWeight: 600 }}
-          >
-            Open the highlights album
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.75"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M7 17 L17 7" />
-              <path d="M8 7h9v9" />
-            </svg>
-          </a>
-        )}
       </figure>
     </div>
   )

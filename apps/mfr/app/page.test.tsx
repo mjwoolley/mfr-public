@@ -162,3 +162,61 @@ describe('home page — signed in', () => {
     expect(html).toContain('Jul 1 – Jul 5')
   })
 })
+
+function featuredPhoto(over: Record<string, unknown> = {}) {
+  return {
+    id: 'p1',
+    year: 2026,
+    blobUrl: 'https://blob/feat-1.jpg',
+    filename: 'a.jpg',
+    byteSize: 1000,
+    width: 800,
+    height: 600,
+    caption: null,
+    featured: true,
+    uploadedBy: 'u1',
+    createdAt: new Date(),
+    ...over,
+  }
+}
+
+describe('home page — featured album card', () => {
+  beforeEach(() => authMock.mockResolvedValue(signedInSession))
+
+  it('shows a single card linking to the Featured gallery, its cover rotating the picks', async () => {
+    featuredMock.mockResolvedValue([
+      featuredPhoto({ id: 'p1', blobUrl: 'https://blob/feat-1.jpg' }),
+      featuredPhoto({ id: 'p2', blobUrl: 'https://blob/feat-2.jpg' }),
+    ])
+    const html = await render()
+    expect(html).toContain('href="/photos/featured"')
+    expect(html).toContain('Featured')
+    expect(html).toContain('2 photos')
+    // Both picks appear in the rotating cover.
+    expect(html).toContain('https://blob/feat-1.jpg')
+    expect(html).toContain('https://blob/feat-2.jpg')
+    // The old grid heading is gone.
+    expect(html).not.toContain('Featured by the family')
+  })
+
+  it('shows a static cover and singular count for a single featured photo', async () => {
+    featuredMock.mockResolvedValue([featuredPhoto({ id: 'p1', blobUrl: 'https://blob/only.jpg' })])
+    const html = await render()
+    expect(html).toContain('href="/photos/featured"')
+    expect(html).toContain('1 photo')
+    expect(html).toContain('https://blob/only.jpg')
+  })
+
+  it('renders no featured card when nothing is featured', async () => {
+    featuredMock.mockResolvedValue([])
+    const html = await render()
+    expect(html).not.toContain('href="/photos/featured"')
+  })
+
+  it('never fetches or shows featured photos for signed-out visitors', async () => {
+    authMock.mockResolvedValue(null)
+    const html = await render()
+    expect(featuredMock).not.toHaveBeenCalled()
+    expect(html).not.toContain('href="/photos/featured"')
+  })
+})

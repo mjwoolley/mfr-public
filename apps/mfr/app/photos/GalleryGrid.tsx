@@ -5,7 +5,8 @@
 // in the lightbox. Owners can feature (≤ cap, enforced server-side), edit
 // year/caption, and delete; content-admins can unfeature/delete anyone's.
 
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
+import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import type { GalleryPhoto } from '@/lib/photos/gallery'
@@ -34,6 +35,17 @@ export function GalleryGrid({
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
   const [pending, start] = useTransition()
+
+  // Lock background scroll while the lightbox is open.
+  const isOpen = active !== null
+  useEffect(() => {
+    if (!isOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [isOpen])
 
   if (photos.length === 0) {
     return (
@@ -106,6 +118,15 @@ export function GalleryGrid({
                 </span>
               )}
             </button>
+            {p.caption && (
+              <figcaption
+                className="mt-1 line-clamp-2"
+                style={{ fontSize: 12.5, lineHeight: 1.35, color: 'var(--color-neutral-700)' }}
+                title={p.caption}
+              >
+                {p.caption}
+              </figcaption>
+            )}
             {showMeta && (
               <figcaption
                 className="mt-1"
@@ -121,121 +142,129 @@ export function GalleryGrid({
         ))}
       </div>
 
-      {photo && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          onClick={close}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: 'rgba(0,0,0,.8)' }}
-        >
+      {/* Portalled to <body> so a transformed ancestor (the page's `fadeup`
+          section) can't become the containing block and push this fixed
+          overlay off-screen. Only renders after a click, so document.body
+          always exists here (never during SSR). */}
+      {photo &&
+        createPortal(
           <div
-            onClick={(e) => e.stopPropagation()}
-            className="card bg-white flex max-h-[92vh] w-full max-w-3xl flex-col overflow-auto"
-            style={{ padding: 16 }}
+            role="dialog"
+            aria-modal="true"
+            onClick={close}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,.85)' }}
           >
             <div
-              className="relative w-full"
-              style={{
-                aspectRatio: `${photo.width || 4} / ${photo.height || 3}`,
-                maxHeight: '62vh',
-              }}
+              onClick={(e) => e.stopPropagation()}
+              className="card bg-white flex w-full flex-col overflow-auto"
+              style={{ padding: 16, maxWidth: 'min(1100px, 96vw)', maxHeight: '96vh' }}
             >
-              <Image
-                src={photo.blobUrl}
-                alt={photo.caption ?? `Photo from ${photo.year}`}
-                fill
-                sizes="768px"
-                style={{ objectFit: 'contain' }}
-              />
-            </div>
-
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
-              <span style={{ fontFamily: 'var(--font-heading)', fontSize: 18 }}>{photo.year}</span>
-              <span style={{ fontSize: 13, color: 'var(--color-neutral-600)' }}>
-                {photo.filename || 'photo'} · {photo.width}×{photo.height}
-                {photo.byteSize ? ` · ${fmtSize(photo.byteSize)}` : ''}
-              </span>
-              <button
-                type="button"
-                onClick={close}
-                className="btn btn-icon ml-auto"
-                title="Close"
-                aria-label="Close"
+              <div
+                className="relative w-full"
+                style={{
+                  aspectRatio: `${photo.width || 4} / ${photo.height || 3}`,
+                  maxHeight: '78vh',
+                }}
               >
-                ✕
-              </button>
-            </div>
-            {photo.caption && !editing && (
-              <p className="mt-1" style={{ fontSize: 14, color: 'var(--color-neutral-700)' }}>
-                {photo.caption}
-              </p>
-            )}
+                <Image
+                  src={photo.blobUrl}
+                  alt={photo.caption ?? `Photo from ${photo.year}`}
+                  fill
+                  sizes="768px"
+                  style={{ objectFit: 'contain' }}
+                />
+              </div>
 
-            {canEdit && (
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                {isOwner && (
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    disabled={pending}
-                    onClick={() => run(() => setFeatured(photo.id, !photo.featured))}
-                  >
-                    {photo.featured ? 'Unfeature' : '★ Feature on home'}
-                  </button>
-                )}
-                {!isOwner && isContentAdmin && photo.featured && (
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    disabled={pending}
-                    onClick={() => run(() => setFeatured(photo.id, false))}
-                  >
-                    Unfeature
-                  </button>
-                )}
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+                <span style={{ fontFamily: 'var(--font-heading)', fontSize: 18 }}>
+                  {photo.year}
+                </span>
+                <span style={{ fontSize: 13, color: 'var(--color-neutral-600)' }}>
+                  {photo.filename || 'photo'} · {photo.width}×{photo.height}
+                  {photo.byteSize ? ` · ${fmtSize(photo.byteSize)}` : ''}
+                </span>
                 <button
                   type="button"
-                  className="btn btn-secondary"
-                  disabled={pending}
-                  onClick={() => setEditing((v) => !v)}
+                  onClick={close}
+                  className="btn btn-icon ml-auto"
+                  title="Close"
+                  aria-label="Close"
                 >
-                  {editing ? 'Cancel edit' : 'Edit'}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-icon"
-                  disabled={pending}
-                  title="Delete photo"
-                  style={{ color: 'var(--color-accent-700)', marginLeft: 'auto' }}
-                  onClick={() => {
-                    if (confirm('Delete this photo? Its backup is kept for 30 days.')) {
-                      run(() => deletePhoto(photo.id), true)
-                    }
-                  }}
-                >
-                  Delete
+                  ✕
                 </button>
               </div>
-            )}
+              {photo.caption && !editing && (
+                <p className="mt-1" style={{ fontSize: 14, color: 'var(--color-neutral-700)' }}>
+                  {photo.caption}
+                </p>
+              )}
 
-            {editing && canEdit && (
-              <EditForm
-                key={photo.id}
-                photo={photo}
-                pending={pending}
-                onSave={(fields) => run(() => updatePhoto(photo.id, fields))}
-              />
-            )}
+              {canEdit && (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {isOwner && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      disabled={pending}
+                      onClick={() => run(() => setFeatured(photo.id, !photo.featured))}
+                    >
+                      {photo.featured ? 'Unfeature' : '★ Feature on home'}
+                    </button>
+                  )}
+                  {!isOwner && isContentAdmin && photo.featured && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      disabled={pending}
+                      onClick={() => run(() => setFeatured(photo.id, false))}
+                    >
+                      Unfeature
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={pending}
+                    onClick={() => setEditing((v) => !v)}
+                  >
+                    {editing ? 'Cancel edit' : 'Edit'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-icon"
+                    disabled={pending}
+                    title="Delete photo"
+                    style={{ color: 'var(--color-accent-700)', marginLeft: 'auto' }}
+                    onClick={() => {
+                      if (confirm('Delete this photo? Its backup is kept for 30 days.')) {
+                        run(() => deletePhoto(photo.id), true)
+                      }
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
 
-            {error && (
-              <p className="mt-2" style={{ fontSize: 13, color: 'var(--color-accent-700)' }}>
-                {error}
-              </p>
-            )}
-          </div>
-        </div>
-      )}
+              {editing && canEdit && (
+                <EditForm
+                  key={photo.id}
+                  photo={photo}
+                  pending={pending}
+                  onSave={(fields) => run(() => updatePhoto(photo.id, fields))}
+                />
+              )}
+
+              {error && (
+                <p className="mt-2" style={{ fontSize: 13, color: 'var(--color-accent-700)' }}>
+                  {error}
+                </p>
+              )}
+            </div>
+          </div>,
+          document.body,
+        )}
     </>
   )
 }

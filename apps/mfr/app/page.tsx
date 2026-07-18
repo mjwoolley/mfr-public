@@ -9,6 +9,7 @@ import { getPortalSettings, getFundraising, getEvents } from '@/lib/portal'
 import { getHighlightSlides } from '@/lib/photos/slides'
 import { getFeaturedPhotos } from '@/lib/photos/gallery'
 import { HomeSlideshow } from './HomeSlideshow'
+import { AlbumCardRotator } from './photos/AlbumCardRotator'
 
 // Fallback hero image (public/) when no highlight slides have been uploaded.
 const FALLBACK_SLIDES = ['/lake-house.jpg']
@@ -136,7 +137,7 @@ export default async function Home() {
           </div>
 
           <div className="flex min-w-[300px] flex-[0_1_480px] flex-col gap-4">
-            <HomeSlideshow images={heroSlides} albumUrl={settings.highlightsUrl} />
+            <HomeSlideshow images={heroSlides} />
 
             {!signedIn && (
               /* signed-out: generic prompt in place of the member-only goal card */
@@ -235,35 +236,51 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* featured photos (member-only) — the family's picks; ships dark when empty */}
+      {/* Featured album (member-only) — a single card whose cover rotates
+          through the family's picks; click into the full Featured gallery.
+          Ships dark when nothing is featured. */}
       {signedIn && featured.length > 0 && (
         <section className="mx-auto max-w-5xl px-7 pt-4.5 pb-1.5">
-          <div className="mb-3.5 flex flex-wrap items-baseline gap-3">
-            <h2 className="m-0 text-[22px]">Featured by the family</h2>
-            <Link href="/photos" className="ml-auto" style={{ fontSize: 13, fontWeight: 600 }}>
-              All photos &rarr;
-            </Link>
-          </div>
           <div
-            className="grid gap-3"
-            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}
+            className="grid gap-5"
+            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))' }}
           >
-            {featured.map((p) => (
+            <div
+              className="albumcard card elev-sm bg-white overflow-hidden"
+              style={{ padding: 0, gap: 0 }}
+            >
               <Link
-                key={p.id}
-                href={`/photos/${p.year}`}
-                className="card elev-sm relative block overflow-hidden"
-                style={{ padding: 0, aspectRatio: '1 / 1', background: 'var(--color-neutral-200)' }}
+                href="/photos/featured"
+                className="washed relative block w-full overflow-hidden"
+                style={{ aspectRatio: '4 / 3', background: 'var(--color-neutral-200)' }}
+                aria-label="Open the Featured photos"
               >
-                <Image
-                  src={p.blobUrl}
-                  alt={p.caption ?? `Featured photo from ${p.year}`}
-                  fill
-                  sizes="(max-width: 640px) 45vw, 200px"
-                  style={{ objectFit: 'cover' }}
-                />
+                {featured.length > 1 ? (
+                  <AlbumCardRotator slides={featured.map((p) => p.blobUrl)} index={0} />
+                ) : (
+                  <Image
+                    src={featured[0].blobUrl}
+                    alt={featured[0].caption ?? 'Featured photo'}
+                    fill
+                    sizes="300px"
+                    style={{ objectFit: 'cover' }}
+                  />
+                )}
               </Link>
-            ))}
+              <div style={{ padding: '16px 18px 18px' }}>
+                <div className="flex items-baseline justify-between gap-2.5">
+                  <span style={{ fontFamily: 'var(--font-heading)', fontSize: 24 }}>Featured</span>
+                  <span style={{ fontSize: 13, color: 'var(--color-neutral-600)' }}>
+                    {featured.length} photo{featured.length === 1 ? '' : 's'}
+                  </span>
+                </div>
+                <div className="mt-3">
+                  <Link href="/photos/featured" style={{ fontSize: 14, fontWeight: 700 }}>
+                    Open gallery &rarr;
+                  </Link>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
       )}

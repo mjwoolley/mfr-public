@@ -3,9 +3,10 @@
 // real (portalDb === testDb branch in the test env). Mirrors actions.test.ts.
 
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest'
-import { eq } from 'drizzle-orm'
+import { desc, eq } from 'drizzle-orm'
 import { testDb } from './testDb'
-import { portalPhotos, portalBlobBackups } from '../../lib/db/schema'
+import { portalPhotos, portalBlobBackups, activityLog } from '../../lib/db/schema'
+import { getPhotoHistory } from '../../lib/photos/history'
 
 vi.mock('@/lib/auth', () => ({ auth: vi.fn() }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
@@ -34,8 +35,11 @@ import { auth } from '@/lib/auth'
 import { finalizeUpload, updatePhoto, deletePhoto, setFeatured } from '../../app/photos/actions'
 import { FEATURED_PER_USER } from '../../lib/photos/constants'
 
-const ME = 'user-me'
-const OTHER = 'user-other'
+// Real UUIDs: these ids are stored both as portal_photos.uploadedBy (text) and
+// as activity_log.actor_user_id (uuid), so the history-logging path exercises
+// the same shape as production (where session.user.id is an identity UUID).
+const ME = '11111111-1111-1111-1111-111111111111'
+const OTHER = '22222222-2222-2222-2222-222222222222'
 
 function mockUser(id: string, roles: { siteOwner?: boolean; siteManager?: boolean } = {}) {
   vi.mocked(auth).mockResolvedValue({
@@ -91,7 +95,20 @@ afterEach(async () => {
   }
   await testDb.delete(portalPhotos)
   await testDb.delete(portalBlobBackups)
+  await testDb.delete(activityLog)
 })
+
+// Read back the newest photo activity_log row of a given type (helper for the
+// history-logging assertions below).
+async function latestEvent(eventType: string) {
+  const [row] = await testDb
+    .select()
+    .from(activityLog)
+    .where(eq(activityLog.eventType, eventType))
+    .orderBy(desc(activityLog.createdAt))
+    .limit(1)
+  return row
+}
 
 describe('finalizeUpload', () => {
   it('normalizes, stores, inserts the row, deletes the temp original, and backs up', async () => {
@@ -295,5 +312,107 @@ describe('validation branches', () => {
   it('deletePhoto rejects a bad id', async () => {
     mockUser(ME)
     expect(await deletePhoto('not-a-uuid')).toEqual({ error: 'Invalid photo' })
+  })
+})
+
+describe('history logging', () => {
+  it('records a photo_uploaded event with the new photo id', async () => {
+    mockUser(ME)
+    fetchBlobBytes.mockResolvedValue(Buffer.from('original'))
+    normalizeImage.mockResolvedValue({
+      bytes: Buffer.from('processed'),
+      width: 800,
+      height: 600,
+      contentType: 'image/jpeg',
+    })
+    putGalleryImage.mockResolvedValue({
+      url: 'https://blob/gallery/2026/final.jpg',
+      pathname: 'gallery/2026/final.jpg',
+    })
+    backupObject.mockResolvedValue(true)
+
+    await finalizeUpload({
+      url: 'https://blob/gallery-tmp/orig.jpg',
+      year: 2026,
+      filename: 'orig.jpg',
+      contentType: 'image/jpeg',
+    })
+
+    const [row] = await testDb.select().from(portalPhotos)
+    const ev = await latestEvent('photo_uploaded')
+    expect(ev.actorUserId).toBe(ME)
+    expect(ev.metadata).toMatchObject({ photoId: row.id, year: 2026, filename: 'orig.jpg' })
+  })
+
+  it('records photo_caption_edited only when the caption actually changes', async () => {
+    mockUser(ME)
+    const row = await seedPhoto({ caption: 'before' })
+
+    // Year-only change → no caption event.
+    await updatePhoto(row.id, { year: 2024 })
+    expect(await latestEvent('photo_caption_edited')).toBeUndefined()
+
+    // Same caption again → still no event.
+    await updatePhoto(row.id, { caption: 'before' })
+    expect(await latestEvent('photo_caption_edited')).toBeUndefined()
+
+    // Real change → one event with the new caption.
+    await updatePhoto(row.id, { caption: 'after' })
+    const ev = await latestEvent('photo_caption_edited')
+    expect(ev.actorUserId).toBe(ME)
+    expect(ev.metadata).toMatchObject({ photoId: row.id, caption: 'after' })
+  })
+
+  it('records a photo_deleted event with the removed photo’s details', async () => {
+    mockUser(ME)
+    const row = await seedPhoto({ year: 2023, filename: 'gone.jpg' })
+    await deletePhoto(row.id)
+    const ev = await latestEvent('photo_deleted')
+    expect(ev.actorUserId).toBe(ME)
+    expect(ev.metadata).toMatchObject({ photoId: row.id, year: 2023, filename: 'gone.jpg' })
+  })
+
+  it('records photo_featured and photo_unfeatured on toggle', async () => {
+    mockUser(ME)
+    const row = await seedPhoto()
+
+    await setFeatured(row.id, true)
+    expect((await latestEvent('photo_featured')).metadata).toMatchObject({ photoId: row.id })
+
+    await setFeatured(row.id, false)
+    expect((await latestEvent('photo_unfeatured')).metadata).toMatchObject({ photoId: row.id })
+  })
+})
+
+describe('getPhotoHistory', () => {
+  it('returns photo events newest-first and ignores non-photo events', async () => {
+    // A non-photo event that must be filtered out.
+    await testDb.insert(activityLog).values({
+      eventType: 'reservation_created',
+      actorUserId: null,
+      metadata: {},
+    })
+    await testDb.insert(activityLog).values({
+      eventType: 'photo_uploaded',
+      actorUserId: ME,
+      metadata: { year: 2020 },
+      createdAt: new Date('2026-01-01T00:00:00Z'),
+    })
+    await testDb.insert(activityLog).values({
+      eventType: 'photo_deleted',
+      actorUserId: ME,
+      metadata: { year: 2021 },
+      createdAt: new Date('2026-02-01T00:00:00Z'),
+    })
+
+    const { events } = await getPhotoHistory()
+    expect(events.map((e) => e.eventType)).toEqual(['photo_deleted', 'photo_uploaded'])
+    expect(events[0].createdAt).toBe('2026-02-01T00:00:00.000Z')
+  })
+
+  it('returns no events and an empty name map when there is no photo history', async () => {
+    const { events, users } = await getPhotoHistory()
+    expect(events).toEqual([])
+    expect(users).toEqual({})
   })
 })

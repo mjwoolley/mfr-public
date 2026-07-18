@@ -1,23 +1,21 @@
-// Members-only Photos page: one card per reunion year linking out to that
-// year's Google Photos album (portal_photo_albums), plus the highlights reel
-// link when configured.
+// Members-only Photos page: one card per reunion year linking into that year's
+// in-site gallery (portal_photos), plus links to the Featured picks and the
+// change history.
 
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
 import { requireApproved } from '@/lib/authz'
-import { getPhotoAlbums, getPortalSettings } from '@/lib/portal'
+import { getPhotoAlbums } from '@/lib/portal'
 import { getSlidesByCollection } from '@/lib/photos/slides'
 import { getYearSummaries } from '@/lib/photos/gallery'
-import { AlbumCardRotator } from './AlbumCardRotator'
 
 export const metadata: Metadata = { title: 'Photos' }
 
 export default async function PhotosPage() {
   await requireApproved()
-  const [albums, settings, slidesByYear, yearSummaries] = await Promise.all([
+  const [albums, slidesByYear, yearSummaries] = await Promise.all([
     getPhotoAlbums(),
-    getPortalSettings(),
     getSlidesByCollection(),
     getYearSummaries(),
   ])
@@ -46,22 +44,19 @@ export default async function PhotosPage() {
               color: 'color-mix(in srgb, var(--color-text) 78%, transparent)',
             }}
           >
-            Every reunion has its own shared Google&nbsp;Photos album. Open any year to look through
-            the pictures &mdash; and if you have access, add your own straight from your phone.
+            Every reunion has its own album. Open any year to look through the pictures &mdash; and
+            add your own straight from your phone.
           </p>
         </div>
-        <Link
-          href="/photos/people"
-          className="ml-auto self-center"
-          style={{ fontSize: 13.5, fontWeight: 700 }}
-        >
-          Browse by person &rarr;
-        </Link>
-        {settings.highlightsUrl && (
-          <a
-            href={settings.highlightsUrl}
-            target="_blank"
-            rel="noopener"
+        <div className="ml-auto flex flex-wrap items-center gap-4 self-center">
+          <Link href="/photos/people" style={{ fontSize: 13.5, fontWeight: 700 }}>
+            Browse by person &rarr;
+          </Link>
+          <Link href="/photos/history" style={{ fontSize: 13.5, fontWeight: 700 }}>
+            History &rarr;
+          </Link>
+          <Link
+            href="/photos/featured"
             className="btn btn-primary"
             style={{ fontFamily: 'var(--font-body)', fontWeight: 700 }}
           >
@@ -69,19 +64,15 @@ export default async function PhotosPage() {
               width="17"
               height="17"
               viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+              fill="currentColor"
+              stroke="none"
+              aria-hidden
             >
-              <rect x="3" y="3" width="18" height="18" rx="3" />
-              <circle cx="9" cy="9" r="2" />
-              <path d="M21 15l-5-5L5 21" />
+              <path d="M12 2.5l2.9 5.9 6.5.95-4.7 4.58 1.11 6.47L12 17.36 6.19 20.9 7.3 14.43 2.6 9.85l6.5-.95z" />
             </svg>
-            Open highlights album
-          </a>
-        )}
+            Open Featured
+          </Link>
+        </div>
       </div>
 
       <div
@@ -89,9 +80,14 @@ export default async function PhotosPage() {
         style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))' }}
       >
         {albums.map((al, i) => {
-          const hasUrl = !!al.url.trim()
           const slides = slidesByYear.get(String(al.year)) ?? []
           const summary = yearSummaries.get(al.year)
+          // One static cover per album — the year's real cover if it has photos,
+          // else the first admin slide, else the lake-house fallback (first card
+          // only), else the year as text. (No rotation here: you click in to see
+          // the rest of the album.)
+          const coverUrl =
+            summary?.coverUrl ?? slides[0]?.blobUrl ?? (i === 0 ? '/lake-house.jpg' : null)
           return (
             <div
               key={al.id}
@@ -104,19 +100,9 @@ export default async function PhotosPage() {
                 style={{ aspectRatio: '4 / 3', background: 'var(--color-neutral-200)' }}
                 aria-label={`Open ${al.year} photos`}
               >
-                {summary ? (
+                {coverUrl ? (
                   <Image
-                    src={summary.coverUrl}
-                    alt={`${al.year} album cover`}
-                    fill
-                    sizes="300px"
-                    style={{ objectFit: 'cover' }}
-                  />
-                ) : slides.length > 0 ? (
-                  <AlbumCardRotator slides={slides.map((s) => s.blobUrl)} index={i} />
-                ) : i === 0 ? (
-                  <Image
-                    src="/lake-house.jpg"
+                    src={coverUrl}
                     alt={`${al.year} album cover`}
                     fill
                     sizes="300px"
@@ -142,9 +128,7 @@ export default async function PhotosPage() {
                   <span style={{ fontSize: 13, color: 'var(--color-neutral-600)' }}>
                     {summary
                       ? `${summary.count} photo${summary.count === 1 ? '' : 's'}`
-                      : hasUrl
-                        ? 'Shared album'
-                        : 'Not linked'}
+                      : 'No photos yet'}
                   </span>
                 </div>
                 <div className="mt-3">
@@ -152,62 +136,6 @@ export default async function PhotosPage() {
                     Open gallery &rarr;
                   </Link>
                 </div>
-                {hasUrl ? (
-                  <div className="mt-3 flex gap-4">
-                    <a
-                      href={al.url}
-                      target="_blank"
-                      rel="noopener"
-                      className="inline-flex items-center gap-1.5"
-                      style={{ fontSize: 14, fontWeight: 700 }}
-                    >
-                      View
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.75"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M7 17 L17 7" />
-                        <path d="M8 7h9v9" />
-                      </svg>
-                    </a>
-                    <a
-                      href={al.url}
-                      target="_blank"
-                      rel="noopener"
-                      className="inline-flex items-center gap-1.5"
-                      style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-accent-2-700)' }}
-                    >
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.6"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M12 5v14M5 12h14" />
-                      </svg>
-                      Add photos
-                    </a>
-                  </div>
-                ) : (
-                  <div className="mt-3 flex items-center gap-2">
-                    <span style={{ fontSize: 13.5, color: 'var(--color-neutral-600)' }}>
-                      No album linked yet.
-                    </span>
-                    <Link href="/admin" style={{ fontSize: 13.5, fontWeight: 700 }}>
-                      Add link
-                    </Link>
-                  </div>
-                )}
               </div>
             </div>
           )

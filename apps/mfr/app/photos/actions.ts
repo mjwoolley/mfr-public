@@ -18,6 +18,7 @@ import { putGalleryImage, deleteBlobObject, fetchBlobBytes } from '@/lib/photos/
 import { normalizeImage } from '@/lib/photos/imageProcess'
 import { backupObject } from '@/lib/photos/backupStore'
 import { getFeaturedCountForUser } from '@/lib/photos/gallery'
+import { logPhotoActivity } from '@/lib/photos/logPhotoActivity'
 import { FEATURED_PER_USER, type ActionResult } from '@/lib/photos/constants'
 
 const yearSchema = z.coerce.number().int().gte(1900).lte(2200)
@@ -25,6 +26,7 @@ const yearSchema = z.coerce.number().int().gte(1900).lte(2200)
 function revalidateGallery(year?: number) {
   revalidatePath('/')
   revalidatePath('/photos')
+  revalidatePath('/photos/featured')
   revalidatePath('/photos/people')
   if (year !== undefined) revalidatePath(`/photos/${year}`)
 }
@@ -86,20 +88,29 @@ export async function finalizeUpload(input: {
   const finalPath = `gallery/${year}/${crypto.randomUUID()}.jpg`
   const stored = await putGalleryImage(finalPath, processed.bytes, processed.contentType)
 
-  await portalDb.insert(portalPhotos).values({
-    year,
-    blobUrl: stored.url,
-    blobPathname: stored.pathname,
-    filename,
-    byteSize: processed.bytes.length,
-    width: processed.width,
-    height: processed.height,
-    uploadedBy: session.user.id,
-  })
+  const [inserted] = await portalDb
+    .insert(portalPhotos)
+    .values({
+      year,
+      blobUrl: stored.url,
+      blobPathname: stored.pathname,
+      filename,
+      byteSize: processed.bytes.length,
+      width: processed.width,
+      height: processed.height,
+      uploadedBy: session.user.id,
+    })
+    .returning({ id: portalPhotos.id })
 
   // The temp original is no longer needed once the processed image is stored.
   await safeDeleteBlob(url)
   await recordBackup(stored.pathname, processed.bytes, processed.contentType)
+
+  await logPhotoActivity({
+    eventType: 'photo_uploaded',
+    actorUserId: session.user.id,
+    metadata: { photoId: inserted?.id, year, filename },
+  })
 
   revalidateGallery(year)
   return { ok: true }
@@ -131,6 +142,16 @@ export async function updatePhoto(
   if (Object.keys(set).length === 0) return { ok: true }
 
   await portalDb.update(portalPhotos).set(set).where(eq(portalPhotos.id, id))
+
+  const captionChanged = set.caption !== undefined && set.caption !== (row.caption ?? '')
+  if (captionChanged) {
+    await logPhotoActivity({
+      eventType: 'photo_caption_edited',
+      actorUserId: session.user.id,
+      metadata: { photoId: id, year: set.year ?? row.year, caption: set.caption },
+    })
+  }
+
   revalidateGallery(set.year ?? row.year)
   if (set.year !== undefined && set.year !== row.year) revalidatePath(`/photos/${row.year}`)
   return { ok: true }
@@ -153,6 +174,12 @@ export async function deletePhoto(id: string): Promise<ActionResult> {
     .set({ deletedAt: new Date() })
     .where(eq(portalBlobBackups.blobPathname, row.blobPathname))
   await portalDb.delete(portalPhotos).where(eq(portalPhotos.id, id))
+
+  await logPhotoActivity({
+    eventType: 'photo_deleted',
+    actorUserId: session.user.id,
+    metadata: { photoId: id, year: row.year, filename: row.filename },
+  })
 
   revalidateGallery(row.year)
   return { ok: true }
@@ -184,7 +211,15 @@ export async function setFeatured(id: string, featured: boolean): Promise<Action
     .update(portalPhotos)
     .set({ featured, featuredAt: featured ? new Date() : null })
     .where(eq(portalPhotos.id, id))
+
+  await logPhotoActivity({
+    eventType: featured ? 'photo_featured' : 'photo_unfeatured',
+    actorUserId: session.user.id,
+    metadata: { photoId: id, year: row.year },
+  })
+
   revalidatePath('/')
+  revalidatePath('/photos/featured')
   revalidatePath('/photos/people')
   return { ok: true }
 }
