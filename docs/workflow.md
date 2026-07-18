@@ -72,6 +72,14 @@ the family seeing it.
    again, retest. Skip this step only for changes with no runtime surface
    (docs, comments, CI config).
 
+   **This is now enforced, not just discipline.** The `staging-gate` workflow
+   posts a required `staging-verified` status on every PR to `main`: it starts
+   **pending** and only flips **green** once your branch has been merged into
+   `staging` and staging's post-deploy smoke passed (`staging-gate.yml` +
+   `post-deploy-smoke.yml`). A PR that skipped staging can't merge. For the
+   no-runtime-surface exemptions above, add the **`skip-staging`** label to the
+   PR — that turns the gate green immediately.
+
 7. **Merge the PR — that IS the production deploy.** Only after staging looks
    good and CI is green. All three Vercel projects build and auto-promote.
 
@@ -92,6 +100,11 @@ the family seeing it.
 
 **Rollback:** `vercel rollback` in the affected app's directory instantly
 restores the previous deployment; `git revert` the commit afterward (via a PR).
+A **critical** production post-deploy smoke failure (user-facing site broken,
+smoke exit code 1) now does this automatically — `post-deploy-smoke.yml` rolls
+the prod alias back, opens a `revert/<sha>` PR, and files a `prod-smoke-failure`
+issue. A _degraded_ failure (exit code 3 — a probe/config check like
+`CRON_SECRET`, site still up) only files the issue; no rollback.
 
 ## Special cases
 

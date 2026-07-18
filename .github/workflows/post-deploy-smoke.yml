@@ -12,10 +12,18 @@
 #   - Preview @ staging tip → staging branch   → staging.millerfamilyreunions.org
 #   - any other preview (PRs) → skipped
 #
-# Alerting: a smoke failure fails this job; GitHub's native failed-workflow email
-# notifies the maintainer. (Because the triggering actor is vercel[bot], GitHub
-# routes that email to whoever last edited this file on the default branch, so
-# enable Settings → Notifications → Actions email to actually receive it.)
+# On failure (both severities are colour-coded by smoke.mjs's exit code):
+#   - PROD, any failure (code 1 or 3): open/update a labeled GitHub issue with
+#     the failing checks, the run URL, the offending commit, and a manual
+#     `git revert` instruction. GitHub's native failed-run email still fires too.
+#   - PROD, *critical* failure (code 1 = user-facing site broken): auto-rollback
+#     the production alias to the previous deployment via the `vercel` CLI, and
+#     best-effort open a `revert/<sha>` PR so the fix is durable on `main`.
+#   - Either env: the job itself goes red at the end, which the staging-gate
+#     workflow (`workflow_run`) consumes to flip the PR's `staging-verified` check.
+# STAGING failures are not alerted here — they surface on the PR via staging-gate.
+#
+# Rollback needs three repo secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID.
 #
 # NOTE: `deployment_status` is a non-PR event, so GitHub always runs the copy of
 # this workflow on the DEFAULT branch — it only takes effect once merged to main.
@@ -29,8 +37,11 @@ concurrency:
   group: smoke-${{ github.event.deployment.environment }}-${{ github.event.deployment.sha }}
   cancel-in-progress: true
 
+# issues: alert issue · contents/pull-requests: auto-revert branch + PR.
 permissions:
-  contents: read
+  contents: write
+  issues: write
+  pull-requests: write
 
 jobs:
   smoke:
@@ -39,6 +50,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -63,8 +76,12 @@ jobs:
 
       # smoke.mjs has no npm deps (global fetch only) — no install needed.
       # Each layer self-skips when its secret is absent, so partial secret setup
-      # degrades to a shallower smoke rather than failing.
+      # degrades to a shallower smoke rather than failing. We DON'T fail the job
+      # here — the exit code is captured so later steps can alert / rollback, and
+      # a dedicated final step turns the job red.
+      #   exit 0 = all pass · 1 = critical (site broken) · 3 = probe/config only
       - name: Run smoke
+        id: smoke
         if: steps.target.outputs.which != 'skip'
         env:
           CRON_SECRET: ${{ steps.target.outputs.which == 'prod' && secrets.CRON_SECRET_PROD || secrets.CRON_SECRET_STAGING }}
@@ -73,8 +90,139 @@ jobs:
           echo "### Smoke: ${{ steps.target.outputs.which }} → ${{ steps.target.outputs.base }}" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           set +e
-          node scripts/smoke.mjs "${{ steps.target.outputs.base }}" | tee -a "$GITHUB_STEP_SUMMARY"
-          status=${PIPESTATUS[0]}
+          node scripts/smoke.mjs "${{ steps.target.outputs.base }}" 2>&1 | tee smoke.out | tee -a "$GITHUB_STEP_SUMMARY"
+          code=${PIPESTATUS[0]}
           set -e
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          exit "$status"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      # ── Alert: open/update a labeled issue on ANY prod smoke failure ──────────
+      - name: Alert (open/update issue)
+        if: steps.target.outputs.which == 'prod' && steps.smoke.outputs.code != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const sha = context.payload.deployment.sha
+            const short = sha.slice(0, 7)
+            const code = '${{ steps.smoke.outputs.code }}'
+            const critical = code === '1'
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            const commitUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/commit/${sha}`
+            const fs = require('fs')
+            let smokeOut = ''
+            try { smokeOut = fs.readFileSync('smoke.out', 'utf8') } catch {}
+            const label = 'prod-smoke-failure'
+
+            // Ensure the label exists (ignore "already exists").
+            try {
+              await github.rest.issues.createLabel({
+                ...context.repo, name: label, color: 'b60205',
+                description: 'Automated: production post-deploy smoke failed',
+              })
+            } catch (e) { /* already exists */ }
+
+            const severity = critical
+              ? '🚨 **CRITICAL** — the user-facing site is broken; auto-rollback was attempted (see the workflow run).'
+              : '⚠️ **Degraded** — only a probe/config check failed (e.g. `CRON_SECRET`); the site itself is up. No rollback.'
+            const body = [
+              `Production post-deploy smoke failed @ \`${short}\` (exit code ${code}).`,
+              '',
+              severity,
+              '',
+              '**Failing checks:**',
+              '```',
+              smokeOut.trim() || '(smoke output unavailable)',
+              '```',
+              '',
+              `- Workflow run: ${runUrl}`,
+              `- Offending commit: [\`${short}\`](${commitUrl})`,
+              '',
+              '**To make the fix durable** (rollback only re-points the Vercel alias — the',
+              `bad commit stays on \`main\`), revert it:`,
+              '```sh',
+              `git revert ${sha}   # then open a PR to main`,
+              '```',
+            ].join('\n')
+
+            // Reuse an open incident issue if one exists; else open a new one.
+            const { data: open } = await github.rest.issues.listForRepo({
+              ...context.repo, state: 'open', labels: label, per_page: 1,
+            })
+            if (open.length) {
+              await github.rest.issues.createComment({
+                ...context.repo, issue_number: open[0].number,
+                body: `Recurred @ \`${short}\`:\n\n${body}`,
+              })
+            } else {
+              await github.rest.issues.create({
+                ...context.repo,
+                title: `🚨 Production smoke failed @ ${short}`,
+                labels: [label],
+                body,
+              })
+            }
+
+      # ── Rollback: re-point the prod alias on a CRITICAL failure only ─────────
+      # `vercel rollback` re-points production to the previous deployment. The
+      # exact flags vary by CLI version, so we print --help for the record and
+      # fall back to `vercel promote` if `rollback` isn't available. Best-effort:
+      # a failure here doesn't abort the alert/revert flow.
+      - name: Rollback production (critical failure)
+        if: steps.target.outputs.which == 'prod' && steps.smoke.outputs.code == '1'
+        continue-on-error: true
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -x
+          npm i -g vercel@latest
+          echo "### Rollback: vercel CLI help (for the record)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          vercel rollback --help 2>&1 | tee -a "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+          # Previous production deployment = 2nd URL in the prod list (1st = the
+          # broken current one). Fall back to a bare rollback (previous prod) if
+          # we can't parse it.
+          PREV="$(vercel ls --prod --token "$VERCEL_TOKEN" 2>/dev/null \
+            | grep -oE 'https://[A-Za-z0-9.-]+\.vercel\.app' | sed -n '2p')"
+          echo "Previous prod deployment: ${PREV:-<none parsed>}"
+
+          if [ -n "$PREV" ]; then
+            vercel rollback "$PREV" --yes --token "$VERCEL_TOKEN" \
+              || vercel promote "$PREV" --yes --token "$VERCEL_TOKEN"
+          else
+            vercel rollback --yes --token "$VERCEL_TOKEN"
+          fi
+          echo "Rollback command issued." >> "$GITHUB_STEP_SUMMARY"
+
+      # ── Auto-revert PR: make the rollback durable on `main` (best-effort) ────
+      - name: Open auto-revert PR (critical failure)
+        if: steps.target.outputs.which == 'prod' && steps.smoke.outputs.code == '1'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          SHA="${{ github.event.deployment.sha }}"
+          SHORT="${SHA:0:7}"
+          BRANCH="revert/${SHORT}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout -B "$BRANCH" origin/main
+          # Squash-merged PRs land as a single non-merge commit → plain revert.
+          git revert --no-edit "$SHA"
+          git push -u origin "$BRANCH" --force-with-lease
+          gh pr create --base main --head "$BRANCH" \
+            --title "Revert \"$SHORT\" — production smoke failed" \
+            --body "Automated revert of \`$SHA\` after its production post-deploy smoke failed (critical). The alias was rolled back live; this PR makes the revert durable on \`main\`. Review, verify on staging, and merge (or close if the deploy was fixed forward)."
+
+      # ── Fail the job so the check goes red (feeds staging-gate's workflow_run) ─
+      - name: Fail the job on any smoke failure
+        if: steps.target.outputs.which != 'skip' && steps.smoke.outputs.code != '0'
+        run: |
+          echo "Smoke failed (exit code ${{ steps.smoke.outputs.code }}) — failing the job."
+          exit 1
