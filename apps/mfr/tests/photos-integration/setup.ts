@@ -10,7 +10,7 @@ export default async function setup() {
     throw new Error('TEST_DIRECT_URL is not set')
   }
   const sql = postgres(connectionString, { prepare: false })
-  await sql`TRUNCATE TABLE portal_photos, portal_blob_backups, portal_photo_slides, portal_photo_albums, portal_user_roles RESTART IDENTITY CASCADE`
+  await sql`TRUNCATE TABLE portal_photos, portal_blob_backups, portal_user_roles RESTART IDENTITY CASCADE`
   await sql`TRUNCATE TABLE sessions, accounts, verification_tokens, users RESTART IDENTITY CASCADE`
   await sql.end()
 }

@@ -9,7 +9,7 @@ import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { eq } from 'drizzle-orm'
 import { portalDb } from '@/lib/portalDb'
-import { portalSettings, portalPhotoAlbums, portalEvents } from '@/lib/db/schema'
+import { portalSettings, portalEvents } from '@/lib/db/schema'
 import { requirePortalContentAdmin } from '@/lib/authz'
 
 export type ActionResult = { ok: true } | { error: string }
@@ -51,7 +51,6 @@ export async function saveSchedule(input: z.input<typeof scheduleSchema>): Promi
 }
 
 const linksSchema = z.object({
-  highlightsUrl: z.string().trim(),
   driveUrl: z.string().trim(),
   venmoUrl: z.string().trim(),
   chatUrl: z.string().trim(),
@@ -66,42 +65,6 @@ export async function saveLinks(input: z.input<typeof linksSchema>): Promise<Act
     .insert(portalSettings)
     .values({ id: 'singleton', ...set })
     .onConflictDoUpdate({ target: portalSettings.id, set })
-  revalidatePublic()
-  return { ok: true }
-}
-
-// ── Photo album links ────────────────────────────────────────────────────────
-
-export async function addAlbumYear(): Promise<ActionResult> {
-  await requirePortalContentAdmin()
-  const rows = await portalDb.select({ year: portalPhotoAlbums.year }).from(portalPhotoAlbums)
-  // New rows default to the year after the latest existing album (the common
-  // "add next reunion" case); the current year only seeds an empty table.
-  const nextYear = rows.length ? Math.max(...rows.map((r) => r.year)) + 1 : new Date().getFullYear()
-  await portalDb.insert(portalPhotoAlbums).values({ year: nextYear, url: '' }).onConflictDoNothing()
-  revalidatePublic()
-  return { ok: true }
-}
-
-const albumUrlSchema = z.object({ id: z.string().uuid(), url: z.string().trim() })
-
-export async function setAlbumUrl(input: z.input<typeof albumUrlSchema>): Promise<ActionResult> {
-  await requirePortalContentAdmin()
-  const parsed = albumUrlSchema.safeParse(input)
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Invalid input' }
-  await portalDb
-    .update(portalPhotoAlbums)
-    .set({ url: parsed.data.url, updatedAt: new Date() })
-    .where(eq(portalPhotoAlbums.id, parsed.data.id))
-  revalidatePublic()
-  return { ok: true }
-}
-
-export async function removeAlbum(input: { id: string }): Promise<ActionResult> {
-  await requirePortalContentAdmin()
-  const id = z.string().uuid().safeParse(input.id)
-  if (!id.success) return { error: 'Invalid album' }
-  await portalDb.delete(portalPhotoAlbums).where(eq(portalPhotoAlbums.id, id.data))
   revalidatePublic()
   return { ok: true }
 }

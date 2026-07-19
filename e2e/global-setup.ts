@@ -40,34 +40,18 @@ export default async function globalSetup() {
     // Portal: wipe roles, then seed each persona's roles — the single source of
     // authorization read by the session callback.
     await sql`TRUNCATE TABLE portal_user_roles RESTART IDENTITY CASCADE`
-    // The Photos page test needs at least one album row. CI's ephemeral
-    // branches clone production (which has albums), but the local `test`
-    // branch loses its rows whenever the integration suite truncates the
-    // table — seed one idempotently so the suite is deterministic.
-    await sql`
-      INSERT INTO portal_photo_albums (year, url) VALUES (2026, '')
-      ON CONFLICT (year) DO NOTHING
-    `
-    // Photo-slide rotation: seed one slide for the home hero (highlights) and
-    // one for the 2026 album card, pointing at a distinct /public asset so the
-    // e2e can tell a rotating slide apart from the static fallback without any
-    // Blob dependency. Reset first so re-runs stay deterministic.
-    const slideSrc = '/google-signup-existing-email.jpg'
-    await sql`TRUNCATE TABLE portal_photo_slides RESTART IDENTITY`
-    await sql`
-      INSERT INTO portal_photo_slides (collection, blob_url, blob_pathname, sort_order, uploaded_by)
-      VALUES
-        ('highlights', ${slideSrc}, 'seed/highlights', 0, 'e2e-seed'),
-        ('2026', ${slideSrc}, 'seed/2026', 0, 'e2e-seed')
-    `
-    // Member gallery: one photo OWNED BY the member persona (points at the same
-    // /public asset — no Blob), so the gallery e2e can verify it renders, shows
-    // in the by-person view, and exposes the owner's Feature/Delete controls.
+    // Member gallery: one photo OWNED BY the member persona, pointing at a
+    // distinct /public asset (no Blob) so the e2e can tell a real photo apart
+    // from the static fallback. It gives the /photos year grid its single 2026
+    // album cover, and the gallery e2e verifies it renders, shows in the
+    // by-person view, and exposes the owner's Feature/Delete controls. Reset
+    // first so re-runs stay deterministic.
+    const seedAsset = '/google-signup-existing-email.jpg'
     await sql`TRUNCATE TABLE portal_photos RESTART IDENTITY`
     await sql`
       INSERT INTO portal_photos
         (year, blob_url, blob_pathname, filename, byte_size, width, height, uploaded_by)
-      VALUES (2026, ${slideSrc}, 'seed/gallery-2026', 'seed-gallery.jpg', 123456, 1600, 1200, ${personas.member.id})
+      VALUES (2026, ${seedAsset}, 'seed/gallery-2026', 'seed-gallery.jpg', 123456, 1600, 1200, ${personas.member.id})
     `
     // Pin the reunion schedule: the Meals page derives its day grid from
     // these dates, and integration suites elsewhere rewrite the settings

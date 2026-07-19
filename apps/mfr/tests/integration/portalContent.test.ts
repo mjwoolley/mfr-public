@@ -1,7 +1,7 @@
-// Integration: the content-admin actions (schedule/links/albums/events),
-// meal RSVP toggling, and the getMealsView assembly against the real portal
-// + identity test branches. `auth` is mocked to impersonate each role;
-// next/cache and redirect are stubbed since there's no request context.
+// Integration: the content-admin actions (schedule/links/events), meal RSVP
+// toggling, and the getMealsView assembly against the real portal + identity
+// test branches. `auth` is mocked to impersonate each role; next/cache and
+// redirect are stubbed since there's no request context.
 
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { randomUUID } from 'node:crypto'
@@ -19,17 +19,8 @@ vi.mock('next/navigation', () => ({
 import { auth } from '@/lib/auth'
 import { identityDb } from '@/lib/identityDb'
 import { portalDb } from '@/lib/portalDb'
-import { portalSettings, portalPhotoAlbums, portalEvents, portalMealRsvps } from '@/lib/db/schema'
-import {
-  saveSchedule,
-  saveLinks,
-  addAlbumYear,
-  setAlbumUrl,
-  removeAlbum,
-  addEvent,
-  updateEvent,
-  removeEvent,
-} from '@/app/admin/actions'
+import { portalSettings, portalEvents, portalMealRsvps } from '@/lib/db/schema'
+import { saveSchedule, saveLinks, addEvent, updateEvent, removeEvent } from '@/app/admin/actions'
 import { toggleMeal } from '@/app/meals/actions'
 import { getMealsView } from '@/lib/portal'
 
@@ -80,7 +71,6 @@ describe('reunion schedule + links', () => {
   it('a content admin saves the links', async () => {
     vi.mocked(auth).mockResolvedValue(managerSession() as never)
     await saveLinks({
-      highlightsUrl: 'https://photos.example/h',
       driveUrl: 'https://drive.example/d',
       venmoUrl: 'https://venmo.example/v',
       chatUrl: 'https://chat.example/c',
@@ -95,30 +85,6 @@ describe('reunion schedule + links', () => {
   it('rejects a non-admin member', async () => {
     vi.mocked(auth).mockResolvedValue(memberSession(randomUUID()) as never)
     await expect(saveSchedule({ reunionYear: 2027 })).rejects.toThrow(/REDIRECT/)
-  })
-})
-
-describe('photo albums', () => {
-  it('adds, edits, and removes an album year', async () => {
-    vi.mocked(auth).mockResolvedValue(managerSession() as never)
-    await addAlbumYear()
-    let rows = await portalDb.select().from(portalPhotoAlbums)
-    expect(rows.length).toBeGreaterThanOrEqual(1)
-    const target = rows[0]
-
-    await setAlbumUrl({ id: target.id, url: 'https://photos.example/2099' })
-    const [afterEdit] = await portalDb
-      .select()
-      .from(portalPhotoAlbums)
-      .where(eq(portalPhotoAlbums.id, target.id))
-    expect(afterEdit.url).toBe('https://photos.example/2099')
-
-    await removeAlbum({ id: target.id })
-    rows = await portalDb
-      .select()
-      .from(portalPhotoAlbums)
-      .where(eq(portalPhotoAlbums.id, target.id))
-    expect(rows).toHaveLength(0)
   })
 })
 

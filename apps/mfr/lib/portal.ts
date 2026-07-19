@@ -3,7 +3,7 @@
 // Meals page view assembly. Writes live in app/admin/actions.ts and
 // app/meals/actions.ts.
 
-import { asc, desc, eq } from 'drizzle-orm'
+import { asc, eq } from 'drizzle-orm'
 import { users } from '@mfr/auth'
 import { getRaisedThisYear } from '@/lib/accounting/ledger'
 import { getContributionGoal } from '@/lib/accounting/goals'
@@ -12,7 +12,6 @@ import { identityDb } from '@/lib/identityDb'
 import { portalDb } from '@/lib/portalDb'
 import {
   portalSettings,
-  portalPhotoAlbums,
   portalEvents,
   portalMealRsvps,
   type PortalSettingsRow,
@@ -55,12 +54,6 @@ export async function getFundraising(): Promise<Fundraising | null> {
   } catch {
     return null
   }
-}
-
-// ── Photo albums ─────────────────────────────────────────────────────────────
-
-export async function getPhotoAlbums() {
-  return portalDb.select().from(portalPhotoAlbums).orderBy(desc(portalPhotoAlbums.year))
 }
 
 // ── Events ───────────────────────────────────────────────────────────────────

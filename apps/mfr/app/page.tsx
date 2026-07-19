@@ -5,11 +5,11 @@
 import Link from 'next/link'
 import { auth } from '@/lib/auth'
 import { getPortalSettings, getFundraising, getEvents } from '@/lib/portal'
-import { getHighlightSlides } from '@/lib/photos/slides'
 import { getFeaturedPhotos } from '@/lib/photos/gallery'
 import { HomeSlideshow } from './HomeSlideshow'
 
-// Fallback hero image (public/) when no highlight slides have been uploaded.
+// Fallback hero image (public/) shown to signed-out visitors and whenever no
+// photos have been featured yet.
 const FALLBACK_SLIDES = ['/lake-house.jpg']
 
 const usd0 = (n: number) =>
@@ -61,18 +61,14 @@ export default async function Home() {
   const session = await auth()
   const signedIn = !!session?.user
 
-  const [settings, highlights] = await Promise.all([getPortalSettings(), getHighlightSlides()])
-  // Rotate through the admin-curated highlights; fall back to the static image
-  // when none are uploaded (the hero is public, same as the fallback today).
-  const heroSlides = highlights.length ? highlights.map((s) => s.blobUrl) : FALLBACK_SLIDES
+  const settings = await getPortalSettings()
   const [fundraising, events, featured] = signedIn
     ? await Promise.all([getFundraising(), getEvents(), getFeaturedPhotos()])
     : [null, [] as Awaited<ReturnType<typeof getEvents>>, []]
-
-  // The hero shows the family's own featured photos when there are any (member
-  // content — only fetched/shown for signed-in visitors); otherwise it falls
-  // back to the public highlight slides / static image.
-  const heroImages = signedIn && featured.length ? featured.map((p) => p.blobUrl) : heroSlides
+  // Members see the hero rotate through the family's own featured photos;
+  // signed-out visitors (the hero is public) get the generic static fallback, so
+  // member photos are never shown publicly.
+  const heroImages = signedIn && featured.length ? featured.map((p) => p.blobUrl) : FALLBACK_SLIDES
 
   const raised = fundraising?.raised ?? 0
   const goal = fundraising?.goal ?? null

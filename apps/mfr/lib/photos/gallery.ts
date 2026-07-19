@@ -23,10 +23,18 @@ export interface GalleryPhoto {
   createdAt: Date
 }
 
-export interface Contributor {
-  id: string
-  name: string
+/** A run of photos under an optional sub-heading (a year, in the by-uploader view). */
+export interface PhotoBlock {
+  label?: string
   photos: GalleryPhoto[]
+}
+
+/** A titled group in the Albums grid — a year (By Year) or an uploader (By Uploader). */
+export interface PhotoSection {
+  id: string
+  title?: string
+  subtitle?: string
+  blocks: PhotoBlock[]
 }
 
 function toView(r: typeof portalPhotos.$inferSelect): GalleryPhoto {
@@ -45,25 +53,6 @@ function toView(r: typeof portalPhotos.$inferSelect): GalleryPhoto {
   }
 }
 
-/** One reunion year's photos, newest first. */
-export async function getPhotosByYear(year: number): Promise<GalleryPhoto[]> {
-  const rows = await portalDb
-    .select()
-    .from(portalPhotos)
-    .where(eq(portalPhotos.year, year))
-    .orderBy(desc(portalPhotos.createdAt))
-  return rows.map(toView)
-}
-
-/** Distinct years that actually have photos, newest first (browse nav). */
-export async function getGalleryYears(): Promise<number[]> {
-  const rows = await portalDb
-    .selectDistinct({ year: portalPhotos.year })
-    .from(portalPhotos)
-    .orderBy(desc(portalPhotos.year))
-  return rows.map((r) => r.year)
-}
-
 /** Featured photos for the home-page album, most-recently-featured first. */
 export async function getFeaturedPhotos(): Promise<GalleryPhoto[]> {
   const rows = await portalDb
@@ -71,16 +60,6 @@ export async function getFeaturedPhotos(): Promise<GalleryPhoto[]> {
     .from(portalPhotos)
     .where(eq(portalPhotos.featured, true))
     .orderBy(desc(portalPhotos.featuredAt))
-  return rows.map(toView)
-}
-
-/** One member's uploads, newest first. */
-export async function getUserPhotos(userId: string): Promise<GalleryPhoto[]> {
-  const rows = await portalDb
-    .select()
-    .from(portalPhotos)
-    .where(eq(portalPhotos.uploadedBy, userId))
-    .orderBy(desc(portalPhotos.createdAt))
   return rows.map(toView)
 }
 
@@ -93,39 +72,65 @@ export async function getFeaturedCountForUser(userId: string): Promise<number> {
   return rows.length
 }
 
-/** Per-year cover + count from member photos, for the /photos year cards. */
-export async function getYearSummaries(): Promise<
-  Map<number, { coverUrl: string; count: number }>
-> {
-  const rows = await portalDb.select().from(portalPhotos).orderBy(desc(portalPhotos.createdAt))
-  const byYear = new Map<number, { coverUrl: string; count: number }>()
-  for (const r of rows) {
-    const cur = byYear.get(r.year)
-    if (cur) cur.count += 1
-    else byYear.set(r.year, { coverUrl: r.blobUrl, count: 1 })
+/** Group a photo list into year blocks (year desc; photos keep their input order). */
+function toYearBlocks(photos: GalleryPhoto[]): PhotoBlock[] {
+  const byYear = new Map<number, GalleryPhoto[]>()
+  for (const p of photos) {
+    const arr = byYear.get(p.year)
+    if (arr) arr.push(p)
+    else byYear.set(p.year, [p])
   }
-  return byYear
+  return [...byYear.keys()]
+    .sort((a, b) => b - a)
+    .map((year) => ({ label: String(year), photos: byYear.get(year)! }))
 }
 
-/** All photos grouped by contributor (name from identity), for the by-user view. */
-export async function getContributors(): Promise<Contributor[]> {
+/**
+ * The two Albums groupings from one photo read: **By Year** (a section per year,
+ * newest first) and **By Uploader** (a section per contributor — alphabetical,
+ * names from identity — with each person's photos broken up by year). Both share
+ * the same underlying photos (createdAt-desc within each block).
+ */
+export async function getAlbumSections(
+  currentUserId: string,
+): Promise<{ byYear: PhotoSection[]; byUploader: PhotoSection[] }> {
   const rows = await portalDb.select().from(portalPhotos).orderBy(desc(portalPhotos.createdAt))
-  if (rows.length === 0) return []
+  const photos = rows.map(toView)
 
+  // By Year — one section per year (the year is the section title, no sub-breaks).
+  const byYear: PhotoSection[] = toYearBlocks(photos).map((b) => ({
+    id: `y${b.label}`,
+    title: b.label,
+    blocks: [{ photos: b.photos }],
+  }))
+
+  if (photos.length === 0) return { byYear, byUploader: [] }
+
+  // By Uploader — resolve display names from identity, group per uploader, then
+  // break each uploader's photos into year sub-blocks.
   const names = new Map<string, string>()
   const idRows = await identityDb
     .select({ id: users.id, name: users.name, email: users.email })
     .from(users)
   for (const u of idRows) names.set(u.id, (u.name ?? u.email.split('@')[0]).trim())
 
-  const byUser = new Map<string, Contributor>()
-  for (const r of rows) {
-    let group = byUser.get(r.uploadedBy)
-    if (!group) {
-      group = { id: r.uploadedBy, name: names.get(r.uploadedBy) ?? 'Unknown', photos: [] }
-      byUser.set(r.uploadedBy, group)
-    }
-    group.photos.push(toView(r))
+  const byUser = new Map<string, GalleryPhoto[]>()
+  for (const p of photos) {
+    const arr = byUser.get(p.uploadedBy)
+    if (arr) arr.push(p)
+    else byUser.set(p.uploadedBy, [p])
   }
-  return [...byUser.values()].sort((a, b) => a.name.localeCompare(b.name))
+
+  const uploaders = [...byUser.entries()]
+    .map(([userId, ups]) => ({ userId, name: names.get(userId) ?? 'Unknown', photos: ups }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+
+  const byUploader: PhotoSection[] = uploaders.map(({ userId, name, photos: ups }) => ({
+    id: userId,
+    title: userId === currentUserId ? `${name} (you)` : name,
+    subtitle: `${ups.length} photo${ups.length === 1 ? '' : 's'}`,
+    blocks: toYearBlocks(ups),
+  }))
+
+  return { byYear, byUploader }
 }

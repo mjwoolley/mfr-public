@@ -158,10 +158,12 @@ API in March 2025). Coexists with the admin slides above (both are additive).
 - **Data:** `portal_photos` (`lib/db/schema/portal.ts`) — one row per photo:
   `year`, `blob_url`/`blob_pathname`, `filename`, `byte_size`, `width`, `height`,
   `caption`, `featured`/`featured_at`, `uploaded_by`, `created_at`.
-- **Views:** `/photos/[year]` (annual album, default), `/photos/people`
-  (browse-by-contributor with per-photo year/filename/size/resolution), and a
-  "Featured by the family" album on the home page. `/photos` year cards now open
-  the in-site gallery and prefer a member photo as the cover.
+- **Views:** the Photos section has a secondary nav — **Albums** (`/photos`),
+  **Featured** (`/photos/featured`), **History** (`/photos/history`). Albums is
+  one browse surface with a client **By Year / By Uploader** toggle (no reload):
+  By Year groups the photo list under year headings; By Uploader groups each
+  contributor's photos with a year sub-break + per-photo filename/size/resolution.
+  Featured photos also rotate through the home-page hero.
 - **Upload pipeline:** the browser streams the original **straight to Vercel
   Blob** via `@vercel/blob/client` (`/api/photos/upload-token` authorizes +
   constrains type/size) — a 25 MB photo can't pass through a Server Action body.

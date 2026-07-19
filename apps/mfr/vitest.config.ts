@@ -129,8 +129,8 @@ export default defineConfig({
         },
       },
       {
-        // Photo-slides integration suite: read helpers + admin server actions
-        // against the unified `test` branch (portal_photo_slides / albums /
+        // Member photo-gallery integration suite: gallery read helpers + upload
+        // actions against the unified `test` branch (portal_photos / backups /
         // roles + identity users). Blob uploads are mocked in the tests.
         plugins: [react()],
         resolve: { alias },
@@ -139,8 +139,8 @@ export default defineConfig({
           environment: 'node',
           include: ['tests/photos-integration/**/*.test.ts'],
           globalSetup: ['tests/photos-integration/setup.ts'],
-          // Files share the portal_photo_slides table — serialize so the
-          // global truncate and per-test fixtures don't race across files.
+          // Files share the portal_photos table — serialize so the global
+          // truncate and per-test fixtures don't race across files.
           fileParallelism: false,
           env: {
             DATABASE_URL: process.env.TEST_DATABASE_URL,

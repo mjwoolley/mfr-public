@@ -54,7 +54,7 @@ export async function Nav() {
       { href: '/accounting/expenses', label: 'Expenses' },
     )
     if (isAccountingAdmin) {
-      tabs.push({ href: '/accounting/admin', label: 'Admin' })
+      tabs.push({ href: '/accounting/admin', label: 'Admin', lock: true })
     }
   }
 

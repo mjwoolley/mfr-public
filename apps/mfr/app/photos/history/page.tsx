@@ -4,13 +4,12 @@
 // (newest 100); timestamps localize on the client via <LocalTime>.
 
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { requireApproved } from '@/lib/authz'
 import { getPhotoHistory } from '@/lib/photos/history'
 import { formatPhotoEvent } from '@/lib/photos/formatHistory'
 import { LocalTime } from './LocalTime'
 
-export const metadata: Metadata = { title: 'Photo history' }
+export const metadata: Metadata = { title: 'History' }
 
 export default async function PhotoHistoryPage() {
   await requireApproved()
@@ -22,16 +21,7 @@ export default async function PhotoHistoryPage() {
       style={{ animation: 'fadeup .4s ease both' }}
     >
       <div className="mb-4">
-        <Link
-          href="/photos"
-          className="text-xs font-bold uppercase"
-          style={{ letterSpacing: '.22em', color: 'var(--color-accent-700)' }}
-        >
-          &larr; All years
-        </Link>
-        <h1 className="mt-2.5" style={{ fontSize: 'clamp(30px,4vw,42px)', lineHeight: 1.05 }}>
-          Photo history
-        </h1>
+        <h1 style={{ fontSize: 'clamp(30px,4vw,42px)', lineHeight: 1.05 }}>History</h1>
         <p className="mt-2" style={{ fontSize: 14.5, color: 'var(--color-neutral-600)' }}>
           Who added, removed, captioned, or featured photos.
         </p>

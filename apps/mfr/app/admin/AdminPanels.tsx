@@ -8,9 +8,6 @@ import { useState, useTransition, type CSSProperties } from 'react'
 import {
   saveSchedule,
   saveLinks,
-  addAlbumYear,
-  setAlbumUrl,
-  removeAlbum,
   addEvent,
   updateEvent,
   removeEvent,
@@ -178,18 +175,15 @@ export function ScheduleForm({
 // ── Links & sharing ──────────────────────────────────────────────────────────
 
 export function LinksForm({
-  highlightsUrl,
   driveUrl,
   venmoUrl,
   chatUrl,
 }: {
-  highlightsUrl: string
   driveUrl: string
   venmoUrl: string
   chatUrl: string
 }) {
   const { pending, error, run } = useAction()
-  const [h, setH] = useState(highlightsUrl)
   const [d, setD] = useState(driveUrl)
   const [v, setV] = useState(venmoUrl)
   const [c, setC] = useState(chatUrl)
@@ -213,11 +207,10 @@ export function LinksForm({
         className="mt-2"
         style={{ fontSize: 14.5, lineHeight: 1.55, color: 'var(--color-neutral-700)' }}
       >
-        The shared links family members use — the home slideshow&rsquo;s highlights album, the Drive
-        documents folder, the family Venmo, and the Family Chat space.
+        The shared links family members use — the Drive documents folder, the family Venmo, and the
+        Family Chat space.
       </p>
       <div className="mt-4.5 flex flex-col gap-3.5">
-        {field('Home highlights album', h, setH, 'https://photos.app.goo.gl/…')}
         {field('Drive documents folder', d, setD, 'https://drive.google.com/drive/folders/…')}
         {field('Family Venmo', v, setV, 'https://venmo.com/u/…')}
         {field('Family Chat space', c, setC, 'https://chat.google.com/…')}
@@ -227,81 +220,12 @@ export function LinksForm({
           className="btn btn-primary"
           disabled={pending}
           style={{ fontFamily: 'var(--font-body)', fontWeight: 700 }}
-          onClick={() =>
-            run(() => saveLinks({ highlightsUrl: h, driveUrl: d, venmoUrl: v, chatUrl: c }))
-          }
+          onClick={() => run(() => saveLinks({ driveUrl: d, venmoUrl: v, chatUrl: c }))}
         >
           Save links
         </button>
         {error && <span style={{ fontSize: 13, color: 'var(--color-accent-700)' }}>{error}</span>}
       </div>
-    </div>
-  )
-}
-
-// ── Photo albums ─────────────────────────────────────────────────────────────
-
-export function AlbumsEditor({ albums }: { albums: { id: string; year: number; url: string }[] }) {
-  const { pending, error, run } = useAction()
-  return (
-    <div className="card elev-sm bg-white" style={{ padding: '24px 24px 22px' }}>
-      <h2 className="m-0 text-[22px]">Photo albums</h2>
-      <p
-        className="mt-2"
-        style={{ fontSize: 14.5, lineHeight: 1.55, color: 'var(--color-neutral-700)' }}
-      >
-        Each year has its own Google&nbsp;Photos album. Paste the share link for each year; leave it
-        blank until you&rsquo;ve created it.
-      </p>
-      <div className="mt-4.5 flex flex-col gap-3">
-        {albums.map((a) => (
-          <AlbumRow key={a.id} album={a} run={run} pending={pending} />
-        ))}
-        <button
-          className="btn btn-secondary mt-1 self-start"
-          disabled={pending}
-          style={{ fontFamily: 'var(--font-body)', fontWeight: 700 }}
-          onClick={() => run(() => addAlbumYear())}
-        >
-          <PlusIcon />
-          Add a year
-        </button>
-        {error && <span style={{ fontSize: 13, color: 'var(--color-accent-700)' }}>{error}</span>}
-      </div>
-    </div>
-  )
-}
-
-function AlbumRow({
-  album,
-  run,
-  pending,
-}: {
-  album: { id: string; year: number; url: string }
-  run: (fn: () => Promise<ActionResult>) => void
-  pending: boolean
-}) {
-  const [url, setUrl] = useState(album.url)
-  return (
-    <div className="flex items-center gap-2.5">
-      <span style={{ fontFamily: 'var(--font-heading)', fontSize: 19, minWidth: 52 }}>
-        {album.year}
-      </span>
-      <input
-        style={{ ...inputStyle, flex: 1 }}
-        value={url}
-        placeholder="Paste Google Photos link…"
-        onChange={(e) => setUrl(e.target.value)}
-        onBlur={() => url !== album.url && run(() => setAlbumUrl({ id: album.id, url }))}
-      />
-      <button
-        className="btn btn-icon shrink-0"
-        title="Remove year"
-        disabled={pending}
-        onClick={() => run(() => removeAlbum({ id: album.id }))}
-      >
-        <TrashIcon />
-      </button>
     </div>
   )
 }

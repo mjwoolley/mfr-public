@@ -6,12 +6,12 @@ import { useEffect, useState } from 'react'
 const INTERVAL_MS = 4800
 
 /**
- * Auto-crossfading slideshow in a washed, slightly-rotated frame. Sourced from
- * the family's featured photos (falling back to the admin highlight slides / the
- * static image). The window is portrait-leaning and each photo is shown whole
- * (`contain`, never cropped) so any uploaded picture fits — the box stays fixed
- * because it crossfades images of differing orientation. With a single image it
- * simply shows it (no dots, no timer).
+ * Auto-crossfading slideshow in a washed white frame. Sourced from the family's
+ * featured photos (falling back to a static image in public/). The window is
+ * portrait-leaning and each photo is shown whole (`contain`, never cropped) so
+ * any uploaded picture fits — the box stays fixed because it crossfades images of
+ * differing orientation. With a single image it simply shows it (no dots, no
+ * timer).
  */
 export function HomeSlideshow({ images }: { images: string[] }) {
   const [slide, setSlide] = useState(0)
@@ -54,7 +54,6 @@ export function HomeSlideshow({ images }: { images: string[] }) {
           padding: '12px 12px 10px',
           borderRadius: 'var(--radius-md)',
           boxShadow: 'var(--shadow-lg)',
-          transform: 'rotate(1.4deg)',
           width: 'min(470px, 92vw)',
         }}
       >

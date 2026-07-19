@@ -2,9 +2,9 @@
 
 // The single primary nav for the whole app: Home, the Reservations and
 // Accounting sections (now internal routes in this one app), the portal pages
-// (Photos/Meals/Documents), the optional external Chat link, and the admin gear
-// tab for content admins. Each section renders its own second-level sub-tab row
-// inside its layout.
+// (Photos/Meals/Documents), the optional external Chat link, and the lock-marked
+// admin tab for content admins. Each section renders its own second-level
+// sub-tab row inside its layout.
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -46,21 +46,23 @@ function ExtArrow() {
   )
 }
 
-function GearIcon() {
+// A small padlock marking the admin tab as admins-only (mirrors the lock glyph
+// on the accounting sub-nav). Replaces the former gear icon.
+function LockIcon() {
   return (
     <svg
-      width="15"
-      height="15"
+      width="13"
+      height="13"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2.2"
+      strokeWidth="2.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
     >
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+      <rect x="4" y="11" width="16" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
     </svg>
   )
 }
@@ -106,7 +108,7 @@ export function PortalNav({ chatUrl, isAdmin }: PortalNavProps) {
         internal(
           '/admin',
           <>
-            <GearIcon />
+            <LockIcon />
             Admin
           </>,
         )}

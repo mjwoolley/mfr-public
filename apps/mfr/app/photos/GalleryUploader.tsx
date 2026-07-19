@@ -7,6 +7,7 @@
 // reports none, so it survives the token content-type check and server routing.
 
 import { useRef, useState, useTransition } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { upload } from '@vercel/blob/client'
 import { finalizeUpload } from './actions'
@@ -32,21 +33,25 @@ export function GalleryUploader({ year }: { year: number }) {
   const router = useRouter()
   const fileInput = useRef<HTMLInputElement>(null)
   const [pending, start] = useTransition()
-  const [status, setStatus] = useState<string | null>(null)
+  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   function onFiles(files: FileList | null) {
     if (!files || files.length === 0) return
     const list = Array.from(files)
     setError(null)
+    // Set synchronously (before the transition) so the modal pops the instant the
+    // picker closes — otherwise the first update is deprioritized inside start().
+    setProgress({ current: 1, total: list.length })
     start(async () => {
       let done = 0
-      for (const file of list) {
+      for (let i = 0; i < list.length; i++) {
+        const file = list[i]
+        setProgress({ current: i + 1, total: list.length })
         if (file.size > MAX_UPLOAD_BYTES) {
           setError(`${file.name} is larger than 25 MB.`)
           continue
         }
-        setStatus(`Uploading ${done + 1} of ${list.length}…`)
         const contentType = contentTypeFor(file)
         try {
           const blob = await upload(`gallery-tmp/${file.name}`, file, {
@@ -67,7 +72,7 @@ export function GalleryUploader({ year }: { year: number }) {
           setError((e as Error).message || 'Upload failed')
         }
       }
-      setStatus(null)
+      setProgress(null)
       if (fileInput.current) fileInput.current.value = ''
       if (done > 0) router.refresh()
     })
@@ -87,8 +92,32 @@ export function GalleryUploader({ year }: { year: number }) {
           onChange={(e) => onFiles(e.target.files)}
         />
       </label>
-      {status && <span style={{ fontSize: 13, color: 'var(--color-neutral-600)' }}>{status}</span>}
       {error && <span style={{ fontSize: 13, color: 'var(--color-accent-700)' }}>{error}</span>}
+
+      {progress &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[120] flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,.6)' }}
+            role="alertdialog"
+            aria-label="Adding photos"
+            aria-live="polite"
+          >
+            <div
+              className="card bg-white flex flex-col items-center gap-3 text-center"
+              style={{ padding: '26px 32px', minWidth: 240, animation: 'popin .2s ease' }}
+            >
+              <div className="spinner" aria-hidden />
+              <div style={{ fontFamily: 'var(--font-heading)', fontSize: 18 }}>Adding photos</div>
+              <div style={{ fontSize: 14, color: 'var(--color-neutral-600)' }}>
+                {progress.total > 1
+                  ? `Uploading ${progress.current} of ${progress.total}…`
+                  : 'Uploading your photo…'}
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }

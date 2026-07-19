@@ -23,12 +23,10 @@ import { FEATURED_PER_USER, type ActionResult } from '@/lib/photos/constants'
 
 const yearSchema = z.coerce.number().int().gte(1900).lte(2200)
 
-function revalidateGallery(year?: number) {
+function revalidateGallery() {
   revalidatePath('/')
   revalidatePath('/photos')
   revalidatePath('/photos/featured')
-  revalidatePath('/photos/people')
-  if (year !== undefined) revalidatePath(`/photos/${year}`)
 }
 
 /** Delete a blob object, swallowing failures (cleanup is best-effort). */
@@ -85,13 +83,21 @@ export async function finalizeUpload(input: {
     return { error: 'That image could not be processed. Try a different photo.' }
   }
 
-  const finalPath = `gallery/${year}/${crypto.randomUUID()}.jpg`
+  // File the photo under the year it was taken (EXIF capture date) when the
+  // original carried a sane one; otherwise fall back to the provided year (the
+  // current reunion year, or the gallery page's year). Either way it stays
+  // editable from the gallery lightbox.
+  const capturedYear = processed.takenAt?.getFullYear()
+  const finalYear =
+    capturedYear && capturedYear >= 1900 && capturedYear <= 2200 ? capturedYear : year
+
+  const finalPath = `gallery/${finalYear}/${crypto.randomUUID()}.jpg`
   const stored = await putGalleryImage(finalPath, processed.bytes, processed.contentType)
 
   const [inserted] = await portalDb
     .insert(portalPhotos)
     .values({
-      year,
+      year: finalYear,
       blobUrl: stored.url,
       blobPathname: stored.pathname,
       filename,
@@ -109,10 +115,10 @@ export async function finalizeUpload(input: {
   await logPhotoActivity({
     eventType: 'photo_uploaded',
     actorUserId: session.user.id,
-    metadata: { photoId: inserted?.id, year, filename },
+    metadata: { photoId: inserted?.id, year: finalYear, filename },
   })
 
-  revalidateGallery(year)
+  revalidateGallery()
   return { ok: true }
 }
 
@@ -152,8 +158,7 @@ export async function updatePhoto(
     })
   }
 
-  revalidateGallery(set.year ?? row.year)
-  if (set.year !== undefined && set.year !== row.year) revalidatePath(`/photos/${row.year}`)
+  revalidateGallery()
   return { ok: true }
 }
 
@@ -181,7 +186,44 @@ export async function deletePhoto(id: string): Promise<ActionResult> {
     metadata: { photoId: id, year: row.year, filename: row.filename },
   })
 
-  revalidateGallery(row.year)
+  revalidateGallery()
+  return { ok: true }
+}
+
+/**
+ * Delete several photos at once (the gallery's multi-select). Each id is deleted
+ * exactly like `deletePhoto` — per-row owner-or-admin authz, blob removal, backup
+ * `deletedAt`, row delete, activity log. Ids the caller can't delete (or that no
+ * longer exist) are skipped; it errors only if none could be deleted.
+ */
+export async function deletePhotos(ids: string[]): Promise<ActionResult> {
+  const session = await requireApproved()
+  const parsed = z.array(z.string().uuid()).min(1).max(500).safeParse(ids)
+  if (!parsed.success) return { error: 'Invalid selection' }
+  const isAdmin = canManagePortalContent(session.user.roles)
+
+  let deleted = 0
+  for (const id of parsed.data) {
+    const [row] = await portalDb.select().from(portalPhotos).where(eq(portalPhotos.id, id))
+    if (!row) continue
+    if (row.uploadedBy !== session.user.id && !isAdmin) continue
+
+    await safeDeleteBlob(row.blobUrl)
+    await portalDb
+      .update(portalBlobBackups)
+      .set({ deletedAt: new Date() })
+      .where(eq(portalBlobBackups.blobPathname, row.blobPathname))
+    await portalDb.delete(portalPhotos).where(eq(portalPhotos.id, id))
+    await logPhotoActivity({
+      eventType: 'photo_deleted',
+      actorUserId: session.user.id,
+      metadata: { photoId: id, year: row.year, filename: row.filename },
+    })
+    deleted += 1
+  }
+
+  if (deleted === 0) return { error: 'Nothing was deleted.' }
+  revalidateGallery()
   return { ok: true }
 }
 
@@ -219,7 +261,7 @@ export async function setFeatured(id: string, featured: boolean): Promise<Action
   })
 
   revalidatePath('/')
+  revalidatePath('/photos')
   revalidatePath('/photos/featured')
-  revalidatePath('/photos/people')
   return { ok: true }
 }

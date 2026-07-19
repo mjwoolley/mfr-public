@@ -18,14 +18,7 @@ vi.mock('next/navigation', () => ({
 
 import { auth } from '@/lib/auth'
 import { setUserStatus, setUserRole } from '@/app/admin/users/actions'
-import {
-  saveSchedule,
-  saveLinks,
-  setAlbumUrl,
-  removeAlbum,
-  updateEvent,
-  removeEvent,
-} from '@/app/admin/actions'
+import { saveSchedule, saveLinks, updateEvent, removeEvent } from '@/app/admin/actions'
 import { toggleMeal } from '@/app/meals/actions'
 import { getPortalSettings, getAttendees } from '@/lib/portal'
 import { listUsersWithRoles } from '@/lib/users'
@@ -117,8 +110,7 @@ describe('zod validation failures return friendly errors', () => {
 
     const result = await saveLinks({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      highlightsUrl: 42 as any,
-      driveUrl: '',
+      driveUrl: 42 as any,
       venmoUrl: '',
       chatUrl: '',
     })
@@ -126,15 +118,10 @@ describe('zod validation failures return friendly errors', () => {
   })
 })
 
-describe('album/event invalid-id branches', () => {
-  it('setAlbumUrl / removeAlbum / updateEvent / removeEvent reject non-uuid ids', async () => {
+describe('event invalid-id branches', () => {
+  it('updateEvent / removeEvent reject non-uuid ids', async () => {
     const owner = await makeIdentityUser()
     vi.mocked(auth).mockResolvedValue(ownerSession(owner.id) as never)
-
-    const badAlbumUrl = await setAlbumUrl({ id: 'nope', url: 'https://x' })
-    expect('error' in badAlbumUrl! && badAlbumUrl.error).toBeTruthy()
-
-    expect(await removeAlbum({ id: 'nope' })).toEqual({ error: 'Invalid album' })
 
     const badEvent = await updateEvent({ id: 'nope' })
     expect('error' in badEvent! && badEvent.error).toBeTruthy()

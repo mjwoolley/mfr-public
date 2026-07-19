@@ -8,15 +8,13 @@ vi.mock('next/image', () => ({
 }))
 
 // Hoisted so the vi.mock factories (which run before the file body) can use them.
-const { authMock, settingsMock, fundraisingMock, eventsMock, highlightsMock, featuredMock } =
-  vi.hoisted(() => ({
-    authMock: vi.fn(),
-    settingsMock: vi.fn(),
-    fundraisingMock: vi.fn(),
-    eventsMock: vi.fn(),
-    highlightsMock: vi.fn(),
-    featuredMock: vi.fn(),
-  }))
+const { authMock, settingsMock, fundraisingMock, eventsMock, featuredMock } = vi.hoisted(() => ({
+  authMock: vi.fn(),
+  settingsMock: vi.fn(),
+  fundraisingMock: vi.fn(),
+  eventsMock: vi.fn(),
+  featuredMock: vi.fn(),
+}))
 
 vi.mock('@/lib/auth', () => ({ auth: authMock }))
 vi.mock('@/lib/portal', () => ({
@@ -24,7 +22,6 @@ vi.mock('@/lib/portal', () => ({
   getFundraising: fundraisingMock,
   getEvents: eventsMock,
 }))
-vi.mock('@/lib/photos/slides', () => ({ getHighlightSlides: highlightsMock }))
 vi.mock('@/lib/photos/gallery', () => ({ getFeaturedPhotos: featuredMock }))
 
 import Home from './page'
@@ -34,7 +31,6 @@ const settings = {
   reunionYear: 2026,
   reunionStart: '2026-07-01',
   reunionEnd: '2026-07-05',
-  highlightsUrl: 'https://photos.example/highlights',
   driveUrl: '',
   venmoUrl: 'https://venmo.com/u/Miller-Family-Lake',
   chatUrl: '',
@@ -54,28 +50,33 @@ beforeEach(() => {
   settingsMock.mockResolvedValue(settings)
   fundraisingMock.mockResolvedValue({ year: 2026, raised: 7400, goal: 12000 })
   eventsMock.mockResolvedValue([])
-  highlightsMock.mockResolvedValue([])
   featuredMock.mockResolvedValue([])
 })
 
 describe('home page — hero slideshow source', () => {
-  it('falls back to the static image when no highlight slides exist', async () => {
+  it('shows the static fallback for signed-out visitors (never member photos)', async () => {
     authMock.mockResolvedValue(null)
-    highlightsMock.mockResolvedValue([])
     const html = await render()
     expect(html).toContain('/lake-house.jpg')
   })
 
-  it('rotates through uploaded highlight slides when present', async () => {
-    authMock.mockResolvedValue(null)
-    highlightsMock.mockResolvedValue([
-      { id: 's1', blobUrl: 'https://blob/hi-1.jpg' },
-      { id: 's2', blobUrl: 'https://blob/hi-2.jpg' },
+  it('rotates through the featured photos in the hero when signed in', async () => {
+    authMock.mockResolvedValue(signedInSession)
+    featuredMock.mockResolvedValue([
+      featuredPhoto({ id: 'p1', blobUrl: 'https://blob/hero-1.jpg' }),
+      featuredPhoto({ id: 'p2', blobUrl: 'https://blob/hero-2.jpg' }),
     ])
     const html = await render()
-    expect(html).toContain('https://blob/hi-1.jpg')
-    expect(html).toContain('https://blob/hi-2.jpg')
+    expect(html).toContain('https://blob/hero-1.jpg')
+    expect(html).toContain('https://blob/hero-2.jpg')
     expect(html).not.toContain('/lake-house.jpg')
+  })
+
+  it('falls back to the static image when signed in but nothing is featured', async () => {
+    authMock.mockResolvedValue(signedInSession)
+    featuredMock.mockResolvedValue([])
+    const html = await render()
+    expect(html).toContain('/lake-house.jpg')
   })
 })
 
@@ -182,33 +183,6 @@ function featuredPhoto(over: Record<string, unknown> = {}) {
 
 describe('home page — featured photos in the hero', () => {
   beforeEach(() => authMock.mockResolvedValue(signedInSession))
-
-  it("shows the family's featured photos in the hero slideshow", async () => {
-    featuredMock.mockResolvedValue([
-      featuredPhoto({ id: 'p1', blobUrl: 'https://blob/feat-1.jpg' }),
-      featuredPhoto({ id: 'p2', blobUrl: 'https://blob/feat-2.jpg' }),
-    ])
-    const html = await render()
-    expect(html).toContain('https://blob/feat-1.jpg')
-    expect(html).toContain('https://blob/feat-2.jpg')
-  })
-
-  it('prefers featured photos over the highlight slides in the hero', async () => {
-    highlightsMock.mockResolvedValue([{ id: 's1', blobUrl: 'https://blob/hi-1.jpg' }])
-    featuredMock.mockResolvedValue([
-      featuredPhoto({ id: 'p1', blobUrl: 'https://blob/feat-1.jpg' }),
-    ])
-    const html = await render()
-    expect(html).toContain('https://blob/feat-1.jpg')
-    expect(html).not.toContain('https://blob/hi-1.jpg')
-  })
-
-  it('falls back to the highlight slides when nothing is featured', async () => {
-    highlightsMock.mockResolvedValue([{ id: 's1', blobUrl: 'https://blob/hi-1.jpg' }])
-    featuredMock.mockResolvedValue([])
-    const html = await render()
-    expect(html).toContain('https://blob/hi-1.jpg')
-  })
 
   it('drops the old family-album caption and the standalone featured card', async () => {
     featuredMock.mockResolvedValue([featuredPhoto({ id: 'p1' })])

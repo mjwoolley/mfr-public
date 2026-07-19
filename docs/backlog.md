@@ -117,9 +117,9 @@ worth the OAuth/API scope cost versus just a link; who administers the space.
 ### 4. Member photo gallery (in-site uploads) — SHIPPED
 
 The in-site gallery is built (see `docs/photos-design.md` → "Member photo
-gallery"): approved members upload per reunion year (`/photos/[year]`), browse by
-contributor (`/photos/people`), and feature up to 5 of their own photos onto the
-home page. Uploads stream client-direct to Vercel Blob, are normalized
+gallery"): approved members add photos on `/photos` (Albums), which groups the
+one photo list By Year or By Uploader, and feature up to 5 of their own photos
+onto the home page. Uploads stream client-direct to Vercel Blob, are normalized
 server-side (HEIC→JPEG, EXIF/GPS stripped, downscaled), and are mirrored to a
 Cloudflare R2 backup with a 30-day delete-recovery window (daily cron).
 

@@ -46,7 +46,7 @@ test('only a non-critical failure → code 3 (degraded)', () => {
 
 test('critical + non-critical both fail → code 1 (critical wins)', () => {
   const { code, criticalFailures, nonCriticalFailures } = classify([
-    bad('signed-in GET /photos/2026 → 200', true),
+    bad('signed-in GET /photos → 200', true),
     bad('GET /api/health → ok', false),
   ])
   assert.equal(code, 1)

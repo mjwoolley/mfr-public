@@ -63,7 +63,7 @@ export async function runChecks(base, env = process.env) {
       redirect: 'manual',
     },
   )
-  for (const p of ['/photos', '/photos/2026', '/photos/people']) {
+  for (const p of ['/photos', '/photos/featured', '/photos/history']) {
     await probe(
       `GET ${p} → 307 (gated)`,
       true,
@@ -95,7 +95,7 @@ export async function runChecks(base, env = process.env) {
   if (env.SMOKE_SESSION_TOKEN) {
     const cookieName = isHttps ? '__Secure-authjs.session-token' : 'authjs.session-token'
     const cookie = `${cookieName}=${env.SMOKE_SESSION_TOKEN}`
-    for (const p of ['/photos/2026', '/photos/people']) {
+    for (const p of ['/photos', '/photos/featured', '/photos/history']) {
       await probe(
         `signed-in GET ${p} → 200`,
         true,

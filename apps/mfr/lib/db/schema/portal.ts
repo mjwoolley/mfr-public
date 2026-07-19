@@ -41,7 +41,6 @@ export const portalSettings = pgTable('portal_settings', {
   reunionYear: integer('reunion_year').notNull().default(2026),
   reunionStart: date('reunion_start', { mode: 'string' }),
   reunionEnd: date('reunion_end', { mode: 'string' }),
-  highlightsUrl: text('highlights_url').notNull().default(''),
   driveUrl: text('drive_url').notNull().default(''),
   venmoUrl: text('venmo_url').notNull().default(''),
   chatUrl: text('chat_url').notNull().default(''),
@@ -49,43 +48,13 @@ export const portalSettings = pgTable('portal_settings', {
 })
 export type PortalSettingsRow = typeof portalSettings.$inferSelect
 
-/** Per-year Google Photos album links, managed in Admin, shown on /photos. */
-export const portalPhotoAlbums = pgTable('portal_photo_albums', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  year: integer('year').notNull().unique(),
-  url: text('url').notNull().default(''),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-})
-export type PortalPhotoAlbumRow = typeof portalPhotoAlbums.$inferSelect
-
-/**
- * Admin-curated preview images (stored in Vercel Blob) that power the rotating
- * slideshows on the home hero and the /photos album cards. Additive to the
- * Google Photos albums above — those remain the canonical archive. `collection`
- * is either a 4-digit reunion year (tying slides to that album by value) or the
- * literal "highlights" (the home hero set).
- */
-export const portalPhotoSlides = pgTable(
-  'portal_photo_slides',
-  {
-    id: uuid('id').defaultRandom().primaryKey(),
-    collection: text('collection').notNull(),
-    blobUrl: text('blob_url').notNull(),
-    blobPathname: text('blob_pathname').notNull(),
-    sortOrder: integer('sort_order').notNull().default(0),
-    uploadedBy: text('uploaded_by').notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [index('portal_photo_slides_collection_order_idx').on(t.collection, t.sortOrder)],
-)
-export type PortalPhotoSlideRow = typeof portalPhotoSlides.$inferSelect
-
 /**
  * Member-uploaded gallery photos (backlog §4). Images are stored in Vercel Blob
  * after server-side normalization (HEIC→JPEG, auto-orient, EXIF/GPS stripped,
- * downscaled). `year` buckets the photo into a reunion-year album; `featured`
+ * downscaled). `year` buckets the photo into a reunion-year album — derived from
+ * the photo's EXIF capture date at upload, editable afterward; `featured`
  * surfaces it in the home-page "Featured" album (capped per user in the action).
- * `uploadedBy` is the identity users.id (text, matching portal_photo_slides).
+ * `uploadedBy` is the identity users.id (text).
  */
 export const portalPhotos = pgTable(
   'portal_photos',

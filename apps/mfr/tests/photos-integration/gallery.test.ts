@@ -32,7 +32,13 @@ vi.mock('../../lib/photos/backupStore', () => ({
 }))
 
 import { auth } from '@/lib/auth'
-import { finalizeUpload, updatePhoto, deletePhoto, setFeatured } from '../../app/photos/actions'
+import {
+  finalizeUpload,
+  updatePhoto,
+  deletePhoto,
+  deletePhotos,
+  setFeatured,
+} from '../../app/photos/actions'
 import { FEATURED_PER_USER } from '../../lib/photos/constants'
 
 // Real UUIDs: these ids are stored both as portal_photos.uploadedBy (text) and
@@ -152,6 +158,41 @@ describe('finalizeUpload', () => {
     expect(backups[0].blobPathname).toBe('gallery/2026/final.jpg')
   })
 
+  it('files the photo under the EXIF capture year, not the provided year', async () => {
+    mockUser(ME)
+    fetchBlobBytes.mockResolvedValue(Buffer.from('original'))
+    // Uploaded from the 2026 gallery, but the photo was taken in 2019.
+    normalizeImage.mockResolvedValue({
+      bytes: Buffer.from('processed-bytes'),
+      width: 1600,
+      height: 1200,
+      contentType: 'image/jpeg',
+      takenAt: new Date('2019-07-04T12:00:00Z'),
+    })
+    putGalleryImage.mockResolvedValue({
+      url: 'https://blob/gallery/2019/final.jpg',
+      pathname: 'gallery/2019/final.jpg',
+    })
+    backupObject.mockResolvedValue(true)
+
+    const res = await finalizeUpload({
+      url: 'https://blob/gallery-tmp/orig.jpg',
+      year: 2026,
+      filename: 'orig.jpg',
+      contentType: 'image/jpeg',
+    })
+    expect(res).toEqual({ ok: true })
+
+    // The stored path uses the capture year, and the row records it too.
+    expect(putGalleryImage).toHaveBeenCalledWith(
+      expect.stringMatching(/^gallery\/2019\//),
+      expect.anything(),
+      'image/jpeg',
+    )
+    const [row] = await testDb.select().from(portalPhotos)
+    expect(row.year).toBe(2019)
+  })
+
   it('rejects an unauthenticated caller', async () => {
     vi.mocked(auth).mockResolvedValue(null as never)
     await expect(
@@ -243,6 +284,41 @@ describe('deletePhoto', () => {
   it('is idempotent for a missing photo', async () => {
     mockUser(ME)
     expect(await deletePhoto('00000000-0000-0000-0000-000000000000')).toEqual({ ok: true })
+  })
+})
+
+describe('deletePhotos (bulk)', () => {
+  it('deletes only the caller-owned photos, skipping others', async () => {
+    mockUser(ME)
+    const a = await seedPhoto({ filename: 'a.jpg' })
+    const b = await seedPhoto({ filename: 'b.jpg', year: 2024 })
+    const other = await seedPhoto({ uploadedBy: OTHER, filename: 'c.jpg' })
+
+    const res = await deletePhotos([a.id, b.id, other.id])
+    expect(res).toEqual({ ok: true })
+
+    const remaining = await testDb.select().from(portalPhotos)
+    expect(remaining).toHaveLength(1)
+    expect(remaining[0].id).toBe(other.id)
+    expect(deleteBlobObject).toHaveBeenCalledTimes(2)
+  })
+
+  it('lets a content-admin delete anyone’s, and errors when nothing is deletable', async () => {
+    const x = await seedPhoto({ uploadedBy: OTHER })
+
+    mockUser(ME) // non-owner, non-admin
+    expect(await deletePhotos([x.id])).toEqual({ error: 'Nothing was deleted.' })
+    expect(await testDb.select().from(portalPhotos)).toHaveLength(1)
+
+    mockUser(ME, { siteManager: true }) // content admin
+    expect(await deletePhotos([x.id])).toEqual({ ok: true })
+    expect(await testDb.select().from(portalPhotos)).toHaveLength(0)
+  })
+
+  it('rejects an empty or malformed selection', async () => {
+    mockUser(ME)
+    expect(await deletePhotos([])).toEqual({ error: 'Invalid selection' })
+    expect(await deletePhotos(['not-a-uuid'])).toEqual({ error: 'Invalid selection' })
   })
 })
 

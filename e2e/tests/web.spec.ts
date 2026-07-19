@@ -94,7 +94,7 @@ test.describe('web portal', () => {
     const context = await contextFor(browser, 'member')
     const page = await context.newPage()
     await page.goto(`${WEB_URL}/photos`)
-    await expect(page.getByRole('heading', { name: 'Photos, year by year.' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Albums' })).toBeVisible()
     await expect(page.getByText('2026', { exact: true }).first()).toBeVisible()
     await context.close()
   })

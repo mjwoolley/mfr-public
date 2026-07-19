@@ -1,31 +1,19 @@
-// Admin dashboard: composes the four content panels (schedule, links,
-// albums, events) and shows the Users link only to the site owner.
+// Admin dashboard: composes the content panels (schedule, links, events) and
+// shows the Users link only to the site owner.
 
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { canManageUsers } from '@mfr/auth'
 import { auth } from '@/lib/auth'
-import { getPortalSettings, getPhotoAlbums, getEvents } from '@/lib/portal'
-import { getSlidesByCollection, HIGHLIGHTS } from '@/lib/photos/slides'
-import { ScheduleForm, LinksForm, AlbumsEditor, EventsEditor } from './AdminPanels'
-import { SlidesEditor } from './photos/SlidesEditor'
+import { getPortalSettings, getEvents } from '@/lib/portal'
+import { ScheduleForm, LinksForm, EventsEditor } from './AdminPanels'
 
 export const metadata: Metadata = { title: 'Admin' }
 
 export default async function AdminPage() {
   const session = await auth()
   const isOwner = session?.user?.roles ? canManageUsers(session.user.roles) : false
-  const [settings, albums, events, slidesByCollection] = await Promise.all([
-    getPortalSettings(),
-    getPhotoAlbums(),
-    getEvents(),
-    getSlidesByCollection(),
-  ])
-
-  const slideCollections = [
-    { value: HIGHLIGHTS, label: 'Highlights (home page)' },
-    ...albums.map((a) => ({ value: String(a.year), label: String(a.year) })),
-  ]
+  const [settings, events] = await Promise.all([getPortalSettings(), getEvents()])
 
   return (
     <section
@@ -107,15 +95,9 @@ export default async function AdminPage() {
           reunionEnd={settings.reunionEnd}
         />
         <LinksForm
-          highlightsUrl={settings.highlightsUrl}
           driveUrl={settings.driveUrl}
           venmoUrl={settings.venmoUrl}
           chatUrl={settings.chatUrl}
-        />
-        <AlbumsEditor albums={albums.map((a) => ({ id: a.id, year: a.year, url: a.url }))} />
-        <SlidesEditor
-          collections={slideCollections}
-          slidesByCollection={Object.fromEntries(slidesByCollection)}
         />
         <EventsEditor
           events={events.map((e) => ({
