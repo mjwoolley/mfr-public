@@ -59,23 +59,25 @@ the family seeing it.
 
 6. **Test it on staging before merging — this is the default, not an extra.**
    While CI runs on the PR, deploy the branch to staging and exercise it on the
-   real deployed site:
+   real deployed site. `staging` is a throwaway mirror — **force-push your branch
+   onto it** (which resets it to your branch on top of current `main`), rather
+   than merging into it:
 
    ```sh
-   git checkout staging && git pull
-   git merge fix/whatever && git push   # pushing staging IS the staging deploy
+   git push --force origin your-branch:staging   # pushing staging IS the deploy
    ```
 
-   Click through the changed flow on `staging.millerfamilyreunions.org` (and
-   the reservations/accounting staging subdomains if touched). Found a problem?
-   Fix on the feature branch, push (PR + CI update), merge into `staging`
-   again, retest. Skip this step only for changes with no runtime surface
-   (docs, comments, CI config).
+   One branch on staging at a time (force-push replaces whatever was there — fine,
+   staging is unprotected by design). Click through the changed flow on
+   `staging.millerfamilyreunions.org` (and the reservations/accounting staging
+   subdomains if touched). Found a problem? Fix on the feature branch, push
+   (PR + CI update), force-push to `staging` again, retest. Skip this step only
+   for changes with no runtime surface (docs, comments, CI config).
 
    **This is now enforced, not just discipline.** A required `staging-verified`
    status is posted on every PR to `main`: it starts **pending**
    (`staging-pending.yml`, on the PR event) and only flips **green** once your
-   branch has been merged into `staging` and staging's post-deploy smoke passed —
+   branch has been pushed to `staging` and staging's post-deploy smoke passed —
    the smoke workflow itself sets the status (`post-deploy-smoke.yml`, "Resolve
    staging gate" step). A PR that skipped staging can't merge. For the
    no-runtime-surface exemptions above, add the **`skip-staging`** label to the
@@ -88,16 +90,14 @@ the family seeing it.
    exercise the flow you changed. Tests can pass while production config is
    broken; the only place to catch that class of problem is production itself.
 
-9. **Re-sync staging.** Merge `main → staging` and push, so staging mirrors
-   what production now runs (this also flushes anything tested on staging but
-   never shipped).
-
-10. **Clean up.** GitHub deletes the remote branch automatically on merge
-    (delete-branch-on-merge is enabled on the repo). Remove the local leftovers
-    too: `git branch -d fix/whatever`, `git worktree remove <path>` if the work
-    happened in a worktree, and `git fetch --prune`. As a safety net, a
-    SessionStart hook (`scripts/check-stale-worktrees.sh`) flags any worktree or
-    branch already merged into `main` at the start of each Claude session.
+9. **Clean up.** GitHub deletes the remote branch automatically on merge
+   (delete-branch-on-merge is enabled on the repo). Remove the local leftovers
+   too: `git branch -d fix/whatever`, `git worktree remove <path>` if the work
+   happened in a worktree, and `git fetch --prune`. As a safety net, a
+   SessionStart hook (`scripts/check-stale-worktrees.sh`) flags any worktree or
+   branch already merged into `main` at the start of each Claude session.
+   (No staging re-sync step: since every change is force-pushed onto `staging`
+   for testing, the next branch resets it — there's nothing to sync back.)
 
 **Rollback:** `vercel rollback` in the affected app's directory instantly
 restores the previous deployment; `git revert` the commit afterward (via a PR).
@@ -171,12 +171,14 @@ production data, without touching the family's real data or email.
   fresh prod copy anytime: `./scripts/refresh-dev-from-prod.sh --target staging`
   (snapshots each `staging` branch to `backup-staging-<stamp>` first; production
   is only read).
-- **Deploying to it.** Push (or merge) into the `staging` branch — that's the
-  staging deploy, the same way merging `main` is the prod deploy. This is steps
-  5 and 8 of the routine above: feature branches merge into `staging` for live
-  testing before they reach `main`, and `main` merges back into `staging` after
-  each release. `staging` is unprotected by design — direct pushes, no PR
-  ceremony; every commit that matters gets its review on the PR to `main`.
+- **Deploying to it.** Force-push your branch onto the `staging` branch — that's
+  the staging deploy, the same way merging `main` is the prod deploy. This is
+  step 6 of the routine above: a feature branch is force-pushed onto `staging`
+  for live testing before it reaches `main`, resetting staging to that branch
+  (on top of current `main`). `staging` is a throwaway mirror, unprotected by
+  design — direct force-pushes, no PR ceremony, one branch at a time; every
+  commit that matters gets its review on the PR to `main`. There's no
+  main→staging re-sync — the next branch's force-push is the reset.
 - **Build gate.** Each project's Vercel _Ignored Build Step_ is
   `if [ "$VERCEL_ENV" == "production" ] || [ "$VERCEL_GIT_COMMIT_REF" == "staging" ]; then exit 1; else exit 0; fi`
   — it builds production and the `staging` branch, and skips every other preview
@@ -343,6 +345,6 @@ Neon projects: `mfr-identity` (shared Auth.js tables — sessions/users),
 production branch: `br-patient-water-ajen7oii`.
 
 **The short mnemonic: branch → build it locally on `dev` data →
-test/lint/click-through → PR → push to `staging` and test the deployed site →
-CI green + staging good → merge → smoke-test production → re-sync staging →
-clean up the branch and worktree.**
+test/lint/click-through → PR → force-push to `staging` and test the deployed site →
+CI green + staging good → merge → smoke-test production → clean up the branch and
+worktree.**
