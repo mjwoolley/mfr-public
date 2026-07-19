@@ -19,9 +19,15 @@
 #   - PROD, *critical* failure (code 1 = user-facing site broken): auto-rollback
 #     the production alias to the previous deployment via the `vercel` CLI, and
 #     best-effort open a `revert/<sha>` PR so the fix is durable on `main`.
-#   - Either env: the job itself goes red at the end, which the staging-gate
-#     workflow (`workflow_run`) consumes to flip the PR's `staging-verified` check.
-# STAGING failures are not alerted here — they surface on the PR via staging-gate.
+#   - Either env: the job itself goes red at the end (a visible signal on the run).
+#
+# For STAGING deploys this workflow ALSO resolves the PR gate directly (see the
+# "Resolve staging gate" step): it sets each matching PR's `staging-verified`
+# commit status to success/failure. That folds in what used to be a separate
+# `staging-gate.yml` `resolve` job fed by a `workflow_run` hand-off — we already
+# know the staging deploy and its smoke result here, so no cross-workflow event
+# and no commit-ancestry API is needed. STAGING failures are surfaced on the PR
+# via that gate status, not via an alert issue.
 #
 # Rollback needs three repo secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID.
 #
@@ -37,11 +43,13 @@ concurrency:
   group: smoke-${{ github.event.deployment.environment }}-${{ github.event.deployment.sha }}
   cancel-in-progress: true
 
-# issues: alert issue · contents/pull-requests: auto-revert branch + PR.
+# issues: alert issue · contents/pull-requests: auto-revert branch + PR ·
+# statuses: write the `staging-verified` gate on matching PRs (staging deploys).
 permissions:
   contents: write
   issues: write
   pull-requests: write
+  statuses: write
 
 jobs:
   smoke:
@@ -96,6 +104,74 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           echo "code=$code" >> "$GITHUB_OUTPUT"
           exit 0
+
+      # ── Staging gate: resolve `staging-verified` on the matching PR(s) ────────
+      # Folded in from the old `staging-gate.yml` `resolve` job. This deploy IS
+      # the staging tip (the `target` step only sets which=staging when
+      # SHA == staging tip) and we already know the smoke result, so we set each
+      # matching PR's `staging-verified` commit status directly — no cross-workflow
+      # `workflow_run` hand-off and no `compareCommits`/`getBranch` API.
+      # Attribution is a local `git merge-base --is-ancestor` (checkout above is
+      # fetch-depth:0, so every branch head is present).
+      - name: Resolve staging gate
+        if: steps.target.outputs.which == 'staging'
+        uses: actions/github-script@v7
+        env:
+          SMOKE_CODE: ${{ steps.smoke.outputs.code }}
+          DEPLOYED_SHA: ${{ github.event.deployment.sha }}
+        with:
+          script: |
+            const { execSync } = require('child_process')
+            const sha = process.env.DEPLOYED_SHA
+            const ok = process.env.SMOKE_CODE === '0'
+            const state = ok ? 'success' : 'failure'
+            const description = ok
+              ? 'Staging smoke passed'
+              : 'Staging smoke failed — fix and re-deploy to staging'
+
+            // true iff `ancestor` is an ancestor of (or equal to) `descendant`,
+            // via local git. Make sure both objects are present first (checkout
+            // is fetch-depth:0, but a branch head may have moved since), and only
+            // treat exit code 1 ("not an ancestor") as false — any other git
+            // error is thrown so the gate fails loudly instead of mis-resolving.
+            const isAncestor = (ancestor, descendant) => {
+              for (const c of [ancestor, descendant]) {
+                try {
+                  execSync(`git cat-file -e ${c}^{commit}`, { stdio: 'ignore' })
+                } catch {
+                  execSync(`git fetch --no-tags --depth=1 origin ${c}`, { stdio: 'ignore' })
+                }
+              }
+              try {
+                execSync(`git merge-base --is-ancestor ${ancestor} ${descendant}`, { stdio: 'ignore' })
+                return true
+              } catch (e) {
+                if (e.status === 1) return false
+                throw e
+              }
+            }
+
+            // Every open PR to main whose head is contained in the smoked staging
+            // commit has been exercised on staging → resolve its gate. (A
+            // main→staging re-sync matches no open PR, so nothing is set.)
+            const prs = await github.paginate(github.rest.pulls.list, {
+              ...context.repo, state: 'open', base: 'main', per_page: 100,
+            })
+            let updated = 0
+            for (const pr of prs) {
+              if (!isAncestor(pr.head.sha, sha)) continue
+              await github.rest.repos.createCommitStatus({
+                ...context.repo,
+                sha: pr.head.sha,
+                context: 'staging-verified',
+                state,
+                description,
+                target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              })
+              core.info(`PR #${pr.number}: staging-verified → ${state}`)
+              updated++
+            }
+            core.info(`Resolved ${updated} PR(s) from staging smoke @ ${sha.slice(0, 7)} (${state}).`)
 
       # ── Alert: open/update a labeled issue on ANY prod smoke failure ──────────
       - name: Alert (open/update issue)
@@ -220,7 +296,8 @@ jobs:
             --title "Revert \"$SHORT\" — production smoke failed" \
             --body "Automated revert of \`$SHA\` after its production post-deploy smoke failed (critical). The alias was rolled back live; this PR makes the revert durable on \`main\`. Review, verify on staging, and merge (or close if the deploy was fixed forward)."
 
-      # ── Fail the job so the check goes red (feeds staging-gate's workflow_run) ─
+      # ── Fail the job so the run goes red on any smoke failure (visible signal;
+      # the staging `staging-verified` gate is resolved by the step above) ───────
       - name: Fail the job on any smoke failure
         if: steps.target.outputs.which != 'skip' && steps.smoke.outputs.code != '0'
         run: |

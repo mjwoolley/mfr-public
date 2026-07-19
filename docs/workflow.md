@@ -72,11 +72,12 @@ the family seeing it.
    again, retest. Skip this step only for changes with no runtime surface
    (docs, comments, CI config).
 
-   **This is now enforced, not just discipline.** The `staging-gate` workflow
-   posts a required `staging-verified` status on every PR to `main`: it starts
-   **pending** and only flips **green** once your branch has been merged into
-   `staging` and staging's post-deploy smoke passed (`staging-gate.yml` +
-   `post-deploy-smoke.yml`). A PR that skipped staging can't merge. For the
+   **This is now enforced, not just discipline.** A required `staging-verified`
+   status is posted on every PR to `main`: it starts **pending**
+   (`staging-pending.yml`, on the PR event) and only flips **green** once your
+   branch has been merged into `staging` and staging's post-deploy smoke passed —
+   the smoke workflow itself sets the status (`post-deploy-smoke.yml`, "Resolve
+   staging gate" step). A PR that skipped staging can't merge. For the
    no-runtime-surface exemptions above, add the **`skip-staging`** label to the
    PR — that turns the gate green immediately.
 

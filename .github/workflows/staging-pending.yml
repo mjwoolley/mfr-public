@@ -1,0 +1,54 @@
+# Staging gate (pending half) — enforces docs/workflow.md §6 ("test on staging
+# before merging").
+#
+# A PR to `main` cannot merge until the branch has been deployed to `staging` and
+# staging's post-deploy smoke passed. We express that as a `staging-verified`
+# commit status on the PR head; Mike adds it to `main`'s required status checks
+# (server-side, after this workflow's first run so the context appears in the
+# picker).
+#
+# This workflow owns only the PENDING side: on a PR event it sets
+# `staging-verified` = PENDING ("merge into staging and let its smoke pass"), or
+# SUCCESS when a `skip-staging` label is present (PRs with no runtime surface —
+# docs / CI config — which §6 exempts). The SUCCESS/FAILURE resolution now lives
+# in `post-deploy-smoke.yml`: that workflow already knows the staging deploy and
+# its smoke result, so it sets the status directly — there is no longer a
+# cross-workflow `workflow_run` hand-off or commit-ancestry API in this file.
+#
+# `pull_request` is a default-branch trigger, so — like post-deploy-smoke — this
+# only takes effect once merged to `main`.
+name: Staging gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+    branches: [main]
+
+# statuses: write the `staging-verified` context.
+permissions:
+  statuses: write
+
+concurrency:
+  group: staging-pending-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: false
+
+jobs:
+  # ── On PR events: mark the head pending (or success if the PR opts out) ──────
+  pending:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request
+            const skip = pr.labels.some((l) => l.name === 'skip-staging')
+            await github.rest.repos.createCommitStatus({
+              ...context.repo,
+              sha: pr.head.sha,
+              context: 'staging-verified',
+              state: skip ? 'success' : 'pending',
+              description: skip
+                ? 'skip-staging: no runtime surface'
+                : 'Merge this branch into `staging` and let its smoke pass',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/blob/main/docs/workflow.md`,
+            })
