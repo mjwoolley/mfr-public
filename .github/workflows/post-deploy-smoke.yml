@@ -19,6 +19,10 @@
 #   - PROD, *critical* failure (code 1 = user-facing site broken): auto-rollback
 #     the production alias to the previous deployment via the `vercel` CLI, and
 #     best-effort open a `revert/<sha>` PR so the fix is durable on `main`.
+#     EXCEPTION: if the deploy introduced a schema migration (a new
+#     apps/mfr/drizzle/*.sql), the rollback + revert-PR are SKIPPED — the
+#     migration already changed the live DB, so running the previous code against
+#     it would keep prod broken. The alert then asks for a manual roll-forward.
 #   - Either env: the job itself goes red at the end (a visible signal on the run).
 #
 # For STAGING deploys this workflow ALSO resolves the PR gate directly (see the
@@ -81,6 +85,29 @@ jobs:
             echo "which=skip" >> "$GITHUB_OUTPUT"
             echo "Deploy ($ENV @ ${SHA:0:7}) is not production or the staging-branch tip — skipping smoke." >> "$GITHUB_STEP_SUMMARY"
           fi
+
+      # Did THIS deploy introduce a schema migration? Vercel's build applies
+      # Drizzle migrations (vercel-build → db:migrate) before the alias flips, so
+      # a forward-only DROP has already hit the prod DB. Rolling the alias back to
+      # the previous (pre-migration) code then runs old code against the new
+      # schema → guaranteed outage. So when a new migration file landed in this
+      # commit, we must NOT auto-roll-back — we page a human to roll forward.
+      - name: Detect schema migration in this deploy
+        id: schema
+        if: steps.target.outputs.which == 'prod'
+        run: |
+          SHA="${{ github.event.deployment.sha }}"
+          MIGRATION=false
+          if git rev-parse "${SHA}~1" >/dev/null 2>&1; then
+            ADDED="$(git diff --name-only --diff-filter=A "${SHA}~1" "${SHA}" -- 'apps/mfr/drizzle/*.sql')"
+            [ -n "$ADDED" ] && MIGRATION=true
+            echo "Added migration files: ${ADDED:-none}"
+          else
+            # No parent to diff against (shallow/first commit): assume a migration
+            # and stay safe — never auto-roll-back what we can't inspect.
+            MIGRATION=true
+          fi
+          echo "migration=$MIGRATION" >> "$GITHUB_OUTPUT"
 
       # smoke.mjs has no npm deps (global fetch only) — no install needed.
       # Each layer self-skips when its secret is absent, so partial secret setup
@@ -183,6 +210,7 @@ jobs:
             const short = sha.slice(0, 7)
             const code = '${{ steps.smoke.outputs.code }}'
             const critical = code === '1'
+            const migration = '${{ steps.schema.outputs.migration }}' === 'true'
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
             const commitUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/commit/${sha}`
             const fs = require('fs')
@@ -198,9 +226,27 @@ jobs:
               })
             } catch (e) { /* already exists */ }
 
-            const severity = critical
-              ? '🚨 **CRITICAL** — the user-facing site is broken; auto-rollback was attempted (see the workflow run).'
-              : '⚠️ **Degraded** — only a probe/config check failed (e.g. `CRON_SECRET`); the site itself is up. No rollback.'
+            const severity = !critical
+              ? '⚠️ **Degraded** — only a probe/config check failed (e.g. `CRON_SECRET`); the site itself is up. No rollback.'
+              : migration
+                ? '🚨 **CRITICAL** — the site is broken, and this deploy applied a **schema migration**, so it was **NOT auto-rolled-back** (reverting code across a forward-only migration keeps prod broken). **Manual action required.**'
+                : '🚨 **CRITICAL** — the user-facing site is broken; auto-rollback was attempted (see the workflow run).'
+            // Migration deploys can't be fixed by reverting — the dropped/renamed
+            // schema is already live, so old code stays broken. Roll forward.
+            const fix = migration
+              ? [
+                  '**Fix forward — do NOT revert.** The migration already changed the live schema,',
+                  'so the previous code is incompatible. Instead:',
+                  '- Promote a healthy build (or push a fix to `main`) so the running code matches the migrated schema, or',
+                  '- If the migration itself is wrong, ship a **compensating forward migration** — not a `git revert`.',
+                ]
+              : [
+                  '**To make the fix durable** (rollback only re-points the Vercel alias — the',
+                  'bad commit stays on `main`), revert it:',
+                  '```sh',
+                  `git revert ${sha}   # then open a PR to main`,
+                  '```',
+                ]
             const body = [
               `Production post-deploy smoke failed @ \`${short}\` (exit code ${code}).`,
               '',
@@ -214,11 +260,7 @@ jobs:
               `- Workflow run: ${runUrl}`,
               `- Offending commit: [\`${short}\`](${commitUrl})`,
               '',
-              '**To make the fix durable** (rollback only re-points the Vercel alias — the',
-              `bad commit stays on \`main\`), revert it:`,
-              '```sh',
-              `git revert ${sha}   # then open a PR to main`,
-              '```',
+              ...fix,
             ].join('\n')
 
             // Reuse an open incident issue if one exists; else open a new one.
@@ -244,8 +286,10 @@ jobs:
       # exact flags vary by CLI version, so we print --help for the record and
       # fall back to `vercel promote` if `rollback` isn't available. Best-effort:
       # a failure here doesn't abort the alert/revert flow.
+      # Skipped when this deploy carried a schema migration — see the `schema`
+      # step: rolling code back across a forward-only migration breaks prod.
       - name: Rollback production (critical failure)
-        if: steps.target.outputs.which == 'prod' && steps.smoke.outputs.code == '1'
+        if: steps.target.outputs.which == 'prod' && steps.smoke.outputs.code == '1' && steps.schema.outputs.migration != 'true'
         continue-on-error: true
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -275,8 +319,11 @@ jobs:
           echo "Rollback command issued." >> "$GITHUB_STEP_SUMMARY"
 
       # ── Auto-revert PR: make the rollback durable on `main` (best-effort) ────
+      # Also skipped for schema-migration deploys — reverting the commit wouldn't
+      # recreate the dropped objects (migrations are forward-only), so it can't
+      # fix prod; roll forward or ship a compensating migration instead.
       - name: Open auto-revert PR (critical failure)
-        if: steps.target.outputs.which == 'prod' && steps.smoke.outputs.code == '1'
+        if: steps.target.outputs.which == 'prod' && steps.smoke.outputs.code == '1' && steps.schema.outputs.migration != 'true'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
