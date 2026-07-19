@@ -97,7 +97,10 @@ export default async function PhotosPage() {
               <Link
                 href={`/photos/${al.year}`}
                 className="washed relative block w-full overflow-hidden"
-                style={{ aspectRatio: '4 / 3', background: 'var(--color-neutral-200)' }}
+                // Square window + `contain` shows the whole cover (portrait or
+                // landscape) without cropping, while keeping every card the same
+                // height so the year grid stays tidy and in order.
+                style={{ aspectRatio: '1 / 1', background: 'var(--color-neutral-200)' }}
                 aria-label={`Open ${al.year} photos`}
               >
                 {coverUrl ? (
@@ -106,7 +109,7 @@ export default async function PhotosPage() {
                     alt={`${al.year} album cover`}
                     fill
                     sizes="300px"
-                    style={{ objectFit: 'cover' }}
+                    style={{ objectFit: 'contain' }}
                   />
                 ) : (
                   <div

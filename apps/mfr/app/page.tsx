@@ -3,13 +3,11 @@
 // content, rendered (and fetched) only for signed-in visitors.
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { auth } from '@/lib/auth'
 import { getPortalSettings, getFundraising, getEvents } from '@/lib/portal'
 import { getHighlightSlides } from '@/lib/photos/slides'
 import { getFeaturedPhotos } from '@/lib/photos/gallery'
 import { HomeSlideshow } from './HomeSlideshow'
-import { AlbumCardRotator } from './photos/AlbumCardRotator'
 
 // Fallback hero image (public/) when no highlight slides have been uploaded.
 const FALLBACK_SLIDES = ['/lake-house.jpg']
@@ -70,6 +68,11 @@ export default async function Home() {
   const [fundraising, events, featured] = signedIn
     ? await Promise.all([getFundraising(), getEvents(), getFeaturedPhotos()])
     : [null, [] as Awaited<ReturnType<typeof getEvents>>, []]
+
+  // The hero shows the family's own featured photos when there are any (member
+  // content — only fetched/shown for signed-in visitors); otherwise it falls
+  // back to the public highlight slides / static image.
+  const heroImages = signedIn && featured.length ? featured.map((p) => p.blobUrl) : heroSlides
 
   const raised = fundraising?.raised ?? 0
   const goal = fundraising?.goal ?? null
@@ -137,7 +140,7 @@ export default async function Home() {
           </div>
 
           <div className="flex min-w-[300px] flex-[0_1_480px] flex-col gap-4">
-            <HomeSlideshow images={heroSlides} />
+            <HomeSlideshow images={heroImages} />
 
             {!signedIn && (
               /* signed-out: generic prompt in place of the member-only goal card */
@@ -235,55 +238,6 @@ export default async function Home() {
           </div>
         </div>
       </section>
-
-      {/* Featured album (member-only) — a single card whose cover rotates
-          through the family's picks; click into the full Featured gallery.
-          Ships dark when nothing is featured. */}
-      {signedIn && featured.length > 0 && (
-        <section className="mx-auto max-w-5xl px-7 pt-4.5 pb-1.5">
-          <div
-            className="grid gap-5"
-            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))' }}
-          >
-            <div
-              className="albumcard card elev-sm bg-white overflow-hidden"
-              style={{ padding: 0, gap: 0 }}
-            >
-              <Link
-                href="/photos/featured"
-                className="washed relative block w-full overflow-hidden"
-                style={{ aspectRatio: '4 / 3', background: 'var(--color-neutral-200)' }}
-                aria-label="Open the Featured photos"
-              >
-                {featured.length > 1 ? (
-                  <AlbumCardRotator slides={featured.map((p) => p.blobUrl)} index={0} />
-                ) : (
-                  <Image
-                    src={featured[0].blobUrl}
-                    alt={featured[0].caption ?? 'Featured photo'}
-                    fill
-                    sizes="300px"
-                    style={{ objectFit: 'cover' }}
-                  />
-                )}
-              </Link>
-              <div style={{ padding: '16px 18px 18px' }}>
-                <div className="flex items-baseline justify-between gap-2.5">
-                  <span style={{ fontFamily: 'var(--font-heading)', fontSize: 24 }}>Featured</span>
-                  <span style={{ fontSize: 13, color: 'var(--color-neutral-600)' }}>
-                    {featured.length} photo{featured.length === 1 ? '' : 's'}
-                  </span>
-                </div>
-                <div className="mt-3">
-                  <Link href="/photos/featured" style={{ fontSize: 14, fontWeight: 700 }}>
-                    Open gallery &rarr;
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* upcoming events (member-only) */}
       {signedIn && (

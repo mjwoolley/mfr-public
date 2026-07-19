@@ -180,43 +180,52 @@ function featuredPhoto(over: Record<string, unknown> = {}) {
   }
 }
 
-describe('home page — featured album card', () => {
+describe('home page — featured photos in the hero', () => {
   beforeEach(() => authMock.mockResolvedValue(signedInSession))
 
-  it('shows a single card linking to the Featured gallery, its cover rotating the picks', async () => {
+  it("shows the family's featured photos in the hero slideshow", async () => {
     featuredMock.mockResolvedValue([
       featuredPhoto({ id: 'p1', blobUrl: 'https://blob/feat-1.jpg' }),
       featuredPhoto({ id: 'p2', blobUrl: 'https://blob/feat-2.jpg' }),
     ])
     const html = await render()
-    expect(html).toContain('href="/photos/featured"')
-    expect(html).toContain('Featured')
-    expect(html).toContain('2 photos')
-    // Both picks appear in the rotating cover.
     expect(html).toContain('https://blob/feat-1.jpg')
     expect(html).toContain('https://blob/feat-2.jpg')
-    // The old grid heading is gone.
-    expect(html).not.toContain('Featured by the family')
   })
 
-  it('shows a static cover and singular count for a single featured photo', async () => {
-    featuredMock.mockResolvedValue([featuredPhoto({ id: 'p1', blobUrl: 'https://blob/only.jpg' })])
+  it('prefers featured photos over the highlight slides in the hero', async () => {
+    highlightsMock.mockResolvedValue([{ id: 's1', blobUrl: 'https://blob/hi-1.jpg' }])
+    featuredMock.mockResolvedValue([
+      featuredPhoto({ id: 'p1', blobUrl: 'https://blob/feat-1.jpg' }),
+    ])
     const html = await render()
-    expect(html).toContain('href="/photos/featured"')
-    expect(html).toContain('1 photo')
-    expect(html).toContain('https://blob/only.jpg')
+    expect(html).toContain('https://blob/feat-1.jpg')
+    expect(html).not.toContain('https://blob/hi-1.jpg')
   })
 
-  it('renders no featured card when nothing is featured', async () => {
+  it('falls back to the highlight slides when nothing is featured', async () => {
+    highlightsMock.mockResolvedValue([{ id: 's1', blobUrl: 'https://blob/hi-1.jpg' }])
     featuredMock.mockResolvedValue([])
     const html = await render()
+    expect(html).toContain('https://blob/hi-1.jpg')
+  })
+
+  it('drops the old family-album caption and the standalone featured card', async () => {
+    featuredMock.mockResolvedValue([featuredPhoto({ id: 'p1' })])
+    const html = await render()
+    expect(html).not.toContain('From the family album')
+    expect(html).not.toContain('Featured by the family')
+    // The Featured gallery is reachable from /photos, not a card on the home page.
     expect(html).not.toContain('href="/photos/featured"')
   })
 
   it('never fetches or shows featured photos for signed-out visitors', async () => {
     authMock.mockResolvedValue(null)
+    featuredMock.mockResolvedValue([
+      featuredPhoto({ id: 'p1', blobUrl: 'https://blob/feat-1.jpg' }),
+    ])
     const html = await render()
     expect(featuredMock).not.toHaveBeenCalled()
-    expect(html).not.toContain('href="/photos/featured"')
+    expect(html).not.toContain('https://blob/feat-1.jpg')
   })
 })

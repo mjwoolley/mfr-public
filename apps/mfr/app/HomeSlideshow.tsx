@@ -6,10 +6,12 @@ import { useEffect, useState } from 'react'
 const INTERVAL_MS = 4800
 
 /**
- * Auto-crossfading slideshow in a washed, slightly-rotated frame (ports the
- * prototype's hero slideshow). Sourced from a curated set of static images in
- * public/ — starting with the real family photo. With a single image it simply
- * shows it (no dots, no timer).
+ * Auto-crossfading slideshow in a washed, slightly-rotated frame. Sourced from
+ * the family's featured photos (falling back to the admin highlight slides / the
+ * static image). The window is portrait-leaning and each photo is shown whole
+ * (`contain`, never cropped) so any uploaded picture fits — the box stays fixed
+ * because it crossfades images of differing orientation. With a single image it
+ * simply shows it (no dots, no timer).
  */
 export function HomeSlideshow({ images }: { images: string[] }) {
   const [slide, setSlide] = useState(0)
@@ -59,7 +61,7 @@ export function HomeSlideshow({ images }: { images: string[] }) {
         <div
           className="washed relative w-full overflow-hidden"
           style={{
-            aspectRatio: '4 / 3',
+            aspectRatio: '4 / 5',
             borderRadius: 'calc(var(--radius-md) - 6px)',
             background: 'var(--color-neutral-200)',
           }}
@@ -72,44 +74,39 @@ export function HomeSlideshow({ images }: { images: string[] }) {
             >
               <Image
                 src={src}
-                alt="Miller family at the lake"
+                alt="Miller family photo"
                 fill
                 sizes="470px"
-                style={{ objectFit: 'cover' }}
-                priority={i === 0}
+                style={{ objectFit: 'contain' }}
+                preload={i === 0}
               />
             </div>
           ))}
         </div>
-        <figcaption
-          className="flex items-center justify-between gap-2.5"
-          style={{ padding: '11px 4px 2px' }}
-        >
-          <span style={{ fontSize: 12, color: 'var(--color-neutral-600)' }}>
-            From the family album
-          </span>
-          {images.length > 1 && (
-            <span className="flex gap-1.5">
-              {images.map((src, i) => (
-                <button
-                  key={src}
-                  onClick={() => setSlide(i)}
-                  aria-label={`Show slide ${i + 1}`}
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 0,
-                    background: i === slide ? 'var(--color-accent)' : 'var(--color-neutral-300)',
-                    transition: 'background .2s ease',
-                  }}
-                />
-              ))}
-            </span>
-          )}
-        </figcaption>
+        {images.length > 1 && (
+          <figcaption
+            className="flex items-center justify-center gap-1.5"
+            style={{ padding: '11px 4px 2px' }}
+          >
+            {images.map((src, i) => (
+              <button
+                key={src}
+                onClick={() => setSlide(i)}
+                aria-label={`Show slide ${i + 1}`}
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  background: i === slide ? 'var(--color-accent)' : 'var(--color-neutral-300)',
+                  transition: 'background .2s ease',
+                }}
+              />
+            ))}
+          </figcaption>
+        )}
       </figure>
     </div>
   )

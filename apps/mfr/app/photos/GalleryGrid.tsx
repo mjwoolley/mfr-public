@@ -1,11 +1,12 @@
 'use client'
 
-// Uniform-tile photo grid with a lightbox. All tiles render the same size
-// (square, cover-cropped); the full image + metadata + owner/admin controls live
-// in the lightbox. Owners can feature (≤ cap, enforced server-side), edit
-// year/caption, and delete; content-admins can unfeature/delete anyone's.
+// Masonry photo grid with a lightbox. Each tile keeps its photo's natural shape
+// (scaled to the column width, never cropped); the full image + metadata +
+// owner/admin controls live in the lightbox. Owners can feature (≤ cap, enforced
+// server-side), edit year/caption, and delete; content-admins can unfeature/
+// delete anyone's.
 
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useState, useTransition, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -81,12 +82,19 @@ export function GalleryGrid({
 
   return (
     <>
-      <div
-        className="grid gap-3"
-        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}
-      >
+      {/* Masonry via CSS columns: each tile keeps its photo's natural shape
+          (no crop, no letterbox bars). `columnWidth` is fluid — the browser
+          fits as many ~160px columns as the width allows and drops to fewer on
+          phones. */}
+      <div style={{ columnWidth: 160, columnGap: 12 }}>
         {photos.map((p, i) => (
-          <figure key={p.id} className="m-0">
+          <figure
+            key={p.id}
+            className="m-0 mb-3"
+            // Keep a tile from splitting across two columns (iOS Safari needs
+            // the -webkit- form, which isn't in React's CSSProperties type).
+            style={{ breakInside: 'avoid', WebkitColumnBreakInside: 'avoid' } as CSSProperties}
+          >
             <button
               type="button"
               onClick={() => {
@@ -95,7 +103,6 @@ export function GalleryGrid({
               }}
               className="card elev-sm relative block w-full cursor-zoom-in overflow-hidden p-0"
               style={{
-                aspectRatio: '1 / 1',
                 background: 'var(--color-neutral-200)',
                 border: 'none',
               }}
@@ -104,9 +111,10 @@ export function GalleryGrid({
               <Image
                 src={p.blobUrl}
                 alt={p.caption ?? `Photo from ${p.year}`}
-                fill
+                width={p.width || 4}
+                height={p.height || 3}
                 sizes="(max-width: 640px) 45vw, 200px"
-                style={{ objectFit: 'cover' }}
+                style={{ width: '100%', height: 'auto', display: 'block' }}
               />
               {p.featured && (
                 <span
