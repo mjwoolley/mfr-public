@@ -126,6 +126,18 @@ export function createAuthConfig(opts: CreateAuthConfigOptions): NextAuthConfig 
         session.user.id = user.id
         session.user.status = user.status
         session.user.roles = opts.getUserRoles ? await opts.getUserRoles(user.id) : NO_ROLES
+        // Bootstrap owner: a designated email is always an approved site owner.
+        // Owner/approval normally live in the DB (users.status,
+        // portal_user_roles.is_site_owner), but a fresh or forked database — a
+        // per-PR preview, a new environment — starts with the owner as a pending
+        // user and no one able to approve them (only an owner can). Pinning one
+        // email as owner in-session breaks that catch-22. Overridable via
+        // SITE_OWNER_EMAIL; defaults to the known owner.
+        const ownerEmail = (process.env.SITE_OWNER_EMAIL ?? 'mwoolley2@gmail.com').toLowerCase()
+        if (user.email?.toLowerCase() === ownerEmail) {
+          session.user.status = 'approved'
+          session.user.roles = { ...session.user.roles, siteOwner: true }
+        }
         await opts.extendSession?.(session, user)
         return session
       },

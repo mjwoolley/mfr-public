@@ -143,6 +143,40 @@ describe('session callback', () => {
   })
 })
 
+describe('bootstrap owner', () => {
+  const run = (over: Partial<AdapterUser>) => {
+    const cb = createAuthConfig({ db: fakeDb().db, basePath: '/api/auth' }).callbacks!
+      .session! as (p: { session: Session; user: AdapterUser }) => Promise<Session>
+    return cb({ session: makeSession(), user: adapterUser(over) })
+  }
+
+  it('forces approved + siteOwner for the default owner email even when the DB says pending', async () => {
+    const result = await run({ email: 'mwoolley2@gmail.com', status: 'pending' })
+    expect(result.user.status).toBe('approved')
+    expect(result.user.roles.siteOwner).toBe(true)
+  })
+
+  it('matches the owner email case-insensitively', async () => {
+    const result = await run({ email: 'MWoolley2@Gmail.com', status: 'pending' })
+    expect(result.user.roles.siteOwner).toBe(true)
+  })
+
+  it('leaves non-owner users untouched', async () => {
+    const result = await run({ email: 'someone@else.com', status: 'pending' })
+    expect(result.user.status).toBe('pending')
+    expect(result.user.roles.siteOwner).toBe(false)
+  })
+
+  it('honors SITE_OWNER_EMAIL override and demotes the old default', async () => {
+    vi.stubEnv('SITE_OWNER_EMAIL', 'boss@example.com')
+    const boss = await run({ email: 'boss@example.com', status: 'pending' })
+    expect(boss.user.roles.siteOwner).toBe(true)
+    const oldOwner = await run({ email: 'mwoolley2@gmail.com', status: 'pending' })
+    expect(oldOwner.user.roles.siteOwner).toBe(false)
+    expect(oldOwner.user.status).toBe('pending')
+  })
+})
+
 describe('events', () => {
   it('backfills googleSub when a google account links', async () => {
     const { db, update, set } = fakeDb()

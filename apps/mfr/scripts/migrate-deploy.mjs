@@ -3,7 +3,8 @@
 // push-only.sql (the GiST EXCLUDE / CHECK / triggers drizzle-kit can't emit;
 // idempotent). Invoked by `vercel-build` before `next build`, and by `db:migrate`.
 //
-// Requires DIRECT_URL (the non-pooled connection). Fails loudly if unset so a
+// Requires a direct (non-pooled) connection — DIRECT_URL, or DATABASE_URL_UNPOOLED
+// on per-PR preview deploys (see resolveDirectUrl). Fails loudly if unset so a
 // misconfigured deploy is obvious rather than silently skipping schema.
 
 import fs from 'node:fs'
@@ -11,10 +12,13 @@ import path from 'node:path'
 import postgres from 'postgres'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { migrate } from 'drizzle-orm/postgres-js/migrator'
+import { resolveDirectUrl } from '../lib/db/directUrl.mjs'
 
-const url = process.env.DIRECT_URL
+const url = resolveDirectUrl()
 if (!url) {
-  console.error('migrate-deploy: DIRECT_URL is not set — cannot apply schema')
+  console.error(
+    'migrate-deploy: neither DIRECT_URL nor DATABASE_URL_UNPOOLED is set — cannot apply schema',
+  )
   process.exit(1)
 }
 
