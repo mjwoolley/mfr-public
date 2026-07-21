@@ -8,9 +8,8 @@
 # *.vercel.app URL, which can sit behind deployment protection and lacks the
 # session-cookie domain the signed-in layer needs) — the event only tells us
 # WHICH environment deployed:
-#   - Production            → main was pushed  → millerfamilyreunions.org
-#   - Preview @ staging tip → staging branch   → staging.millerfamilyreunions.org
-#   - any other preview (PRs) → skipped
+#   - Production → main was pushed → millerfamilyreunions.org
+#   - any preview (PRs) → skipped
 #
 # On failure (both severities are colour-coded by smoke.mjs's exit code):
 #   - PROD, any failure (code 1 or 3): open/update a labeled GitHub issue with
@@ -23,15 +22,7 @@
 #     apps/mfr/drizzle/*.sql), the rollback + revert-PR are SKIPPED — the
 #     migration already changed the live DB, so running the previous code against
 #     it would keep prod broken. The alert then asks for a manual roll-forward.
-#   - Either env: the job itself goes red at the end (a visible signal on the run).
-#
-# For STAGING deploys this workflow ALSO resolves the PR gate directly (see the
-# "Resolve staging gate" step): it sets each matching PR's `staging-verified`
-# commit status to success/failure. That folds in what used to be a separate
-# `staging-gate.yml` `resolve` job fed by a `workflow_run` hand-off — we already
-# know the staging deploy and its smoke result here, so no cross-workflow event
-# and no commit-ancestry API is needed. STAGING failures are surfaced on the PR
-# via that gate status, not via an alert issue.
+#   - The job goes red at the end (a visible signal on the run).
 #
 # Rollback needs three repo secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID.
 #
@@ -47,13 +38,11 @@ concurrency:
   group: smoke-${{ github.event.deployment.environment }}-${{ github.event.deployment.sha }}
   cancel-in-progress: true
 
-# issues: alert issue · contents/pull-requests: auto-revert branch + PR ·
-# statuses: write the `staging-verified` gate on matching PRs (staging deploys).
+# issues: alert issue · contents/pull-requests: auto-revert branch + PR.
 permissions:
   contents: write
   issues: write
   pull-requests: write
-  statuses: write
 
 jobs:
   smoke:
@@ -69,21 +58,17 @@ jobs:
         with:
           node-version: 22
 
-      # Map the deploy to a target env + stable URL, or skip unrelated previews.
+      # Smoke production only; every preview (PR) deploy is skipped here.
       - id: target
         run: |
           ENV="${{ github.event.deployment.environment }}"
           SHA="${{ github.event.deployment.sha }}"
-          STAGING_TIP="$(git ls-remote origin refs/heads/staging | cut -f1)"
           if [ "$ENV" = "Production" ]; then
             echo "which=prod" >> "$GITHUB_OUTPUT"
             echo "base=https://millerfamilyreunions.org" >> "$GITHUB_OUTPUT"
-          elif [ -n "$SHA" ] && [ "$SHA" = "$STAGING_TIP" ]; then
-            echo "which=staging" >> "$GITHUB_OUTPUT"
-            echo "base=https://staging.millerfamilyreunions.org" >> "$GITHUB_OUTPUT"
           else
             echo "which=skip" >> "$GITHUB_OUTPUT"
-            echo "Deploy ($ENV @ ${SHA:0:7}) is not production or the staging-branch tip — skipping smoke." >> "$GITHUB_STEP_SUMMARY"
+            echo "Deploy ($ENV @ ${SHA:0:7}) is not production — skipping smoke." >> "$GITHUB_STEP_SUMMARY"
           fi
 
       # Did THIS deploy introduce a schema migration? Vercel's build applies
@@ -119,8 +104,8 @@ jobs:
         id: smoke
         if: steps.target.outputs.which != 'skip'
         env:
-          CRON_SECRET: ${{ steps.target.outputs.which == 'prod' && secrets.CRON_SECRET_PROD || secrets.CRON_SECRET_STAGING }}
-          SMOKE_SESSION_TOKEN: ${{ steps.target.outputs.which == 'prod' && secrets.SMOKE_SESSION_TOKEN_PROD || secrets.SMOKE_SESSION_TOKEN_STAGING }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET_PROD }}
+          SMOKE_SESSION_TOKEN: ${{ secrets.SMOKE_SESSION_TOKEN_PROD }}
         run: |
           echo "### Smoke: ${{ steps.target.outputs.which }} → ${{ steps.target.outputs.base }}" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
@@ -131,74 +116,6 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           echo "code=$code" >> "$GITHUB_OUTPUT"
           exit 0
-
-      # ── Staging gate: resolve `staging-verified` on the matching PR(s) ────────
-      # Folded in from the old `staging-gate.yml` `resolve` job. This deploy IS
-      # the staging tip (the `target` step only sets which=staging when
-      # SHA == staging tip) and we already know the smoke result, so we set each
-      # matching PR's `staging-verified` commit status directly — no cross-workflow
-      # `workflow_run` hand-off and no `compareCommits`/`getBranch` API.
-      # Attribution is a local `git merge-base --is-ancestor` (checkout above is
-      # fetch-depth:0, so every branch head is present).
-      - name: Resolve staging gate
-        if: steps.target.outputs.which == 'staging'
-        uses: actions/github-script@v7
-        env:
-          SMOKE_CODE: ${{ steps.smoke.outputs.code }}
-          DEPLOYED_SHA: ${{ github.event.deployment.sha }}
-        with:
-          script: |
-            const { execSync } = require('child_process')
-            const sha = process.env.DEPLOYED_SHA
-            const ok = process.env.SMOKE_CODE === '0'
-            const state = ok ? 'success' : 'failure'
-            const description = ok
-              ? 'Staging smoke passed'
-              : 'Staging smoke failed — fix and re-deploy to staging'
-
-            // true iff `ancestor` is an ancestor of (or equal to) `descendant`,
-            // via local git. Make sure both objects are present first (checkout
-            // is fetch-depth:0, but a branch head may have moved since), and only
-            // treat exit code 1 ("not an ancestor") as false — any other git
-            // error is thrown so the gate fails loudly instead of mis-resolving.
-            const isAncestor = (ancestor, descendant) => {
-              for (const c of [ancestor, descendant]) {
-                try {
-                  execSync(`git cat-file -e ${c}^{commit}`, { stdio: 'ignore' })
-                } catch {
-                  execSync(`git fetch --no-tags --depth=1 origin ${c}`, { stdio: 'ignore' })
-                }
-              }
-              try {
-                execSync(`git merge-base --is-ancestor ${ancestor} ${descendant}`, { stdio: 'ignore' })
-                return true
-              } catch (e) {
-                if (e.status === 1) return false
-                throw e
-              }
-            }
-
-            // Every open PR to main whose head is contained in the smoked staging
-            // commit has been exercised on staging → resolve its gate. (A
-            // main→staging re-sync matches no open PR, so nothing is set.)
-            const prs = await github.paginate(github.rest.pulls.list, {
-              ...context.repo, state: 'open', base: 'main', per_page: 100,
-            })
-            let updated = 0
-            for (const pr of prs) {
-              if (!isAncestor(pr.head.sha, sha)) continue
-              await github.rest.repos.createCommitStatus({
-                ...context.repo,
-                sha: pr.head.sha,
-                context: 'staging-verified',
-                state,
-                description,
-                target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-              })
-              core.info(`PR #${pr.number}: staging-verified → ${state}`)
-              updated++
-            }
-            core.info(`Resolved ${updated} PR(s) from staging smoke @ ${sha.slice(0, 7)} (${state}).`)
 
       # ── Alert: open/update a labeled issue on ANY prod smoke failure ──────────
       - name: Alert (open/update issue)
@@ -341,10 +258,9 @@ jobs:
           git push -u origin "$BRANCH" --force-with-lease
           gh pr create --base main --head "$BRANCH" \
             --title "Revert \"$SHORT\" — production smoke failed" \
-            --body "Automated revert of \`$SHA\` after its production post-deploy smoke failed (critical). The alias was rolled back live; this PR makes the revert durable on \`main\`. Review, verify on staging, and merge (or close if the deploy was fixed forward)."
+            --body "Automated revert of \`$SHA\` after its production post-deploy smoke failed (critical). The alias was rolled back live; this PR makes the revert durable on \`main\`. Review, verify on its preview, and merge (or close if the deploy was fixed forward)."
 
-      # ── Fail the job so the run goes red on any smoke failure (visible signal;
-      # the staging `staging-verified` gate is resolved by the step above) ───────
+      # ── Fail the job so the run goes red on any smoke failure (visible signal) ─
       - name: Fail the job on any smoke failure
         if: steps.target.outputs.which != 'skip' && steps.smoke.outputs.code != '0'
         run: |

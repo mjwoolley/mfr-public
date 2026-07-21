@@ -5,9 +5,8 @@
 # Trigger: Vercel's GitHub app emits `deployment_status` when a deploy is ready
 # (same event post-deploy-smoke.yml uses). We act only on **preview** deploys
 # that map to an open PR:
-#   - Production            → skipped (env is "Production")
-#   - staging branch        → skipped (no open PR has `staging` as its head)
-#   - any PR preview        → upsert the URL comment
+#   - Production     → skipped (env is "Production")
+#   - any PR preview → upsert the URL comment
 #
 # NOTE: `deployment_status` is a non-PR event, so GitHub always runs the copy of
 # this workflow on the DEFAULT branch — it only takes effect once merged to main.
@@ -43,8 +42,8 @@ jobs:
             const ref = dep.ref
             if (!url || !ref) return
 
-            // Find the open PR whose head is this branch. `staging` has no such
-            // PR, so it (and any non-PR branch) is naturally skipped.
+            // Find the open PR whose head is this branch. A branch with no open
+            // PR (e.g. `main` itself) is naturally skipped.
             const { data: prs } = await github.rest.pulls.list({
               ...context.repo,
               state: 'open',

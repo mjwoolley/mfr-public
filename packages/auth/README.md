@@ -41,10 +41,12 @@ via `transpilePackages`, so a change here ships to the whole portal at once.
 
 Same `AUTH_SECRET` + same identity DB + `AUTH_COOKIE_DOMAIN=
 .millerfamilyreunions.org` ⇒ a database-session cookie that every subdomain
-shares — sign in once at the portal, recognized everywhere. Staging sets a
-distinct `AUTH_SESSION_COOKIE_NAME` so production's cookie (which rides along
-to every subdomain) is never read as a staging session. Business databases
-store `users.id` as a plain string — **no cross-database FKs**.
+shares — sign in once at the portal, recognized everywhere. Any second
+environment sharing that registrable domain would set a distinct
+`AUTH_SESSION_COOKIE_NAME` so production's cookie (which rides along to every
+subdomain) is never read as that environment's session; per-PR previews live on
+`*.vercel.app` (a different registrable domain) and so leave it unset. Business
+databases store `users.id` as a plain string — **no cross-database FKs**.
 
 Note: the `users.is_reservations_admin` / `is_accounting_admin` columns are
 legacy — nothing reads them (superseded by portal roles); kept only as a

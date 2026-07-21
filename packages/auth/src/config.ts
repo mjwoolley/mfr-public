@@ -26,10 +26,12 @@ export interface CreateAuthConfigOptions {
   cookieDomain?: string
   /**
    * Overrides the session cookie's name. Left unset in production so Auth.js
-   * uses its default name. A second environment sharing a registrable domain
-   * with production (e.g. staging under *.staging.millerfamilyreunions.org)
-   * sets a distinct name so production's cookie — which rides along to every
-   * subdomain — is never mistaken for a staging session, and vice versa.
+   * uses its default name. Any second environment that shares a registrable
+   * domain with production (a `*.millerfamilyreunions.org` subdomain) would set
+   * a distinct name so production's cookie — which rides along to every
+   * subdomain — is never mistaken for that environment's session, and vice
+   * versa. (Per-PR previews live on `*.vercel.app`, a different registrable
+   * domain, so their host-only cookie can't collide and they leave this unset.)
    */
   sessionCookieName?: string
   pages?: NextAuthConfig['pages']

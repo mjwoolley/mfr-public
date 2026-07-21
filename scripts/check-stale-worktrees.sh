@@ -24,7 +24,7 @@ git remote prune origin >/dev/null 2>&1 || true
 # Newline-delimited set of "done" branch names.
 done_branches=""
 add_done() {
-  case "$1" in main | staging | "") return ;; esac
+  case "$1" in main | "") return ;; esac
   printf '%s\n' "$done_branches" | grep -qxF -- "$1" && return
   done_branches="${done_branches}$1
 "

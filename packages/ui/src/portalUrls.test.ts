@@ -29,21 +29,16 @@ describe('portal URLs', () => {
     expect(mod.ACCOUNTING_URL).toBe('https://accounting.millerfamilyreunions.org/accounting')
   })
 
-  it('honors NEXT_PUBLIC_* overrides (the staging deploy)', async () => {
+  it('honors NEXT_PUBLIC_* overrides (a preview deploy)', async () => {
     const mod = await importWithEnv({
-      NEXT_PUBLIC_HOME_URL: 'https://staging.millerfamilyreunions.org',
-      NEXT_PUBLIC_RESERVATIONS_URL:
-        'https://reservations.staging.millerfamilyreunions.org/reservations',
-      NEXT_PUBLIC_ACCOUNTING_URL: 'https://accounting.staging.millerfamilyreunions.org/accounting',
+      NEXT_PUBLIC_HOME_URL: 'https://mfr-web-preview.vercel.app',
+      NEXT_PUBLIC_RESERVATIONS_URL: 'https://mfr-web-preview.vercel.app/reservations',
+      NEXT_PUBLIC_ACCOUNTING_URL: 'https://mfr-web-preview.vercel.app/accounting',
     })
 
-    expect(mod.HOME_URL).toBe('https://staging.millerfamilyreunions.org')
-    expect(mod.RESERVATIONS_URL).toBe(
-      'https://reservations.staging.millerfamilyreunions.org/reservations',
-    )
-    expect(mod.ACCOUNTING_URL).toBe(
-      'https://accounting.staging.millerfamilyreunions.org/accounting',
-    )
+    expect(mod.HOME_URL).toBe('https://mfr-web-preview.vercel.app')
+    expect(mod.RESERVATIONS_URL).toBe('https://mfr-web-preview.vercel.app/reservations')
+    expect(mod.ACCOUNTING_URL).toBe('https://mfr-web-preview.vercel.app/accounting')
   })
 })
 

@@ -234,13 +234,13 @@ describe('cookie wiring', () => {
     expect(config.cookies?.sessionToken).not.toHaveProperty('name')
   })
 
-  it('overrides the cookie name when sessionCookieName is given (staging)', () => {
+  it('overrides the cookie name when sessionCookieName is given', () => {
     const config = createAuthConfig({
       db: fakeDb().db,
       basePath: '/api/auth',
-      sessionCookieName: 'staging.session-token',
+      sessionCookieName: 'alt.session-token',
     })
-    expect(config.cookies?.sessionToken?.name).toBe('staging.session-token')
+    expect(config.cookies?.sessionToken?.name).toBe('alt.session-token')
     expect(config.cookies?.sessionToken?.options?.domain).toBeUndefined()
   })
 

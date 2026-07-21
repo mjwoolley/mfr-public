@@ -2,7 +2,7 @@
 // persona) shows on the Albums page, the By Uploader view exposes the
 // contributor + metadata, the owner sees their lightbox controls, and the
 // gallery is gated to signed-in members. Real upload/HEIC/R2 aren't exercisable
-// in CI (no Blob token) — those are covered by integration tests + staging smoke.
+// in CI (no Blob token) — those are covered by integration tests + preview smoke.
 
 import { test, expect } from '@playwright/test'
 import { WEB_URL } from '../../playwright.config'

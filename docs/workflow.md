@@ -57,34 +57,19 @@ the family seeing it.
    | Semgrep / npm audit     | Advisory only — never block a merge                                                                                                                                     |
    | **CI OK**               | The single required status check; merge is blocked until it's green                                                                                                     |
 
-6. **Test it on staging before merging — this is the default, not an extra.**
-   While CI runs on the PR, deploy the branch to staging and exercise it on the
-   real deployed site. `staging` is a throwaway mirror — **force-push your branch
-   onto it** (which resets it to your branch on top of current `main`), rather
-   than merging into it:
+6. **Test it on the PR's own preview before merging — this is the default, not
+   an extra.** Every PR gets its own Vercel preview URL, backed by its **own**
+   Neon branch forked from `production` (real data, isolated — a preview can't
+   touch prod). Vercel posts the preview link on the PR as soon as the build
+   finishes; open it and exercise the flow you changed on the real deployed site
+   (real URL, real Vercel build, real Google OAuth through the prod redirect
+   proxy). Found a problem? Fix on the feature branch and push — the preview
+   redeploys automatically. Skip this step only for changes with no runtime
+   surface (docs, comments, CI config). See
+   [preview-deploys.md](preview-deploys.md) for how previews are wired.
 
-   ```sh
-   git push --force origin your-branch:staging   # pushing staging IS the deploy
-   ```
-
-   One branch on staging at a time (force-push replaces whatever was there — fine,
-   staging is unprotected by design). Click through the changed flow on
-   `staging.millerfamilyreunions.org` (and the reservations/accounting staging
-   subdomains if touched). Found a problem? Fix on the feature branch, push
-   (PR + CI update), force-push to `staging` again, retest. Skip this step only
-   for changes with no runtime surface (docs, comments, CI config).
-
-   **This is now enforced, not just discipline.** A required `staging-verified`
-   status is posted on every PR to `main`: it starts **pending**
-   (`staging-pending.yml`, on the PR event) and only flips **green** once your
-   branch has been pushed to `staging` and staging's post-deploy smoke passed —
-   the smoke workflow itself sets the status (`post-deploy-smoke.yml`, "Resolve
-   staging gate" step). A PR that skipped staging can't merge. For the
-   no-runtime-surface exemptions above, add the **`skip-staging`** label to the
-   PR — that turns the gate green immediately.
-
-7. **Merge the PR — that IS the production deploy.** Only after staging looks
-   good and CI is green. All three Vercel projects build and auto-promote.
+7. **Merge the PR — that IS the production deploy.** Only after the preview looks
+   good and CI is green. The Vercel project builds and auto-promotes.
 
 8. **Smoke-test production for two minutes.** Sign in on the live site and
    exercise the flow you changed. Tests can pass while production config is
@@ -96,8 +81,8 @@ the family seeing it.
    happened in a worktree, and `git fetch --prune`. As a safety net, a
    SessionStart hook (`scripts/check-stale-worktrees.sh`) flags any worktree or
    branch already merged into `main` at the start of each Claude session.
-   (No staging re-sync step: since every change is force-pushed onto `staging`
-   for testing, the next branch resets it — there's nothing to sync back.)
+   (The PR's preview and its Neon branch are torn down automatically when the PR
+   is merged or closed — nothing to clean up by hand.)
 
 **Rollback:** `vercel rollback` in the affected app's directory instantly
 restores the previous deployment; `git revert` the commit afterward (via a PR).
@@ -136,7 +121,7 @@ Notes:
 - **Never `drizzle-kit push --force`** against a real branch — it drops the
   push-only objects. Use migrations (or targeted DDL) instead.
 - The migration journal was baselined 2026-07-18: `0000` is recorded as applied
-  on the dev/staging/test/production Neon branches (they already had the tables),
+  on the dev/test/production Neon branches (they already had the tables),
   so `migrate` no-ops there and only applies genuinely new migrations.
 
 ### Refreshing dev with production data
@@ -154,70 +139,36 @@ never delivers to real recipients outside production: only prod sets
 `EMAIL_ENABLED=true`; everywhere else mail is redirected to `EMAIL_OVERRIDE_TO`
 (or dropped). Keep `EMAIL_ENABLED` unset in every local/dev env.
 
-### Staging environment (test the deployed site)
+### Preview deployments (test the deployed site)
 
-An always-online copy of the whole portal, for exercising the _deployed_ site —
-real URLs, real Vercel build, real OAuth — against a throwaway copy of
-production data, without touching the family's real data or email.
+Every PR gets its own Vercel preview of the whole portal, for exercising the
+_deployed_ site — real URL, real Vercel build, real OAuth — against an isolated
+copy of production data, without touching the family's real data or email. This
+replaces the old always-on `staging` environment: previews are per-PR and
+disposable, so PRs no longer queue through a single shared slot.
 
-- **Where it runs.** Three Vercel preview deployments of a long-lived `staging`
-  git branch, each aliased to a staging subdomain:
-  - web → `staging.millerfamilyreunions.org`
-  - reservations → `reservations.staging.millerfamilyreunions.org`
-  - accounting → `accounting.staging.millerfamilyreunions.org`
-- **Its data.** A persistent `staging` branch in each of the three Neon projects,
-  forked from `production` (so it starts with the current schema + a full copy of
-  prod data). Unlike `test`, staging is never truncated by e2e. Refresh it with a
-  fresh prod copy anytime: `./scripts/refresh-dev-from-prod.sh --target staging`
-  (snapshots each `staging` branch to `backup-staging-<stamp>` first; production
-  is only read).
-- **Deploying to it.** Force-push your branch onto the `staging` branch — that's
-  the staging deploy, the same way merging `main` is the prod deploy. This is
-  step 6 of the routine above: a feature branch is force-pushed onto `staging`
-  for live testing before it reaches `main`, resetting staging to that branch
-  (on top of current `main`). `staging` is a throwaway mirror, unprotected by
-  design — direct force-pushes, no PR ceremony, one branch at a time; every
-  commit that matters gets its review on the PR to `main`. There's no
-  main→staging re-sync — the next branch's force-push is the reset.
-- **Build gate.** Each project's Vercel _Ignored Build Step_ is
-  `if [ "$VERCEL_ENV" == "production" ] || [ "$VERCEL_GIT_COMMIT_REF" == "staging" ]; then exit 1; else exit 0; fi`
-  — it builds production and the `staging` branch, and skips every other preview
-  branch (so random PR previews don't deploy). If a staging push shows up
-  "Canceled" with a 0 ms build, this setting is why — confirm the branch is
-  literally `staging`.
-- **Privacy.** Vercel Deployment Protection was turned OFF for staging
-  (2026-07-16) — it made cross-app testing painful. The staging URLs are
-  publicly reachable, gated only by the apps' own Google auth + approval
-  status (on prod-mirrored data). If protection is ever re-enabled, the
-  web→accounting fundraising fetch breaks again — see the Trusted Sources
-  chore in [backlog.md](backlog.md) for the fix.
-- **Env vars (Vercel, scoped to Preview → the `staging` branch, ×3 apps).** A full
-  set with staging values: the `staging` Neon DB URLs; the shared identity
-  `staging` URLs and a **staging-only** `AUTH_SECRET` (identical across the three,
-  never prod's); `AUTH_COOKIE_DOMAIN=.staging.millerfamilyreunions.org` and a
-  distinct `AUTH_SESSION_COOKIE_NAME` (so prod's cookie — which rides along to
-  every `*.millerfamilyreunions.org` subdomain — is never read as a staging
-  session); staging `AUTH_URL` / `APP_BASE_URL`; the three `NEXT_PUBLIC_*_URL`
-  cross-app links pointing at the staging hosts (otherwise nav bounces you back to
-  prod); `ADDITIONAL_ALLOWED_ORIGINS` set to the staging host (else server actions
-  are rejected). Scope these to the `staging` branch so ordinary PR previews are
-  unaffected.
-- **Email safety.** Leave `EMAIL_ENABLED` **unset** on staging, exactly as for dev
-  — all mail is redirected to `EMAIL_OVERRIDE_TO`, never a real family address.
-- **Schema changes.** Migrations apply automatically on each staging deploy via
+- **Where it runs.** A Vercel preview deployment of the PR's branch on the
+  `mfr_web` project, on a `*.vercel.app` URL that Vercel posts to the PR.
+- **Its data.** The Neon–Vercel integration forks a fresh Neon branch from
+  `production` for each preview (current schema + a full copy of prod data,
+  isolated from prod). Neon auto-deletes the branch when the PR's preview is
+  removed (merge or close).
+- **Deploying to it.** Just push the PR branch — Vercel builds a preview on every
+  push. This is step 6 of the routine above. No force-push, no shared branch, no
+  ceremony; every commit that matters still gets its review on the PR to `main`.
+- **Auth.** Previews sign in through the **prod redirect proxy**: Google's
+  callback lands on prod (`AUTH_REDIRECT_PROXY_URL`), which forwards back to the
+  preview origin. Previews reuse prod's `AUTH_SECRET` + Google client (so Google
+  needs no per-preview redirect URIs) and set `AUTH_TRUST_HOST=true` so Auth.js
+  derives each preview's own origin. Details + the exact env in
+  [preview-deploys.md](preview-deploys.md).
+- **Email safety.** `EMAIL_ENABLED` is left **unset** on previews, exactly as for
+  dev — all mail is redirected to `EMAIL_OVERRIDE_TO`, never a real family
+  address.
+- **Schema changes.** Migrations apply automatically on each preview deploy via
   `vercel-build` → `db:migrate` (drizzle-orm migrator + `push-only.sql`), the same
-  as production — nothing manual. (Re-forking staging from prod via the refresh
-  script also carries the current schema.)
-- **OAuth / DNS / domains (one-time console setup).**
-  - Google OAuth client → Authorized redirect URIs (basePath differs per app):
-    `https://staging.millerfamilyreunions.org/api/auth/callback/google`,
-    `https://reservations.staging.millerfamilyreunions.org/reservations/api/auth/callback/google`,
-    `https://accounting.staging.millerfamilyreunions.org/accounting/api/auth/callback/google`;
-    add the three hosts to Authorized JavaScript origins too.
-  - Vercel: assign each staging subdomain to the project's `staging` branch
-    (Project → Settings → Domains → add domain → Git branch `staging`).
-  - DNS: point `staging`, `reservations.staging`, `accounting.staging`
-    (under millerfamilyreunions.org) at Vercel per its instructions.
+  as production — nothing manual. The forked Neon branch already carries prod's
+  current schema.
 
 ### Shared packages (`packages/ui`, `packages/auth`)
 
@@ -337,7 +288,7 @@ branch older than 24h that a crashed runner leaked.
 | Integration tests | vitest on your machine                               | `test` branch (via `TEST_*` env vars)   | destructive schema/query tests |
 | Local e2e         | `next start` ×3 via Playwright                       | `test` branch (via `E2E_*` env vars)    | full browser suite             |
 | CI                | GitHub Actions (PRs + pushes to `main`)              | ephemeral `ci-*` branches, auto-deleted | the merge gate                 |
-| Staging           | Vercel preview of the `staging` branch (×3 apps)     | `staging` branch (copy of production)   | testing the deployed site      |
+| Preview           | Vercel preview of the PR branch                      | per-PR Neon branch forked from prod     | testing the deployed site      |
 | Production        | Vercel (mfr_web / mfr_reservations / mfr_accounting) | `production` branch                     | the family                     |
 
 Neon projects: `mfr-identity` (shared Auth.js tables — sessions/users),
@@ -345,6 +296,6 @@ Neon projects: `mfr-identity` (shared Auth.js tables — sessions/users),
 production branch: `br-patient-water-ajen7oii`.
 
 **The short mnemonic: branch → build it locally on `dev` data →
-test/lint/click-through → PR → force-push to `staging` and test the deployed site →
-CI green + staging good → merge → smoke-test production → clean up the branch and
+test/lint/click-through → PR → open the PR's preview and test the deployed site →
+CI green + preview good → merge → smoke-test production → clean up the branch and
 worktree.**

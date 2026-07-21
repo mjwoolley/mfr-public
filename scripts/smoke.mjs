@@ -1,6 +1,6 @@
 // Post-deploy smoke test against a deployed base URL. Non-destructive.
 //
-//   node scripts/smoke.mjs https://staging.millerfamilyreunions.org
+//   node scripts/smoke.mjs https://<pr-preview>.vercel.app
 //   CRON_SECRET=... SMOKE_SESSION_TOKEN=... node scripts/smoke.mjs https://millerfamilyreunions.org
 //
 // Layers (each optional layer is skipped, not failed, when its secret is absent):

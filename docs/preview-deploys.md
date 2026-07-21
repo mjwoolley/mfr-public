@@ -1,8 +1,9 @@
 # Per-PR preview deployments (Phase 2) — runbook
 
 Goal: give every PR its own isolated Vercel preview URL + its own Neon database
-(forked from prod), so PRs stop queuing through the single shared `staging`
-slot, and the merge gate reduces to "smoke the PR's own preview."
+(forked from prod), so the merge gate reduces to "smoke the PR's own preview."
+Per-PR previews **replace** the old always-on `staging` environment (retired —
+see `docs/workflow.md` and the teardown checklist below).
 
 Status: **LIVE — verified 2026-07-20.** Per-PR previews build, fork their own
 Neon branch from `production` (real data), and Google sign-in completes through
@@ -57,8 +58,7 @@ vulnerability could leak them); acceptable for a private, auth-gated app, but
 - **`AUTH_SECRET` (Preview) = the Production value.** Mandatory: the proxy (prod)
   decrypts the OAuth `state` the preview created, using a shared `AUTH_SECRET`
   (`@auth/core` callback/index.js). A different secret → prod can't decode the
-  state → sign-in fails. (This differs from staging, which intentionally uses a
-  distinct secret.)
+  state → sign-in fails.
 - **`AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` (Preview) = the Production values.**
   The `redirect_uri` sent to Google is prod's callback
   (`https://millerfamilyreunions.org/api/auth/callback/google`), so the client
@@ -111,42 +111,13 @@ printf '*.vercel.app'                               | vercel env add ADDITIONAL_
 # AUTH_SECRET / AUTH_GOOGLE_ID / AUTH_GOOGLE_SECRET: copy the Production values into Preview scope
 ```
 
-### ⚠️ Don't let the proxy leak into `staging`
-
-A general **Preview** env var applies to **every** preview deployment —
-**including the `staging` branch** (staging deploys are Preview-environment
-deploys). So a blanket `AUTH_REDIRECT_PROXY_URL` would make `staging` route its
-OAuth through prod's callback while it still presents its **own** Google client →
-staging sign-in breaks.
-
-Guard against it by overriding the proxy var **on the staging branch** to point
-at staging's own origin, which makes Auth.js treat staging as the proxy itself
-(`isOnRedirectProxy` true → proxy not used):
-
-```sh
-# staging keeps behaving exactly as today
-printf 'https://staging.millerfamilyreunions.org/api/auth' \
-  | vercel env add AUTH_REDIRECT_PROXY_URL preview staging
-```
-
-`AUTH_SECRET` / `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` are already
-staging-branch-scoped, so the general (prod) values don't override staging's —
-no action needed for those. After setting env, **re-verify staging sign-in still
-works** before relaxing the build gate.
-
 ## Step 3 — Relax the Vercel Ignored Build Step (owner or CLI)
 
-Today (`docs/workflow.md`): builds only production + the `staging` branch, skips
-all other previews:
-
-```
-if [ "$VERCEL_ENV" == "production" ] || [ "$VERCEL_GIT_COMMIT_REF" == "staging" ]; then exit 1; else exit 0; fi
-```
-
-To enable per-PR previews, **clear** the Ignored Build Step (build every branch),
-or narrow it to only skip nothing relevant. Do this **last**, after Steps 1–2, so
-previews don't deploy without a DB in the meantime. (A preview without a DB fails
-closed — `client.ts` throws "DATABASE_URL is not set" — so it's safe, just noisy.)
+Previously the Ignored Build Step skipped all previews (it built only production).
+To enable per-PR previews, **clear** the Ignored Build Step so every branch
+builds. Do this **last**, after Steps 1–2, so previews don't deploy without a DB
+in the meantime. (A preview without a DB fails closed — `client.ts` throws
+"DATABASE_URL is not set" — so it's safe, just noisy.)
 
 ## Step 4 — `DIRECT_URL` mapping for migrations (likely small code follow-up)
 
@@ -159,13 +130,30 @@ name (e.g. `DATABASE_URL_UNPOOLED`), add a fallback so previews migrate:
   Confirm the actual injected name from Step 1 before implementing (TDD a tiny
   resolver, mirroring `lib/allowedOrigins.ts`).
 
-## Step 5 — Simplify the gate to the PR's own preview (follow-up PR)
+## Step 5 — Simplify the gate to the PR's own preview (done)
 
-With per-PR previews, `post-deploy-smoke.yml` can smoke the PR's **own** preview
-URL from the `deployment_status` event (the URL is on the event), making
-attribution trivial — the Phase-1 `git merge-base --is-ancestor` step can be
-removed. Keep `staging` + its DB as the final integration gate before merge
-(decided). Update `docs/workflow.md` accordingly.
+With per-PR previews, `post-deploy-smoke.yml` smokes the PR's **own** preview URL
+from the `deployment_status` event (the URL is on the event), making attribution
+trivial — the Phase-1 `git merge-base --is-ancestor` step was removed. The PR's
+preview **is** the pre-merge integration gate now; the always-on `staging`
+environment was retired in favour of it (`docs/workflow.md` updated to match).
+
+## Teardown — retiring the old `staging` environment (owner, console)
+
+Repo-side references to `staging` are gone (CI, docs, scripts, code). What's left
+is live infra only you can remove from the consoles:
+
+- **Vercel (`mfr_web`):** delete the Preview env vars scoped to the `staging`
+  branch (the `AUTH_*`, `DATABASE_URL`/`DIRECT_URL`, `NEXT_PUBLIC_*_URL`,
+  `ADDITIONAL_ALLOWED_ORIGINS` staging set), and remove the `staging.*` domains
+  assigned to the `staging` branch (Settings → Domains).
+- **Neon (`mfr`, `lucky-butterfly-29223414`):** delete the `staging` branch
+  `br-steep-glitter-ajd7qk3h` (and any leftover `backup-staging-*` snapshots).
+- **Google OAuth client:** remove the three `staging.millerfamilyreunions.org`
+  redirect URIs + JavaScript origins.
+- **DNS:** remove the `staging`, `reservations.staging`, `accounting.staging`
+  records under `millerfamilyreunions.org`.
+- **Git:** the `staging` branch is deleted as part of this PR (local + remote).
 
 ---
 

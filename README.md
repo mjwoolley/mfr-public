@@ -19,7 +19,7 @@ packages/
                   and the portal-roles model every app authorizes against
   ui/             @mfr/ui — shared "Organic" design-system components + CSS
 e2e/              Playwright browser smoke tests across all three apps
-scripts/          operational scripts (refresh dev/staging data from prod)
+scripts/          operational scripts (refresh dev data from prod)
 docs/             workflow.md (THE change workflow — read it first), backlog.md
 ```
 
@@ -43,7 +43,7 @@ consumed as raw TypeScript via `transpilePackages` — no build step.
   `pending` and see nothing until approved at `/admin/users`.
 - **Email safety**: only production sets `EMAIL_ENABLED=true`; everywhere else
   SES mail is redirected to `EMAIL_OVERRIDE_TO` (plus-addressed) or dropped, so
-  real family members can never be emailed from dev/staging/tests.
+  real family members can never be emailed from dev/previews/tests.
 
 ## Development
 
@@ -60,7 +60,7 @@ cannot be touched from here. Root commands: `npm run lint` / `typecheck` /
 `test` / `test:integration` / `test:coverage` / `format` / `e2e` / `build`.
 
 Each app's README covers its own env vars, data model, and setup. For anything
-process-related — branching, CI, schema migrations, staging, e2e, rollback —
+process-related — branching, CI, schema migrations, preview deploys, e2e, rollback —
 **[docs/workflow.md](docs/workflow.md) is the authoritative reference**:
 branch → verify locally → PR → green "CI OK" → merge (= production deploy) →
 smoke-test the live site. Feature ideas and known defects live in

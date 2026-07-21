@@ -2,9 +2,9 @@
 // reservations, accounting).
 //
 // Production values are the defaults, so a plain build with none of these env
-// vars set behaves exactly as before. Other environments (e.g. the online
-// staging deploy) override them via the matching NEXT_PUBLIC_* variable, which
-// Next inlines into each app's bundle at build time. Without this, staging's
+// vars set behaves exactly as before. Other environments (e.g. a per-PR preview
+// deploy) override them via the matching NEXT_PUBLIC_* variable, which Next
+// inlines into each app's bundle at build time. Without this, a preview's
 // cross-app links would bounce the user back to the production site.
 export const HOME_URL = process.env.NEXT_PUBLIC_HOME_URL ?? 'https://millerfamilyreunions.org'
 
