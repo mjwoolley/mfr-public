@@ -304,12 +304,17 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - name: Audit high-severity vulnerabilities
+        # `--omit=dev` scopes the tripwire to production dependencies: a red X
+        # here means a package we actually ship has a high/critical advisory —
+        # dev/build-tooling vulns (which never reach users) are reported but
+        # don't fail the check. Advisory-only regardless (not in `ci-ok`).
+        # Dependabot (alerts + security updates) is the backstop for everything.
         run: |
-          echo "## npm audit (high+)" >> "$GITHUB_STEP_SUMMARY"
+          echo "## npm audit (production, high+)" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          npm audit --audit-level=high 2>&1 | tee -a "$GITHUB_STEP_SUMMARY" || true
+          npm audit --omit=dev --audit-level=high 2>&1 | tee -a "$GITHUB_STEP_SUMMARY" || true
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          npm audit --audit-level=high
+          npm audit --omit=dev --audit-level=high
 
   # The single required status check for branch protection. Everything except
   # the advisory-only jobs (`audit`, `semgrep`) must succeed.
