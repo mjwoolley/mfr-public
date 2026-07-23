@@ -25,9 +25,9 @@
     "*.{js,mjs,json,css,md}": "prettier --write"
   },
   "dependencies": {
-    "@auth/drizzle-adapter": "^1.11.2",
+    "@auth/drizzle-adapter": "^1.11.3",
     "drizzle-orm": "^0.45.2",
-    "next-auth": "^5.0.0-beta.31",
+    "next-auth": "^5.0.0-beta.32",
     "postgres": "^3.4.9"
   },
   "peerDependencies": {
