@@ -106,12 +106,23 @@ test.describe('web portal', () => {
     await expect(page).toHaveURL(new RegExp(`^${WEB_URL}/sign-in`))
   })
 
-  test('a signed-in member sees the Documents folder', async ({ browser }) => {
-    const context = await contextFor(browser, 'member')
-    const page = await context.newPage()
-    await page.goto(`${WEB_URL}/documents`)
-    await expect(page.getByRole('link', { name: 'Open in Google Drive' })).toBeVisible()
-    await context.close()
+  test('Documents renders for a member and gates the Drive link to admins', async ({ browser }) => {
+    // Documents is now a native, in-site file browser; the outbound Drive link
+    // is editor-only. CI has no service-account key, so live folder contents
+    // aren't available here — we assert the gated page shell renders for a
+    // member (without the admin link) and that a content-admin does see it.
+    const memberCtx = await contextFor(browser, 'member')
+    const memberPage = await memberCtx.newPage()
+    await memberPage.goto(`${WEB_URL}/documents`)
+    await expect(memberPage.getByRole('heading', { name: 'Family documents.' })).toBeVisible()
+    await expect(memberPage.getByRole('link', { name: 'Manage in Google Drive' })).toHaveCount(0)
+    await memberCtx.close()
+
+    const adminCtx = await contextFor(browser, 'admin')
+    const adminPage = await adminCtx.newPage()
+    await adminPage.goto(`${WEB_URL}/documents`)
+    await expect(adminPage.getByRole('link', { name: 'Manage in Google Drive' })).toBeVisible()
+    await adminCtx.close()
   })
 
   test('Meals redirects a signed-out visitor to sign-in', async ({ page }) => {

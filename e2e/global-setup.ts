@@ -56,8 +56,9 @@ export default async function globalSetup() {
     // Pin the reunion schedule: the Meals page derives its day grid from
     // these dates, and integration suites elsewhere rewrite the settings
     // singleton — upsert known dates so the meals tests are deterministic.
-    // drive_url must be a real Drive-folder shape (id ≥ 25 chars) so the
-    // Documents page renders both the "Open in Google Drive" link and the embed.
+    // drive_url must be a real Drive-folder shape (id ≥ 25 chars) so the root
+    // folder id resolves and the admin-only "Manage in Google Drive" link renders.
+    // (Live folder contents need a service-account key, which CI does not have.)
     const driveUrl = 'https://drive.google.com/drive/folders/1A2B3C4D5E6F7G8H9I0J1K2L3M4N5O6P7'
     await sql`
       INSERT INTO portal_settings (id, reunion_year, reunion_start, reunion_end, drive_url)
