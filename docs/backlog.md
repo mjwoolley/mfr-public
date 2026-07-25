@@ -172,7 +172,9 @@ Safe to delete once the imported shareholder data is confirmed correct in the li
 Project `nameless-fog-46521987`.
 
 **Do NOT delete — live/working branches:** `production` (`br-proud-wind-a642mkzo`),
-`test` (`br-soft-river-a6nrmqkb`), `dev` (`br-wild-surf-a6w3iro4`, the default branch).
+`test` (`br-soft-river-a6nrmqkb`), `dev` (`br-wild-surf-a6w3iro4`, the default branch),
+and the permanent gold copy `gold-2026-07-13-full-history` (`br-spring-forest-a6dbuc8q`) —
+snapshot of production taken 2026-07-13 after the full contributions + expenses history import.
 
 Backup branches to delete:
 
