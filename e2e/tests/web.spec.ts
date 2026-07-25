@@ -106,23 +106,20 @@ test.describe('web portal', () => {
     await expect(page).toHaveURL(new RegExp(`^${WEB_URL}/sign-in`))
   })
 
-  test('Documents renders for a member and gates the Drive link to admins', async ({ browser }) => {
-    // Documents is now a native, in-site file browser; the outbound Drive link
-    // is editor-only. CI has no service-account key, so live folder contents
-    // aren't available here — we assert the gated page shell renders for a
-    // member (without the admin link) and that a content-admin does see it.
-    const memberCtx = await contextFor(browser, 'member')
-    const memberPage = await memberCtx.newPage()
-    await memberPage.goto(`${WEB_URL}/documents`)
-    await expect(memberPage.getByRole('heading', { name: 'Family documents.' })).toBeVisible()
-    await expect(memberPage.getByRole('link', { name: 'Manage in Google Drive' })).toHaveCount(0)
-    await memberCtx.close()
-
-    const adminCtx = await contextFor(browser, 'admin')
-    const adminPage = await adminCtx.newPage()
-    await adminPage.goto(`${WEB_URL}/documents`)
-    await expect(adminPage.getByRole('link', { name: 'Manage in Google Drive' })).toBeVisible()
-    await adminCtx.close()
+  test('Documents renders the in-site browser with no outbound Drive link', async ({ browser }) => {
+    // Documents is a native, in-site file browser: files view inline or download
+    // through the site, and the old admin-only "Manage in Google Drive" button is
+    // gone for everyone. CI has no service-account key, so live folder contents
+    // aren't available here — we assert the gated page shell renders for both a
+    // member and a content-admin, and neither is offered the outbound link.
+    for (const role of ['member', 'admin'] as const) {
+      const ctx = await contextFor(browser, role)
+      const page = await ctx.newPage()
+      await page.goto(`${WEB_URL}/documents`)
+      await expect(page.getByRole('heading', { name: 'Family documents.' })).toBeVisible()
+      await expect(page.getByRole('link', { name: 'Manage in Google Drive' })).toHaveCount(0)
+      await ctx.close()
+    }
   })
 
   test('Meals redirects a signed-out visitor to sign-in', async ({ page }) => {

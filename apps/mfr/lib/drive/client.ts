@@ -7,10 +7,14 @@
 // anything outside the configured root folder.
 
 import { GoogleAuth } from 'google-auth-library'
+import { FOLDER_MIME, GOOGLE_EXPORT, DEFAULT_EXPORT, isGoogleNative } from './mime'
+
+// Re-exported so existing server-side importers keep working; the client-safe
+// definitions live in ./mime (no google-auth-library) — see viewable.ts.
+export { finalContentType } from './mime'
 
 const DRIVE_API = 'https://www.googleapis.com/drive/v3'
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly'
-const FOLDER_MIME = 'application/vnd.google-apps.folder'
 
 /** A folder id is a long (25+) base64url-ish token; this pulls it out of any
  * pasted folder URL shape (`/folders/<id>` or `/folders/<id>?usp=sharing`). */
@@ -62,22 +66,6 @@ export class DriveNotWithinRootError extends Error {
     this.name = 'DriveNotWithinRootError'
   }
 }
-
-// Google-native docs cannot be downloaded raw (`alt=media`); they must be
-// exported to a real format.
-const GOOGLE_EXPORT: Record<string, { mimeType: string; ext: string }> = {
-  'application/vnd.google-apps.document': { mimeType: 'application/pdf', ext: '.pdf' },
-  'application/vnd.google-apps.spreadsheet': {
-    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    ext: '.xlsx',
-  },
-  'application/vnd.google-apps.presentation': { mimeType: 'application/pdf', ext: '.pdf' },
-  'application/vnd.google-apps.drawing': { mimeType: 'image/png', ext: '.png' },
-}
-const DEFAULT_EXPORT = { mimeType: 'application/pdf', ext: '.pdf' }
-
-const isGoogleNative = (mimeType: string) =>
-  mimeType.startsWith('application/vnd.google-apps.') && mimeType !== FOLDER_MIME
 
 // ── TTL cache ─────────────────────────────────────────────────────────────────
 // Per-instance, keyed by id. Serverless instances share it across requests; a

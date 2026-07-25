@@ -89,6 +89,53 @@ describe('GET /api/documents/download', () => {
     expect(res.headers.get('Content-Length')).toBeNull()
   })
 
+  it('serves a viewable file inline with hardening headers when inline=1', async () => {
+    approvedWithFolder()
+    drive.assertWithinRoot.mockResolvedValue(undefined)
+    drive.getFileMeta.mockResolvedValue({
+      id: 'f1',
+      name: 'Bylaws.pdf',
+      mimeType: 'application/pdf',
+      size: 2048,
+      parents: ['root'],
+    })
+    drive.fetchFileContent.mockResolvedValue({
+      body: 'bytes' as unknown as ReadableStream,
+      contentType: 'application/pdf',
+      contentLength: 2048,
+      exportExtension: '',
+    })
+
+    const res = await GET(req('?id=f1&inline=1'))
+    expect(res.status).toBe(200)
+    expect(res.headers.get('Content-Disposition')).toMatch(/^inline;/)
+    expect(res.headers.get('X-Content-Type-Options')).toBe('nosniff')
+    expect(res.headers.get('Content-Security-Policy')).toBe('sandbox')
+  })
+
+  it('falls back to attachment for a non-viewable file even with inline=1', async () => {
+    approvedWithFolder()
+    drive.assertWithinRoot.mockResolvedValue(undefined)
+    drive.getFileMeta.mockResolvedValue({
+      id: 'd1',
+      name: 'Minutes.docx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      size: 4096,
+      parents: ['root'],
+    })
+    drive.fetchFileContent.mockResolvedValue({
+      body: 'bytes' as unknown as ReadableStream,
+      contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      contentLength: 4096,
+      exportExtension: '',
+    })
+
+    const res = await GET(req('?id=d1&inline=1'))
+    expect(res.headers.get('Content-Disposition')).toMatch(/^attachment;/)
+    expect(res.headers.get('X-Content-Type-Options')).toBeNull()
+    expect(res.headers.get('Content-Security-Policy')).toBeNull()
+  })
+
   it('returns 404 for a file outside the root subtree (never confirms existence)', async () => {
     approvedWithFolder()
     drive.assertWithinRoot.mockRejectedValue(new DriveNotWithinRootError('secret'))

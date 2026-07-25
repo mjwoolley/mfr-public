@@ -13,6 +13,7 @@ import {
   DriveNotWithinRootError,
   DriveApiError,
 } from '@/lib/drive/client'
+import { viewerKind } from '@/lib/drive/viewable'
 
 const FOLDER_MIME = 'application/vnd.google-apps.folder'
 
@@ -41,14 +42,30 @@ export async function GET(request: Request): Promise<Response> {
 
     const dl = await drive.fetchFileContent(id, meta.mimeType)
     const filename = sanitize(meta.name + dl.exportExtension)
+
+    // `?inline=1` asks to preview in the browser, but only the safelisted
+    // viewable types are ever served inline (never html/svg — see viewerKind).
+    // Everything else falls back to a download, so the param can never turn an
+    // unsafe file into an inline response.
+    const wantsInline = new URL(request.url).searchParams.get('inline') === '1'
+    const canInline = wantsInline && viewerKind(dl.contentType) !== null
+    const disposition = canInline ? 'inline' : 'attachment'
+
     const headers = new Headers({
       'Content-Type': dl.contentType,
       // ASCII fallback + UTF-8 form for non-ASCII names.
-      'Content-Disposition': `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(
+      'Content-Disposition': `${disposition}; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(
         filename,
       )}`,
       'Cache-Control': 'private, no-store',
     })
+    if (canInline) {
+      // Defence in depth on top of the type safelist: forbid MIME sniffing and
+      // sandbox the resource so an embedded file cannot run script or navigate
+      // in our origin.
+      headers.set('X-Content-Type-Options', 'nosniff')
+      headers.set('Content-Security-Policy', 'sandbox')
+    }
     if (dl.contentLength != null) headers.set('Content-Length', String(dl.contentLength))
     return new Response(dl.body, { status: 200, headers })
   } catch (err) {

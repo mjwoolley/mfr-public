@@ -1,8 +1,10 @@
 // Members-only Documents page. Reads the shared Google Drive folder (and its
 // subfolders) through the service-account Drive client and renders a native,
 // navigable file browser. Members never touch Drive directly: folders navigate
-// in-page via ?folder=<id> and files download through /api/documents/download,
-// which proxies the bytes. Site auth (requireApproved) is the only gate.
+// in-page via ?folder=<id>, files view inline or download through
+// /api/documents/download, which proxies the bytes. Site auth (requireApproved)
+// is the only gate. Row rendering + the inline viewer live in the client
+// component DocumentsBrowser; this server component fetches and lays out.
 
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -16,32 +18,12 @@ import {
   type DriveEntry,
   type Crumb,
 } from '@/lib/drive/client'
+import { DocumentsBrowser } from './DocumentsBrowser'
 
 export const metadata: Metadata = { title: 'Documents' }
 
 // Route handlers/pages that read live Drive data must never be prerendered.
 export const dynamic = 'force-dynamic'
-
-function formatBytes(bytes: number | null): string {
-  if (bytes == null) return ''
-  if (bytes < 1024) return `${bytes} B`
-  const units = ['KB', 'MB', 'GB']
-  let value = bytes / 1024
-  let i = 0
-  while (value >= 1024 && i < units.length - 1) {
-    value /= 1024
-    i++
-  }
-  return `${value.toFixed(value < 10 ? 1 : 0)} ${units[i]}`
-}
-
-function formatDate(iso: string | null): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  return Number.isNaN(d.getTime())
-    ? ''
-    : d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-}
 
 const FolderIcon = () => (
   <svg
@@ -56,23 +38,6 @@ const FolderIcon = () => (
     aria-hidden="true"
   >
     <path d="M4 7a2 2 0 0 1 2-2h3l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
-  </svg>
-)
-
-const FileIcon = () => (
-  <svg
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M14 3v4a1 1 0 0 0 1 1h4" />
-    <path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z" />
   </svg>
 )
 
@@ -103,53 +68,6 @@ function Breadcrumb({ crumbs }: { crumbs: Crumb[] }) {
   )
 }
 
-function EntryRow({ entry }: { entry: DriveEntry }) {
-  const meta = [formatBytes(entry.size), formatDate(entry.modifiedTime)].filter(Boolean).join(' · ')
-  const href = entry.isFolder
-    ? `/documents?folder=${entry.id}`
-    : `/api/documents/download?id=${entry.id}`
-  const inner = (
-    <>
-      <span
-        className="flex items-center justify-center shrink-0"
-        style={{
-          width: 38,
-          height: 38,
-          borderRadius: 10,
-          background: entry.isFolder ? 'var(--color-accent-2-100)' : 'var(--color-neutral-100)',
-          color: entry.isFolder ? 'var(--color-accent-2-700)' : 'var(--color-neutral-700)',
-        }}
-      >
-        {entry.isFolder ? <FolderIcon /> : <FileIcon />}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate" style={{ fontWeight: 600, color: 'var(--color-text)' }}>
-          {entry.name}
-        </span>
-        {meta && (
-          <span className="block text-xs" style={{ color: 'var(--color-neutral-700)' }}>
-            {meta}
-          </span>
-        )}
-      </span>
-      <span className="shrink-0 text-xs" style={{ color: 'var(--color-neutral-700)' }}>
-        {entry.isFolder ? 'Open' : 'Download'}
-      </span>
-    </>
-  )
-  const className = 'doc-row flex items-center gap-3.5 px-3.5 py-2.5'
-  const style = { borderRadius: 12 } as const
-  return entry.isFolder ? (
-    <Link href={href} className={className} style={style}>
-      {inner}
-    </Link>
-  ) : (
-    <a href={href} className={className} style={style}>
-      {inner}
-    </a>
-  )
-}
-
 export default async function DocumentsPage({
   searchParams,
 }: {
@@ -158,6 +76,7 @@ export default async function DocumentsPage({
   const session = await requireApproved()
   const settings = await getPortalSettings()
   const rootId = extractDriveFolderId(settings.driveUrl)
+  // Kept for the admin-only wording in the load-failed hint below.
   const isAdmin = canManagePortalContent(session.user.roles)
 
   const { folder } = await searchParams
@@ -194,52 +113,28 @@ export default async function DocumentsPage({
       className="mx-auto max-w-5xl px-7 pt-6 pb-2"
       style={{ animation: 'fadeup .4s ease both' }}
     >
-      <div className="mb-2 flex flex-wrap items-end gap-5">
-        <div>
-          <div
-            className="text-xs font-bold uppercase"
-            style={{ letterSpacing: '.22em', color: 'var(--color-accent-700)' }}
-          >
-            Shared files
-          </div>
-          <h1 className="mt-2.5" style={{ fontSize: 'clamp(34px,4.4vw,46px)', lineHeight: 1.05 }}>
-            Family documents.
-          </h1>
-          <p
-            className="mt-3 max-w-xl"
-            style={{
-              fontSize: 16,
-              lineHeight: 1.65,
-              color: 'color-mix(in srgb, var(--color-text) 78%, transparent)',
-            }}
-          >
-            Bylaws, meeting notes, budgets and more &mdash; browse the folders below and open any
-            file to download it. Everything is read straight from the family Google&nbsp;Drive.
-          </p>
+      <div className="mb-2">
+        <div
+          className="text-xs font-bold uppercase"
+          style={{ letterSpacing: '.22em', color: 'var(--color-accent-700)' }}
+        >
+          Shared files
         </div>
-        {isAdmin && settings.driveUrl && (
-          <a
-            href={settings.driveUrl}
-            target="_blank"
-            rel="noopener"
-            className="btn btn-primary ml-auto"
-            style={{ fontFamily: 'var(--font-body)', fontWeight: 700 }}
-          >
-            <svg
-              width="17"
-              height="17"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M4 7a2 2 0 0 1 2-2h3l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
-            </svg>
-            Manage in Google Drive
-          </a>
-        )}
+        <h1 className="mt-2.5" style={{ fontSize: 'clamp(34px,4.4vw,46px)', lineHeight: 1.05 }}>
+          Family documents.
+        </h1>
+        <p
+          className="mt-3 max-w-xl"
+          style={{
+            fontSize: 16,
+            lineHeight: 1.65,
+            color: 'color-mix(in srgb, var(--color-text) 78%, transparent)',
+          }}
+        >
+          Bylaws, meeting notes, budgets and more &mdash; browse the folders below and open any file
+          to view it here or download it. Everything is read straight from the family
+          Google&nbsp;Drive.
+        </p>
       </div>
 
       {rootId && !loadFailed && <Breadcrumb crumbs={crumbs} />}
@@ -247,11 +142,7 @@ export default async function DocumentsPage({
       {/* Populated folder view */}
       {rootId && !loadFailed && entries.length > 0 && (
         <div className="card elev-sm bg-white mt-4" style={{ padding: 8 }}>
-          <div className="flex flex-col">
-            {entries.map((entry) => (
-              <EntryRow key={entry.id} entry={entry} />
-            ))}
-          </div>
+          <DocumentsBrowser entries={entries} />
         </div>
       )}
 
