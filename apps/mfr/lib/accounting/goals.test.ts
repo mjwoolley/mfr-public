@@ -2,12 +2,16 @@ import { describe, expect, it } from 'vitest'
 import { computeGoalProgress } from './goals'
 
 describe('computeGoalProgress', () => {
-  it('reports percent funded and dollars to go', () => {
+  it('reports percent funded and shares to go', () => {
     expect(computeGoalProgress(12000, 3000)).toEqual({
       pct: 25,
       remaining: 9000,
-      note: '25% funded · $9,000 to go',
+      note: '25% funded · 9,000 shares to go',
     })
+  })
+
+  it('states the remainder as a count, not a dollar amount', () => {
+    expect(computeGoalProgress(12000, 3000).note).not.toContain('$')
   })
 
   it('clamps percent at 100 and remaining at 0 when the goal is exceeded', () => {

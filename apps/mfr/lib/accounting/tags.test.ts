@@ -4,13 +4,15 @@ import {
   expenseCategoryTag,
   approvalStatusTag,
   EXPENSE_CATEGORY_LABELS,
+  IN_KIND_TAG,
 } from './tags'
 import type { ExpenseCategory } from '@/lib/accounting/enums'
 
 describe('transactionTypeTag', () => {
   it('maps every transaction type to a label + Organic tag class', () => {
+    // The DB enum is still CONTRIBUTION; the family reads "Share purchase".
     expect(transactionTypeTag('CONTRIBUTION')).toEqual({
-      label: 'Contribution',
+      label: 'Share purchase',
       className: 'tag tag-accent-2',
     })
     expect(transactionTypeTag('TRANSFER')).toEqual({
@@ -25,6 +27,12 @@ describe('transactionTypeTag', () => {
       label: 'Correction',
       className: 'tag tag-accent',
     })
+  })
+})
+
+describe('IN_KIND_TAG', () => {
+  it('is one shared definition, so all five render sites agree', () => {
+    expect(IN_KIND_TAG).toEqual({ label: 'In kind', className: 'tag tag-outline' })
   })
 })
 
