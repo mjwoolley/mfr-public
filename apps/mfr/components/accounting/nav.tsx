@@ -36,10 +36,15 @@ export async function Nav() {
         : Promise.resolve(0),
     ])
 
-    tabs = [
-      { href: '/accounting/dashboard', label: 'Dashboard' },
-      { href: '/accounting/inbox', label: 'Inbox', badge: pendingCount },
-    ]
+    // Dashboard and Inbox are personal views ("your shares", "your approvals"),
+    // so they only appear once a Shareholder record is linked. Everyone else
+    // still gets the shared books below.
+    tabs = shareholderId
+      ? [
+          { href: '/accounting/dashboard', label: 'Dashboard' },
+          { href: '/accounting/inbox', label: 'Inbox', badge: pendingCount },
+        ]
+      : []
     // Contributions is visible to everyone unless the admins-only toggle is
     // set — then only admins see it, marked with a lock.
     if (settings.contributionsVisibleToAll || isAccountingAdmin) {

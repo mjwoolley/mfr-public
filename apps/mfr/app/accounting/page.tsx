@@ -10,5 +10,7 @@ export default async function Home() {
   if (session.user.status !== 'approved') redirect('/accounting/pending')
   if (canAdminAccounting(session.user.roles)) redirect('/accounting/activity')
   if (session.user.shareholderId) redirect('/accounting/dashboard')
-  redirect('/accounting/unauthorized')
+  // Approved but not linked to a Shareholder: no personal dashboard to show, so
+  // land them on the shared books instead of turning them away.
+  redirect('/accounting/contributions')
 }
