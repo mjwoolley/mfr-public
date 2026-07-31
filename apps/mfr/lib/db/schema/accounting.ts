@@ -83,6 +83,13 @@ export const transaction = pgTable(
       .$defaultFn(() => createId()),
     type: transactionType().notNull(),
     description: text(),
+    // A non-cash share purchase — goods or labour rather than money. Lives on
+    // the transaction (like `description`, which it makes mandatory) rather
+    // than the ledger entry: it describes the purchase event, and every display
+    // surface already loads the transaction row. NOT NULL DEFAULT false so
+    // Postgres adds it without rewriting the table and pre-existing code that
+    // omits it on INSERT still works during a rollback window.
+    inKind: boolean().default(false).notNull(),
     createdAt: timestamp({ precision: 3, mode: 'date' })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
