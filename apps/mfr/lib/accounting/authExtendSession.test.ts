@@ -73,20 +73,53 @@ describe('extendSession', () => {
     expect(captured.extendSession).toBeTypeOf('function')
   })
 
-  it('attaches null when the user has no email', async () => {
+  it('attaches null when the user has no email and nothing is linked to them', async () => {
+    findFirst.mockResolvedValue(null)
     const s = session()
     await captured.extendSession!(s, { id: 'u1', email: null })
 
     expect(s.user.shareholderId).toBeNull()
-    expect(findFirst).not.toHaveBeenCalled()
+    // No email lookup — straight to the by-userId fallback.
+    expect(findFirst).toHaveBeenCalledTimes(1)
+    expect(findFirst).toHaveBeenCalledWith({ where: eq(shareholder.userId, 'u1') })
   })
 
-  it('attaches null when no shareholder matches the email', async () => {
+  it('attaches null when no shareholder matches the email and none is linked to them', async () => {
     findFirst.mockResolvedValue(null)
     const s = session()
     await captured.extendSession!(s, { id: 'u1', email: 'nobody@example.com' })
 
     expect(s.user.shareholderId).toBeNull()
+  })
+
+  // The regression that made linking-by-name a no-op: an admin links a
+  // household Shareholder whose email is the *other* spouse's, so the email
+  // lookup finds nothing and the manual link has to be read back by user id.
+  it('falls back to a shareholder linked by user id when the emails differ', async () => {
+    findFirst
+      .mockResolvedValueOnce(null) // no Shareholder has michele@example.com
+      .mockResolvedValueOnce({ id: 'sh_household', userId: 'u1' })
+    const s = session()
+
+    await captured.extendSession!(s, { id: 'u1', email: 'michele@example.com' })
+
+    expect(s.user.shareholderId).toBe('sh_household')
+    expect(findFirst).toHaveBeenNthCalledWith(1, {
+      where: eq(shareholder.email, 'michele@example.com'),
+    })
+    expect(findFirst).toHaveBeenNthCalledWith(2, { where: eq(shareholder.userId, 'u1') })
+    // The fallback only reads; it must never rewrite the household's email.
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  it('prefers the email match over the by-userId fallback', async () => {
+    findFirst.mockResolvedValue({ id: 'sh_by_email', userId: 'u1' })
+    const s = session()
+
+    await captured.extendSession!(s, { id: 'u1', email: 'a@b.c' })
+
+    expect(s.user.shareholderId).toBe('sh_by_email')
+    expect(findFirst).toHaveBeenCalledTimes(1)
   })
 
   it('lowercases the email for the lookup', async () => {

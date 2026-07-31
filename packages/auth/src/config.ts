@@ -35,8 +35,17 @@ export interface CreateAuthConfigOptions {
    */
   sessionCookieName?: string
   pages?: NextAuthConfig['pages']
-  /** Runs once, when the Auth.js adapter creates a brand-new identity row. */
-  onUserCreated?: (user: { id: string; email: string }) => Promise<void> | void
+  /**
+   * Runs once, when the Auth.js adapter creates a brand-new identity row.
+   * `name` is whatever Google supplied and can be absent, so treat it as a
+   * hint (it drives the signup notification and shareholder name-matching),
+   * never as an identifier.
+   */
+  onUserCreated?: (user: {
+    id: string
+    email: string
+    name?: string | null
+  }) => Promise<void> | void
   /**
    * Runs on every session read, after the shared fields are attached — lets
    * an app attach its own business-DB-derived fields (e.g. accounting's
@@ -154,7 +163,8 @@ export function createAuthConfig(opts: CreateAuthConfigOptions): NextAuthConfig 
         }
       },
       async createUser({ user }) {
-        if (user.id && user.email) await opts.onUserCreated?.({ id: user.id, email: user.email })
+        if (user.id && user.email)
+          await opts.onUserCreated?.({ id: user.id, email: user.email, name: user.name })
       },
     },
   }
