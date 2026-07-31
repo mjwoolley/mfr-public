@@ -7,13 +7,9 @@ import { desc } from 'drizzle-orm'
 import { formatDate } from '@/lib/accounting/format'
 import { expenseCategoryTag } from '@/lib/accounting/tags'
 import { ExpensesAdminClient, type ExpenseRow } from './expenses-client'
+import { formatUSD0 } from '@/lib/accounting/format'
 
-const usd0 = (n: number) =>
-  new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(n)
+const usd0 = formatUSD0
 
 export default async function AdminExpensesPage() {
   const expenses = await db.query.expense.findMany({

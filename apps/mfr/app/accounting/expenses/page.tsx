@@ -4,6 +4,7 @@
 // only one side still gets a row.
 
 import { requireAuthorized } from '@/lib/accounting/authz'
+import { formatUSD0, signedUSD0 } from '@/lib/accounting/format'
 import { db } from '@/lib/db/client'
 import { expense } from '@/lib/db/schema'
 import { desc } from 'drizzle-orm'
@@ -16,15 +17,13 @@ import { expenseCategoryTag } from '@/lib/accounting/tags'
 import { IncomeExpenseChart } from './income-expense-chart'
 import { FiscalYearNote } from '@/components/accounting/FiscalYearNote'
 
-const usd0 = (n: number) =>
-  new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(n)
+// This page is the one place that deliberately compares money in against money
+// out, so it stays in dollars while the rest of the ledger speaks in shares —
+// see the note at the top of lib/accounting/expenseChart.ts.
+const usd0 = formatUSD0
 
 const negUsd = (n: number) => (n ? `−${usd0(n)}` : '—')
-const signed = (n: number) => (n >= 0 ? '+' : '') + usd0(n)
+const signed = signedUSD0
 
 // The chart starts at FY2020 so the recent operating picture stays legible;
 // decades of founding-era contributions live in the table below instead.
@@ -102,7 +101,7 @@ export default async function ExpensesPage() {
               <thead>
                 <tr>
                   <th>Fiscal year</th>
-                  <th className="num">Contributions in</th>
+                  <th className="num">Share purchases in</th>
                   <th className="num">Operating out</th>
                   <th className="num">Capital investment</th>
                   <th className="num">Net</th>

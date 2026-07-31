@@ -11,13 +11,14 @@ import { db } from '@/lib/db/client'
 import { shareholder, transaction, ledgerEntry, transactionApproval } from '@/lib/db/schema'
 import { requireAdmin } from '@/lib/accounting/authz'
 import { sendEmail, appUrl } from '@/lib/accounting/email'
-import { formatUSD, formatDate } from '@/lib/accounting/format'
+import { formatShares, formatDate } from '@/lib/accounting/format'
+import { parseTransactionDate } from '@/lib/accounting/transactionDate'
 import { AdjustmentNotification } from '@/emails/accounting/AdjustmentNotification'
 import { TransactionType } from '@/lib/accounting/enums'
 
 const schema = z.object({
   shareholderId: z.string().min(1, 'Select a shareholder'),
-  amount: z.coerce.number().refine((n) => n !== 0, 'Amount must not be zero'),
+  amount: z.coerce.number().refine((n) => n !== 0, 'Shares must not be zero'),
   description: z.string().trim().min(1, 'A description is required'),
 })
 
@@ -39,6 +40,11 @@ export async function createAdjustment(
   }
   const { shareholderId, amount, description } = parsed.data
 
+  // Adjustments exist to reconcile historical imports, which is exactly when
+  // "as of" matters. Parsed before any DB read so a bad date costs nothing.
+  const date = parseTransactionDate(formData.get('date'))
+  if (!date.ok) return { error: date.error }
+
   const shareholderRow = await db.query.shareholder.findFirst({
     where: eq(shareholder.id, shareholderId),
   })
@@ -52,6 +58,7 @@ export async function createAdjustment(
       .values({
         type: TransactionType.ADJUSTMENT,
         description,
+        ...(date.date ? { createdAt: date.date } : {}),
         createdById: session.user.id,
         createdByName: session.user.name ?? null,
         createdByEmail: session.user.email ?? null,
@@ -61,10 +68,12 @@ export async function createAdjustment(
       transactionId: t.id,
       shareholderId: shareholderRow.id,
       shares: amount.toString(),
+      createdAt: t.createdAt,
     })
     await tx.insert(transactionApproval).values({
       transactionId: t.id,
       shareholderId: shareholderRow.id,
+      createdAt: t.createdAt,
     })
     return t
   })
@@ -73,10 +82,10 @@ export async function createAdjustment(
   if (shareholderRow.email) {
     await sendEmail({
       to: shareholderRow.email,
-      subject: `Balance adjustment of ${formatUSD(amount)} recorded`,
+      subject: `Balance adjustment of ${formatShares(amount)} shares recorded`,
       react: AdjustmentNotification({
         shareholderName: shareholderRow.name,
-        amount: formatUSD(amount),
+        amount: `${formatShares(amount)} shares`,
         description,
         date: formatDate(createdTransaction.createdAt),
         adminName: session.user.name ?? session.user.email ?? 'The admin',

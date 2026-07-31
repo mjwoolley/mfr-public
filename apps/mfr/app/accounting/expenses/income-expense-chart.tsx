@@ -27,7 +27,7 @@ export function IncomeExpenseChart({ data }: { data: YearFinancials[] }) {
             className="h-[13px] w-[13px] rounded"
             style={{ background: SERIES_COLORS.contributions }}
           />
-          Contributions in
+          Share purchases in
         </span>
         <span className="flex items-center gap-[7px] text-[13px]">
           <span

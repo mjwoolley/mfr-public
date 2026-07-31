@@ -1,5 +1,5 @@
 // The accounting second-level sub-tab row (server component): assembles the tab
-// list from the session — inbox badge count, the Contributions visibility
+// list from the session — inbox badge count, the Share purchases visibility
 // toggle (lock glyph when admins-only), and the Admin tab for accounting
 // admins (portal roles). The primary nav + header come from the app root layout.
 
@@ -40,12 +40,12 @@ export async function Nav() {
       { href: '/accounting/dashboard', label: 'Dashboard' },
       { href: '/accounting/inbox', label: 'Inbox', badge: pendingCount },
     ]
-    // Contributions is visible to everyone unless the admins-only toggle is
+    // Share purchases is visible to everyone unless the admins-only toggle is
     // set — then only admins see it, marked with a lock.
     if (settings.contributionsVisibleToAll || isAccountingAdmin) {
       tabs.push({
         href: '/accounting/contributions',
-        label: 'Contributions',
+        label: 'Share purchases',
         lock: !settings.contributionsVisibleToAll,
       })
     }

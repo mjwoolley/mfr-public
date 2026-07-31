@@ -43,7 +43,7 @@ export function VenmoDialogButton({ qrDataUrl, venmoUrl, venmoHandle }: VenmoDia
         <ModalDialog title="Contribute via Venmo" onClose={() => setOpen(false)}>
           <p className="text-muted m-0 text-sm">
             Scan with your phone&apos;s camera or the Venmo app to chip in toward this year&apos;s
-            goal. Contributions are recorded to the ledger once received.
+            goal. Share purchases are recorded to the ledger once received.
           </p>
           <div className="flex justify-center py-1.5">
             {/* eslint-disable-next-line @next/next/no-img-element -- data URL QR, no optimization possible */}

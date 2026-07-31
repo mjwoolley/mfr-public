@@ -1,10 +1,13 @@
 'use client'
 
 // Admin transactions view (client half): the table plus the four record
-// dialogs (contribution / transfer / adjustment / correction), each wired to
+// dialogs (share purchase / transfer / adjustment / correction), each wired to
 // its server action. The correction dialog posts one `amount_<shareholderId>`
 // field per entry on the original — the convention actions/corrections.ts
 // parses.
+//
+// Amounts are share counts, posted (still) as `amount`; the wire names are
+// internal and renaming them buys nothing.
 
 import { useActionState, useEffect, useState } from 'react'
 import { ModalDialog } from '@mfr/ui'
@@ -12,6 +15,13 @@ import { createContribution } from '@/actions/accounting/contributions'
 import { createTransfer } from '@/actions/accounting/transfers'
 import { createAdjustment } from '@/actions/accounting/adjustments'
 import { createCorrection } from '@/actions/accounting/corrections'
+import { IN_KIND_TAG } from '@/lib/accounting/tags'
+import {
+  fiscalYearForInput,
+  fiscalYearSpanLabel,
+  todayInputValue,
+} from '@/lib/accounting/transactionDate'
+import { fiscalYearLabel } from '@/lib/accounting/fiscalYear'
 
 type ActionState = { error?: string; success?: boolean } | undefined
 type FormAction = (prevState: ActionState, formData: FormData) => Promise<ActionState>
@@ -21,7 +31,10 @@ export interface TxRow {
   typeLabel: string
   typeClassName: string
   dateFmt: string
+  /** The transaction's date as YYYY-MM-DD, for the correction dialog default. */
+  dateInput: string
   description: string | null
+  inKind: boolean
   recordedBy: string
   correctsNote: string
   deleted: boolean
@@ -103,7 +116,7 @@ function ShareholderSelect({
   )
 }
 
-function AmountField({ label, allowNegative }: { label: string; allowNegative?: boolean }) {
+function SharesField({ label, allowNegative }: { label: string; allowNegative?: boolean }) {
   return (
     <div className="field">
       <label htmlFor="tx-amount">{label}</label>
@@ -120,12 +133,47 @@ function AmountField({ label, allowNegative }: { label: string; allowNegative?: 
   )
 }
 
+/**
+ * The transaction date, defaulting to today (or the original's date, when
+ * correcting). Below it, a live note saying which fiscal year the chosen date
+ * lands in — the year runs Mar 1 to end of Feb, which is exactly where a
+ * back-dating admin will slip, and it silently moves money between years.
+ */
+function DateField({ defaultValue }: { defaultValue?: string }) {
+  const [today] = useState(() => todayInputValue())
+  const [value, setValue] = useState(defaultValue ?? today)
+  const fy = fiscalYearForInput(value)
+
+  return (
+    <div className="field">
+      <label htmlFor="tx-date">Date</label>
+      <input
+        id="tx-date"
+        name="date"
+        className="input"
+        type="date"
+        value={value}
+        max={today}
+        onChange={(e) => setValue(e.target.value)}
+        required
+      />
+      {fy !== null && (
+        <p className="text-muted m-0 mt-1 text-xs">
+          Lands in {fiscalYearLabel(fy)} ({fiscalYearSpanLabel(fy)})
+        </p>
+      )}
+    </div>
+  )
+}
+
 function DescriptionField({
   required,
   label = 'Description',
+  placeholder = 'What is this for?',
 }: {
   required: boolean
   label?: string
+  placeholder?: string
 }) {
   return (
     <div className="field">
@@ -134,10 +182,41 @@ function DescriptionField({
         id="tx-description"
         name="description"
         className="input"
-        placeholder="What is this for?"
+        placeholder={placeholder}
         required={required}
       />
     </div>
+  )
+}
+
+/**
+ * The share-purchase dialog's body. Its own component so the In-kind checkbox
+ * can drive the Description field's `required` — an in-kind purchase is goods
+ * or labour, so the ledger is meaningless without a note of what came in.
+ * (The server re-checks; this is just immediate feedback.)
+ */
+function SharePurchaseFields({ shareholders }: { shareholders: Shareholder[] }) {
+  const [inKind, setInKind] = useState(false)
+  return (
+    <>
+      <ShareholderSelect name="shareholderId" label="Shareholder" shareholders={shareholders} />
+      <DateField />
+      <SharesField label="Shares" />
+      <input type="hidden" name="inKind" value={inKind ? 'true' : 'false'} />
+      <label className="flex items-center gap-2 text-sm font-semibold">
+        <input
+          type="checkbox"
+          checked={inKind}
+          onChange={(e) => setInKind(e.target.checked)}
+          aria-label="In kind"
+        />
+        In kind (goods or services, not cash)
+      </label>
+      <DescriptionField
+        required={inKind}
+        placeholder={inKind ? 'What was contributed?' : 'What is this for?'}
+      />
+    </>
   )
 }
 
@@ -174,7 +253,7 @@ export function TransactionsClient({
           className="btn btn-primary"
           onClick={() => setModal({ mode: 'contribution' })}
         >
-          Record contribution
+          Record share purchase
         </button>
         <button
           type="button"
@@ -198,6 +277,11 @@ export function TransactionsClient({
           <div key={t.id} className="txcard card elev-sm px-4 py-3" style={{ gap: 5 }}>
             <div className="flex items-center gap-2.5">
               <span className={`${t.typeClassName} flex-none`}>{t.typeLabel}</span>
+              {t.inKind && (
+                <span className={`${IN_KIND_TAG.className} flex-none px-[7px] py-0 text-[10px]`}>
+                  {IN_KIND_TAG.label}
+                </span>
+              )}
               <span
                 className={`min-w-0 text-sm font-semibold ${t.deleted ? 'line-through opacity-60' : ''}`}
               >
@@ -240,14 +324,12 @@ export function TransactionsClient({
 
       {modal?.mode === 'contribution' && (
         <ActionDialog
-          title="Record contribution"
+          title="Record share purchase"
           action={createContribution}
-          submitLabel="Record contribution"
+          submitLabel="Record share purchase"
           onClose={close}
         >
-          <ShareholderSelect name="shareholderId" label="Shareholder" shareholders={shareholders} />
-          <AmountField label="Amount (USD)" />
-          <DescriptionField required={false} />
+          <SharePurchaseFields shareholders={shareholders} />
         </ActionDialog>
       )}
 
@@ -262,7 +344,8 @@ export function TransactionsClient({
             <ShareholderSelect name="fromShareholderId" label="From" shareholders={shareholders} />
             <ShareholderSelect name="toShareholderId" label="To" shareholders={shareholders} />
           </div>
-          <AmountField label="Amount (USD)" />
+          <DateField />
+          <SharesField label="Shares" />
           <DescriptionField required />
         </ActionDialog>
       )}
@@ -275,7 +358,8 @@ export function TransactionsClient({
           onClose={close}
         >
           <ShareholderSelect name="shareholderId" label="Shareholder" shareholders={shareholders} />
-          <AmountField label="Amount (USD — use a minus sign to reduce)" allowNegative />
+          <DateField />
+          <SharesField label="Shares (use a minus sign to reduce)" allowNegative />
           <DescriptionField required label="Reason" />
         </ActionDialog>
       )}
@@ -293,10 +377,14 @@ export function TransactionsClient({
             to a full reversal.
           </p>
           <input type="hidden" name="originalTransactionId" value={modal.row.id} />
+          {/* Defaults to the original's date so a correction stays in the
+              original's fiscal year instead of quietly moving the money into
+              the current one. */}
+          <DateField defaultValue={modal.row.dateInput} />
           {modal.row.entries.map((e) => (
             <div className="field" key={e.shareholderId}>
               <label htmlFor={`amount_${e.shareholderId}`}>
-                Correction ($) for {e.shareholderName} — originally {e.shares >= 0 ? '+' : ''}
+                Correction (shares) for {e.shareholderName} — originally {e.shares >= 0 ? '+' : ''}
                 {e.shares}
               </label>
               <input

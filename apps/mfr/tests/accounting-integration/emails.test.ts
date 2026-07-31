@@ -11,7 +11,7 @@ vi.mock('@/lib/accounting/email', () => ({ sendEmail: vi.fn(), appUrl: (p: strin
 
 import { auth } from '@/lib/auth'
 import { sendEmail } from '@/lib/accounting/email'
-import { formatUSD } from '@/lib/accounting/format'
+import { formatShares } from '@/lib/accounting/format'
 import { createContribution } from '@/actions/accounting/contributions'
 import { createTransfer } from '@/actions/accounting/transfers'
 import { createAdjustment } from '@/actions/accounting/adjustments'
@@ -88,7 +88,7 @@ describe('createContribution notification', () => {
     expect(sendEmail).toHaveBeenCalledTimes(1)
     const call = calls()[0]
     expect(call.to).toBe(sh.email)
-    expect(call.subject).toContain(formatUSD(100))
+    expect(call.subject).toContain(`${formatShares(100)} shares`)
     expect(call.replyTo).toBe('admin@example.com')
 
     const html = await render(call.react)
@@ -172,7 +172,7 @@ describe('createAdjustment notification', () => {
     expect(sendEmail).toHaveBeenCalledTimes(1)
     const call = calls()[0]
     expect(call.to).toBe(sh.email)
-    expect(call.subject).toContain(formatUSD(25))
+    expect(call.subject).toContain(`${formatShares(25)} shares`)
     const html = await render(call.react)
     expect(html).toContain('rounding fix')
   })

@@ -103,7 +103,7 @@ describe('home page — signed out', () => {
   it('shows a sign-in prompt instead of the goal card', async () => {
     const html = await render()
     expect(html).toContain('Sign in to see this year')
-    expect(html).not.toContain('2026 goal')
+    expect(html).not.toContain('2026 share goal')
   })
 
   it('hides the upcoming events section', async () => {
@@ -121,13 +121,17 @@ describe('home page — signed out', () => {
 describe('home page — signed in', () => {
   beforeEach(() => authMock.mockResolvedValue(signedInSession))
 
-  it('shows the live fundraising goal card', async () => {
+  it('shows the live fundraising goal card, in shares rather than dollars', async () => {
     const html = await render()
-    expect(html).toContain('2026 goal')
-    expect(html).toContain('$7,400')
-    expect(html).toContain('$12,000')
+    expect(html).toContain('2026 share goal')
+    expect(html).toContain('7,400')
+    expect(html).toContain('of 12,000 shares')
     expect(html).toContain('Venmo')
     expect(html).toContain('62% funded')
+    // The card must agree with the accounting dashboard's tracker, which
+    // counts shares — a dollar figure here would be the old duplicate math.
+    expect(html).not.toContain('$7,400')
+    expect(html).not.toContain('$12,000')
   })
 
   it('renders a single-day event as weekday · time', async () => {

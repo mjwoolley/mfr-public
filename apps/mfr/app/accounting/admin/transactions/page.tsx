@@ -6,18 +6,9 @@
 import { db } from '@/lib/db/client'
 import { shareholder, transaction } from '@/lib/db/schema'
 import { eq, asc, desc } from 'drizzle-orm'
-import { formatDate } from '@/lib/accounting/format'
+import { formatDate, formatShares, signedShares } from '@/lib/accounting/format'
 import { transactionTypeTag, approvalStatusTag } from '@/lib/accounting/tags'
 import { TransactionsClient, type TxRow } from './transactions-client'
-
-const usd0 = (n: number) =>
-  new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(n)
-
-const signed = (n: number) => (n >= 0 ? '+' : '') + usd0(n)
 
 export default async function AdminTransactionsPage({
   searchParams,
@@ -48,10 +39,10 @@ export default async function AdminTransactionsPage({
     if (t.type === 'TRANSFER' && t.entries.length === 2) {
       const from = t.entries.find((e) => Number(e.shares) < 0) ?? t.entries[0]
       const to = t.entries.find((e) => Number(e.shares) > 0) ?? t.entries[1]
-      entryLine = `${from.shareholder.name} → ${to.shareholder.name} · ${usd0(Math.abs(Number(to.shares)))}`
+      entryLine = `${from.shareholder.name} → ${to.shareholder.name} · ${formatShares(Math.abs(Number(to.shares)))}`
     } else {
       entryLine = t.entries
-        .map((e) => `${e.shareholder.name} ${signed(Number(e.shares))}`)
+        .map((e) => `${e.shareholder.name} ${signedShares(e.shares.toString())}`)
         .join(' · ')
     }
     return {
@@ -59,7 +50,11 @@ export default async function AdminTransactionsPage({
       typeLabel: typeTag.label,
       typeClassName: typeTag.className,
       dateFmt: formatDate(t.createdAt),
+      // YYYY-MM-DD (UTC) so the correction dialog can default its date input to
+      // the original's, keeping a correction in the original's fiscal year.
+      dateInput: t.createdAt.toISOString().slice(0, 10),
       description: t.description,
+      inKind: t.inKind,
       recordedBy: t.createdByName ?? t.createdByEmail ?? 'an admin',
       correctsNote: t.correctsTransaction
         ? `Corrects ${t.correctsTransaction.type} #${t.correctsTransaction.id.slice(-4)}`

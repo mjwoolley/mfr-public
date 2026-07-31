@@ -12,7 +12,8 @@ import { eq } from 'drizzle-orm'
 import { Decimal } from '@/lib/accounting/decimal'
 import { requireAdmin } from '@/lib/accounting/authz'
 import { sendEmail, appUrl } from '@/lib/accounting/email'
-import { formatUSD, formatDate } from '@/lib/accounting/format'
+import { formatShares, formatDate } from '@/lib/accounting/format'
+import { parseTransactionDate } from '@/lib/accounting/transactionDate'
 import { TransferNotification } from '@/emails/accounting/TransferNotification'
 import { TransactionType } from '@/lib/accounting/enums'
 
@@ -20,7 +21,7 @@ const schema = z
   .object({
     fromShareholderId: z.string().min(1, 'Select who the shares are coming from'),
     toShareholderId: z.string().min(1, 'Select who the shares are going to'),
-    amount: z.coerce.number().positive('Amount must be greater than zero'),
+    amount: z.coerce.number().positive('Shares must be greater than zero'),
     description: z.string().trim().min(1, 'A description is required'),
   })
   .refine((d) => d.fromShareholderId !== d.toShareholderId, {
@@ -47,6 +48,10 @@ export async function createTransfer(
   }
   const { fromShareholderId, toShareholderId, amount, description } = parsed.data
 
+  // Parsed before any DB read so a bad date costs nothing.
+  const date = parseTransactionDate(formData.get('date'))
+  if (!date.ok) return { error: date.error }
+
   const [from, to] = await Promise.all([
     db.query.shareholder.findFirst({
       where: eq(shareholder.id, fromShareholderId),
@@ -65,6 +70,9 @@ export async function createTransfer(
       .values({
         type: TransactionType.TRANSFER,
         description,
+        // Omitted when null so CURRENT_TIMESTAMP applies — createdAt IS the
+        // transaction date.
+        ...(date.date ? { createdAt: date.date } : {}),
         createdById: session.user.id,
         createdByName: session.user.name ?? null,
         createdByEmail: session.user.email ?? null,
@@ -79,24 +87,26 @@ export async function createTransfer(
         transactionId: t.id,
         shareholderId: from.id,
         shares: new Decimal(amount).neg().toString(),
+        createdAt: t.createdAt,
       },
       {
         transactionId: t.id,
         shareholderId: to.id,
         shares: new Decimal(amount).toString(),
+        createdAt: t.createdAt,
       },
     ])
 
     await tx.insert(transactionApproval).values([
-      { transactionId: t.id, shareholderId: from.id },
-      { transactionId: t.id, shareholderId: to.id },
+      { transactionId: t.id, shareholderId: from.id, createdAt: t.createdAt },
+      { transactionId: t.id, shareholderId: to.id, createdAt: t.createdAt },
     ])
 
     return t
   })
 
   const adminName = session.user.name ?? session.user.email ?? 'The admin'
-  const amountStr = formatUSD(amount)
+  const amountStr = `${formatShares(amount)} shares`
   const dateStr = formatDate(txn.createdAt)
 
   // Shareholder.email is optional (Phase 11) — no address to notify if unset.

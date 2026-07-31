@@ -32,7 +32,7 @@ test.describe('accounting portal', () => {
     await page.goto(`${ACCOUNTING_URL}/accounting`)
 
     await expect(page).toHaveURL(/\/accounting\/dashboard/)
-    await expect(page.getByRole('heading', { name: 'Your contribution history' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Your share purchase history' })).toBeVisible()
     await context.close()
   })
 

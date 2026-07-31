@@ -14,7 +14,7 @@ interface AdminSettingsCardsProps {
 
 /**
  * The two always-visible admin controls: Contributions-tab visibility
- * (Everyone vs Admins only) and the fiscal-year contribution goal.
+ * (Everyone vs Admins only) and the fiscal-year share purchase goal.
  */
 export function AdminSettingsCards({
   contributionsVisibleToAll,
@@ -42,12 +42,12 @@ export function AdminSettingsCards({
       >
         <div className="min-w-[200px] flex-1">
           <div className="text-base" style={{ fontFamily: 'var(--font-heading)' }}>
-            Contributions tab visibility
+            Share purchases tab visibility
           </div>
           <div className="text-muted mt-0.5 text-[13px]">
             {contributionsVisibleToAll
-              ? 'All shareholders can open the Contributions tab.'
-              : 'Only admins can open the Contributions tab. Shareholders still see their dashboard, ownership and expenses.'}
+              ? 'All shareholders can open the Share purchases tab.'
+              : 'Only admins can open the Share purchases tab. Shareholders still see their dashboard, ownership and expenses.'}
           </div>
         </div>
         <div
@@ -84,7 +84,7 @@ export function AdminSettingsCards({
       >
         <div className="min-w-[200px] flex-1">
           <div className="text-base" style={{ fontFamily: 'var(--font-heading)' }}>
-            Fiscal-year contribution goal
+            Fiscal-year share purchase goal
           </div>
           <div className="text-muted mt-0.5 text-[13px]">
             Shown as the dashboard progress tracker. Fiscal year runs Mar–Feb (FY
@@ -105,7 +105,7 @@ export function AdminSettingsCards({
           />
         </div>
         <div className="field w-36">
-          <label htmlFor="goal-amount">Goal amount ($)</label>
+          <label htmlFor="goal-amount">Goal (shares)</label>
           <input
             id="goal-amount"
             name="amount"
