@@ -54,7 +54,7 @@ the family seeing it.
    | Integration (×3)        | Creates **ephemeral Neon branches** cloned from `production`, runs the app's merged unit+integration coverage and **enforces its ratchet thresholds**, deletes branches |
    | E2E (Playwright)        | Ephemeral branches for all 4 DBs, builds and boots all 3 apps, runs the ~45-test browser suite (smoke + lifecycle/flows/auth/admin specs), single worker                |
    | Secret scan             | gitleaks over full history                                                                                                                                              |
-   | Semgrep / npm audit     | Advisory only — never block a merge                                                                                                                                     |
+   | Semgrep                 | Advisory only — never blocks a merge                                                                                                                                    |
    | **CI OK**               | The single required status check; merge is blocked until it's green                                                                                                     |
 
 6. **Test it on the PR's own preview before merging — this is the default, not
