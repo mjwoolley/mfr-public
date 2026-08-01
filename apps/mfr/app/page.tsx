@@ -90,7 +90,7 @@ export default async function Home() {
               className="mt-2 mb-3.5"
               style={{ fontSize: 'clamp(30px,3.8vw,44px)', lineHeight: 1.05 }}
             >
-              Fifty summers
+              Sixty summers
               <br />
               on the lake.
             </h1>
@@ -102,7 +102,7 @@ export default async function Home() {
                 color: 'color-mix(in srgb, var(--color-text) 82%, transparent)',
               }}
             >
-              For more than 50 years, our family has gathered each Fourth of July at the Miller
+              For more than 60 years, our family has gathered each Fourth of July at the Miller
               cabin on Lake Lure, North Carolina. What began as a simple dream by Connie and Ray
               Miller&mdash;to create a place where their children and future generations could spend
               time together&mdash;has grown into a cherished tradition spanning multiple

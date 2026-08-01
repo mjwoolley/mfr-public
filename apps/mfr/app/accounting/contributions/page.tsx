@@ -25,10 +25,13 @@ export default async function ContributionsPage() {
 
   // Visibility gate: when the admin toggle is "Admins only", non-admin
   // shareholders don't get this tab (the nav already hides it; this covers
-  // direct URLs).
+  // direct URLs). Send them somewhere they can actually use: their own
+  // dashboard if they have one, otherwise the ownership report — which is
+  // always visible, and is where an approved user with no Shareholder link
+  // would otherwise dead-end.
   const settings = await getAppSettings()
   if (!settings.contributionsVisibleToAll && !canAdminAccounting(session.user.roles)) {
-    redirect('/accounting/dashboard')
+    redirect(session.user.shareholderId ? '/accounting/dashboard' : '/accounting/ownership')
   }
 
   const [entries, { rows: balanceRows, total }] = await Promise.all([

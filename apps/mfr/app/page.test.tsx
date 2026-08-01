@@ -85,7 +85,8 @@ describe('home page — hero (always shown)', () => {
     authMock.mockResolvedValue(null)
     const html = await render()
     expect(html).toContain('Lake Lure, North Carolina')
-    expect(html).toContain('Fifty summers')
+    expect(html).toContain('Sixty summers')
+    expect(html).toContain('For more than 60 years')
   })
 
   it('drops the old app cards and hero CTA buttons', async () => {
