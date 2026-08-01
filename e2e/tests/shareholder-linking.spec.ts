@@ -1,10 +1,12 @@
-// Linking a login to a Shareholder by name, end to end.
+// Linking a login to a Shareholder, end to end, plus the shareholders list's
+// mobile layout.
 //
-// The case that motivated it: a Shareholder row is a household ("John and
+// The case that motivated linking: a Shareholder row is a household ("John and
 // Michele Anderegg") carrying one spouse's email, so the other spouse's login
 // never matches by email and used to have no way in at all. The admin links
-// them by name here, and the member must then actually see their dashboard —
-// which only works because extendSession falls back to a by-userId lookup.
+// them from the Edit screen here, and the member must then actually see their
+// dashboard — which only works because extendSession falls back to a by-userId
+// lookup.
 
 import { test, expect } from '@playwright/test'
 import { ACCOUNTING_URL } from '../../playwright.config'
@@ -32,18 +34,28 @@ test.describe('shareholder linking', () => {
     await expect(page).toHaveURL(/\/accounting\/admin\/shareholders$/)
 
     const row = page.locator('tr').filter({ hasText: HOUSEHOLD_NAME })
-    await expect(row.getByText('Not yet signed in')).toBeVisible()
+    await expect(row.getByText('Not linked')).toBeVisible()
 
-    // The dialog suggests the spouse by name, and links in one click.
-    await row.getByRole('button', { name: 'Link' }).click()
-    const dialog = page.getByRole('dialog')
-    await expect(dialog.getByText('Suggested')).toBeVisible()
+    // Linking lives on the Edit screen.
+    await row.getByRole('link', { name: 'Edit' }).click()
+    const picker = page.getByLabel('Link a login')
 
-    const suggestion = dialog.locator('li').filter({ hasText: personas.household.name })
-    await expect(suggestion.getByText('Name matches')).toBeVisible()
-    await suggestion.getByRole('button', { name: 'Link' }).click()
+    // The spouse is offered as a name match, not buried among everyone else.
+    // Matched on the label ATTRIBUTE — an optgroup's own text is its options.
+    const suggested = picker.locator('optgroup[label^="Suggested"]')
+    await expect(suggested.locator('option', { hasText: personas.household.name })).toHaveCount(1)
 
-    await expect(row.getByText('Linked')).toBeVisible()
+    await picker.selectOption({ label: `${personas.household.name} — ${personas.household.email}` })
+    await page.getByRole('button', { name: 'Link' }).click()
+    await expect(page.getByText(`Linked to ${personas.household.name}`)).toBeVisible()
+
+    // The list now names the login on its own line under the person's name.
+    // Scoped to the Login cell: the shareholder's own name contains the
+    // persona's name as a substring, so a row-wide text match is ambiguous.
+    await page.goto(SHAREHOLDERS)
+    const loginCell = page.locator('tr').filter({ hasText: HOUSEHOLD_NAME }).locator('td').nth(1)
+    await expect(loginCell).toContainText(personas.household.name)
+    await expect(loginCell).toContainText(personas.household.email)
     await admin.close()
 
     // The payoff: the linked member now has a dashboard, even though their
@@ -68,22 +80,49 @@ test.describe('shareholder linking', () => {
     await page.getByRole('button', { name: 'Add shareholder' }).click()
     await expect(page).toHaveURL(/\/accounting\/admin\/shareholders$/)
 
-    const row = page.locator('tr').filter({ hasText: unmatched })
-    await row.getByRole('button', { name: 'Link' }).click()
+    await page
+      .locator('tr')
+      .filter({ hasText: unmatched })
+      .getByRole('link', { name: 'Edit' })
+      .click()
 
-    const dialog = page.getByRole('dialog')
-    await expect(dialog.getByText('No name matches — pick manually')).toBeVisible()
+    // Nothing matches this name, so the whole list is grouped as such.
+    const picker = page.getByLabel('Link a login')
+    await expect(picker.locator('optgroup[label="No name matches"]')).toHaveCount(1)
 
-    const nonMatch = dialog.locator('li').filter({ hasText: personas.outsider.name })
-    await expect(nonMatch.getByText('Name matches')).toHaveCount(0)
-    await nonMatch.getByRole('button', { name: 'Link' }).click()
+    await picker.selectOption({ label: `${personas.outsider.name} — ${personas.outsider.email}` })
+    await page.getByRole('button', { name: 'Link' }).click()
 
     // A confirmation naming both sides, not a link.
-    await expect(dialog.getByText(/doesn't appear in/)).toBeVisible()
-    await dialog.getByRole('button', { name: 'Back' }).click()
+    await expect(page.getByText(/doesn't appear in/)).toBeVisible()
+    await page.getByRole('button', { name: 'Back' }).click()
 
-    await page.getByRole('button', { name: 'Close' }).click()
-    await expect(row.getByText('Not yet signed in')).toBeVisible()
+    await page.goto(SHAREHOLDERS)
+    await expect(
+      page.locator('tr').filter({ hasText: unmatched }).getByText('Not linked'),
+    ).toBeVisible()
+
+    await admin.close()
+  })
+
+  // The list is read on phones. Asserting the layout is what stops the columns
+  // creeping back and reintroducing a sideways scroll.
+  test('the shareholders list fits a phone screen', async ({ browser }) => {
+    const admin = await contextFor(browser, 'admin')
+    const page = await admin.newPage()
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto(SHAREHOLDERS)
+    await expect(page.getByRole('columnheader', { name: 'Name' })).toBeVisible()
+
+    const overflows = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    )
+    expect(overflows, 'shareholders list scrolls sideways at 390px').toBe(false)
+
+    // Three columns: Name, Login, and the unlabelled Edit cell.
+    await expect(page.locator('thead th')).toHaveCount(3)
+    await expect(page.getByRole('columnheader', { name: 'Status' })).toHaveCount(0)
+    await expect(page.getByRole('columnheader', { name: 'Login linked' })).toHaveCount(0)
 
     await admin.close()
   })

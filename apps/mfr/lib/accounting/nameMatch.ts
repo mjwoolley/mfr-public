@@ -66,3 +66,30 @@ export function matchesShareholderName(
   if (userWords.length === 0 || shareholderWords.size === 0) return false
   return userWords.every((w) => shareholderWords.has(w))
 }
+
+/** The minimum a login needs for the split below — see lib/accounting/linkCandidates.ts. */
+interface NamedOption {
+  email: string
+  name: string | null
+}
+
+/**
+ * Split the link dropdown's options into likely matches and everyone else, each
+ * alphabetical. Pure, so the Edit page can compute it server-side and keep the
+ * matcher out of the client bundle.
+ *
+ * Sorted by display name (falling back to the email, which is what the option
+ * shows when a login has no name).
+ */
+export function partitionByNameMatch<T extends NamedOption>(
+  options: T[],
+  shareholderName: string | null | undefined,
+): { suggested: T[]; others: T[] } {
+  const byLabel = (a: T, b: T) => (a.name ?? a.email).localeCompare(b.name ?? b.email)
+  const suggested: T[] = []
+  const others: T[] = []
+  for (const option of options) {
+    ;(matchesShareholderName(option.name, shareholderName) ? suggested : others).push(option)
+  }
+  return { suggested: suggested.sort(byLabel), others: others.sort(byLabel) }
+}

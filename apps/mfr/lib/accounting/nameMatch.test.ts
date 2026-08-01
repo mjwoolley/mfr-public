@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { matchesShareholderName, nameTokens, normalizeName } from './nameMatch'
+import {
+  matchesShareholderName,
+  nameTokens,
+  normalizeName,
+  partitionByNameMatch,
+} from './nameMatch'
 
 describe('normalizeName', () => {
   it('lowercases, strips punctuation and collapses whitespace', () => {
@@ -80,5 +85,50 @@ describe('matchesShareholderName', () => {
   it('handles a single-word login name', () => {
     expect(matchesShareholderName('Anderegg', 'John and Michele Anderegg')).toBe(true)
     expect(matchesShareholderName('Smith', 'John and Michele Anderegg')).toBe(false)
+  })
+})
+
+describe('partitionByNameMatch', () => {
+  const michele = { id: 'u1', email: 'michele@example.com', name: 'Michele Anderegg' }
+  const bob = { id: 'u2', email: 'bob@example.com', name: 'Bob Smith' }
+  const alice = { id: 'u3', email: 'alice@example.com', name: 'Alice Adams' }
+  const nameless = { id: 'u4', email: 'zed@example.com', name: null }
+
+  it('puts a household match in suggested and everyone else in others', () => {
+    const { suggested, others } = partitionByNameMatch(
+      [bob, michele, alice],
+      'John and Michele Anderegg',
+    )
+
+    expect(suggested).toEqual([michele])
+    expect(others).toEqual([alice, bob])
+  })
+
+  it('sorts both groups by display name', () => {
+    const { others } = partitionByNameMatch([bob, alice], 'Nobody Here')
+    expect(others.map((o) => o.name)).toEqual(['Alice Adams', 'Bob Smith'])
+  })
+
+  it('falls back to the email when a login has no name — the label the option shows', () => {
+    const { others } = partitionByNameMatch([nameless, alice], 'Nobody Here')
+    expect(others.map((o) => o.name ?? o.email)).toEqual(['Alice Adams', 'zed@example.com'])
+  })
+
+  it('never suggests a nameless login, since there is nothing to match on', () => {
+    const { suggested, others } = partitionByNameMatch([nameless], 'Anything At All')
+    expect(suggested).toEqual([])
+    expect(others).toEqual([nameless])
+  })
+
+  it('suggests nobody when the shareholder name matches none of them', () => {
+    const { suggested, others } = partitionByNameMatch([michele, bob], 'Completely Different')
+    expect(suggested).toEqual([])
+    expect(others).toHaveLength(2)
+  })
+
+  it('does not mutate the input array order', () => {
+    const input = [bob, alice]
+    partitionByNameMatch(input, 'Nobody Here')
+    expect(input).toEqual([bob, alice])
   })
 })

@@ -1,52 +1,18 @@
-import { describe, it, expect, afterEach, vi } from 'vitest'
-import { NextRequest } from 'next/server'
-import { eq } from 'drizzle-orm'
-import { users } from '@mfr/auth'
-import { testIdentityDb } from './testIdentityDb'
+import { describe, it, expect, afterEach } from 'vitest'
 import { testDb } from './testDb'
 
-// Same reasoning as harness.test.ts for mocking @/lib/auth: the routes gate
-// through requireAdmin(), which calls auth() from @/lib/auth.
-vi.mock('@/lib/auth', () => ({ auth: vi.fn() }))
-
-import { auth } from '@/lib/auth'
-import { GET as shareholderSearch } from '@/app/accounting/api/admin/shareholder-search/route'
 import { GET as currentYear } from '@/app/accounting/api/contributions/current-year/route'
 import { currentFiscalYear } from '@/lib/accounting/fiscalYear'
 import { TransactionType } from '@/lib/accounting/enums'
 
-const ADMIN_SESSION = {
-  user: {
-    id: 'admin-1',
-    status: 'approved',
-    roles: { siteOwner: false, siteManager: false, accountingManager: true },
-    shareholderId: null,
-    email: 'admin@example.com',
-    name: 'Admin',
-  },
-  expires: '2099-01-01',
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-} as any
+// The one route left here is public and totals-only, so there is no session to
+// mock — the admin shareholder-search route it used to sit beside was replaced
+// by the link picker on the shareholder Edit page.
 
-const NON_ADMIN_SESSION = {
-  user: {
-    id: 'member-1',
-    status: 'approved',
-    roles: { siteOwner: false, siteManager: false, accountingManager: false },
-    shareholderId: 'sh-1',
-    email: 'member@example.com',
-    name: 'Member',
-  },
-  expires: '2099-01-01',
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-} as any
-
-const createdUserIds: string[] = []
 const createdShareholderIds: string[] = []
 const createdTransactionIds: string[] = []
 
 afterEach(async () => {
-  vi.mocked(auth).mockReset()
   for (const id of createdTransactionIds) {
     await testDb.transaction.delete({ where: { id } }).catch(() => {})
   }
@@ -55,51 +21,6 @@ afterEach(async () => {
     await testDb.shareholder.delete({ where: { id } }).catch(() => {})
   }
   createdShareholderIds.length = 0
-  for (const id of createdUserIds) {
-    await testIdentityDb.delete(users).where(eq(users.id, id))
-  }
-  createdUserIds.length = 0
-})
-
-function searchRequest(email?: string) {
-  const url = new URL('http://localhost/accounting/api/admin/shareholder-search')
-  if (email !== undefined) url.searchParams.set('email', email)
-  return new NextRequest(url)
-}
-
-describe('GET /api/admin/shareholder-search', () => {
-  it('redirects a non-admin away (requireAdmin gate)', async () => {
-    vi.mocked(auth).mockResolvedValue(NON_ADMIN_SESSION)
-    await expect(shareholderSearch(searchRequest('x@example.com'))).rejects.toThrow()
-  })
-
-  it('returns an empty list when no email param is given', async () => {
-    vi.mocked(auth).mockResolvedValue(ADMIN_SESSION)
-    const res = await shareholderSearch(searchRequest())
-    expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ users: [] })
-  })
-
-  it('returns an empty list for a whitespace-only email', async () => {
-    vi.mocked(auth).mockResolvedValue(ADMIN_SESSION)
-    const res = await shareholderSearch(searchRequest('   '))
-    expect(await res.json()).toEqual({ users: [] })
-  })
-
-  it('finds identity users by case-insensitive email substring', async () => {
-    const email = `route-search-${Date.now()}@example.com`
-    const [identityUser] = await testIdentityDb
-      .insert(users)
-      .values({ email, name: 'Route Search Target', status: 'approved' })
-      .returning()
-    createdUserIds.push(identityUser.id)
-
-    vi.mocked(auth).mockResolvedValue(ADMIN_SESSION)
-    const res = await shareholderSearch(searchRequest(email.toUpperCase()))
-    const body = await res.json()
-
-    expect(body.users).toEqual([{ id: identityUser.id, email, name: 'Route Search Target' }])
-  })
 })
 
 describe('GET /api/contributions/current-year', () => {
