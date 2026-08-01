@@ -6,18 +6,13 @@ import Link from 'next/link'
 import { auth } from '@/lib/auth'
 import { getPortalSettings, getFundraising, getEvents } from '@/lib/portal'
 import { getFeaturedPhotos } from '@/lib/photos/gallery'
+import { computeGoalProgress } from '@/lib/accounting/goals'
+import { formatShares } from '@/lib/accounting/format'
 import { HomeSlideshow } from './HomeSlideshow'
 
 // Fallback hero image (public/) shown to signed-out visitors and whenever no
 // photos have been featured yet.
 const FALLBACK_SLIDES = ['/lake-house.jpg']
-
-const usd0 = (n: number) =>
-  new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(n)
 
 // Event dates are YYYY-MM-DD strings; parsing at local midnight (T00:00:00,
 // no Z) keeps the displayed day from shifting across timezones — same
@@ -73,13 +68,11 @@ export default async function Home() {
   const raised = fundraising?.raised ?? 0
   const goal = fundraising?.goal ?? null
   const year = fundraising?.year ?? settings.reunionYear
-  const pct = goal && goal > 0 ? Math.min(100, Math.round((raised / goal) * 100)) : 0
-  const remaining = goal ? Math.max(0, goal - raised) : 0
-  const goalNote = !goal
-    ? 'Every contribution keeps the cabin going.'
-    : remaining === 0
-      ? 'Goal met — thank you, everyone!'
-      : `${pct}% funded · ${usd0(remaining)} still to go this year`
+  // Same math as the accounting dashboard's tracker — shared rather than
+  // reimplemented, so the two cards can't drift apart.
+  const progress = computeGoalProgress(goal ?? 0, raised)
+  const pct = progress.pct
+  const goalNote = goal ? progress.note : 'Every share purchase keeps the cabin going.'
 
   return (
     <div style={{ animation: 'fadeup .5s ease both' }}>
@@ -169,12 +162,12 @@ export default async function Home() {
                     className="text-[11px] uppercase"
                     style={{ letterSpacing: '.06em', color: 'var(--color-neutral-600)' }}
                   >
-                    {year} goal
+                    {year} share goal
                   </div>
                   <div style={{ fontFamily: 'var(--font-heading)', fontSize: 22, lineHeight: 1 }}>
-                    {usd0(raised)}{' '}
+                    {formatShares(raised)}{' '}
                     <span style={{ fontSize: 14, color: 'var(--color-neutral-600)' }}>
-                      of {goal ? usd0(goal) : '—'}
+                      of {goal ? `${formatShares(goal)} shares` : '—'}
                     </span>
                   </div>
                   {settings.venmoUrl && (

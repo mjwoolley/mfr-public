@@ -1,22 +1,14 @@
 'use client'
 
-// Contributions tab (client half): toggles between the per-shareholder and
+// Share purchases tab (client half): toggles between the per-shareholder and
 // per-fiscal-year groupings computed in contributionsGrouping.ts, with
 // expand/collapse per group.
 
 import { useState } from 'react'
-import { transactionTypeTag } from '@/lib/accounting/tags'
+import { transactionTypeTag, IN_KIND_TAG } from '@/lib/accounting/tags'
 import { fiscalYearLabel } from '@/lib/accounting/fiscalYear'
+import { formatShares, signedShares } from '@/lib/accounting/format'
 import type { ShareholderGroup, YearGroup } from './contributionsGrouping'
-
-const usd0 = (n: number) =>
-  new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(n)
-
-const signed = (n: number) => (n >= 0 ? '+' : '') + usd0(n)
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { dateStyle: 'medium', timeZone: 'UTC' })
@@ -37,6 +29,11 @@ function EntryLine({
     >
       <span className="text-muted w-[104px] flex-none text-[13px]">{fmtDate(entry.date)}</span>
       <span className={`${tag.className} flex-none`}>{tag.label}</span>
+      {entry.inKind && (
+        <span className={`${IN_KIND_TAG.className} flex-none px-[7px] py-0 text-[10px]`}>
+          {IN_KIND_TAG.label}
+        </span>
+      )}
       <span
         className="flex-1"
         style={{ color: 'color-mix(in srgb, var(--color-text) 80%, transparent)' }}
@@ -53,7 +50,7 @@ function EntryLine({
           color: entry.amount >= 0 ? 'var(--color-accent-2-800)' : 'var(--color-accent-800)',
         }}
       >
-        {signed(entry.amount)}
+        {signedShares(entry.amount)}
       </span>
     </div>
   )
@@ -77,8 +74,8 @@ export function ContributionsClient({
       <div className="mb-3.5">
         <h2 className="m-0 mb-2.5 text-[22px]">
           {group === 'year'
-            ? 'Contributions and transfers by year'
-            : 'Contributions and transfers by shareholder'}
+            ? 'Share purchases and transfers by year'
+            : 'Share purchases and transfers by shareholder'}
         </h2>
         <div className="seg" style={{ background: 'var(--color-surface)' }}>
           <label className="seg-opt">
@@ -118,8 +115,8 @@ export function ContributionsClient({
                   <span className="tag tag-accent px-2 py-0 text-[10px]">You</span>
                 )}
                 <span className="text-muted ml-auto text-[13px]">
-                  Contributed {usd0(p.contributed)} · Balance {usd0(p.balance)} · {p.pct.toFixed(1)}
-                  %
+                  Purchased {formatShares(p.contributed)} · Balance {formatShares(p.balance)} ·{' '}
+                  {p.pct.toFixed(1)}%
                 </span>
               </div>
               <div className="flex flex-col">
@@ -142,7 +139,7 @@ export function ContributionsClient({
                   {fiscalYearLabel(y.year)}
                 </span>
                 <span className="text-muted ml-auto text-[13px]">
-                  {usd0(y.newShares)} in new shares
+                  {formatShares(y.newShares)} in new shares
                 </span>
               </div>
               <div className="flex flex-col">

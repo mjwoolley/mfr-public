@@ -19,21 +19,22 @@ async function openDialog(page: Page, button: string) {
 }
 
 test.describe('accounting flows', () => {
-  test('admin records a contribution; it reaches the history and the member dashboard', async ({
+  test('admin records a share purchase; it reaches the history and the member dashboard', async ({
     browser,
   }) => {
     const admin = await contextFor(browser, 'admin')
     const page = await admin.newPage()
 
-    await openDialog(page, 'Record contribution')
+    await openDialog(page, 'Record share purchase')
     await page.getByLabel('Shareholder').selectOption({ label: 'E2E Member' })
-    await page.getByLabel('Amount (USD)').fill('250')
+    await page.getByLabel('Shares', { exact: true }).fill('250')
     await page.getByLabel('Description').fill('e2e seed contribution')
-    await page.getByRole('button', { name: 'Record contribution' }).last().click()
+    await page.getByRole('button', { name: 'Record share purchase' }).last().click()
 
-    // Dialog closes and the history lists the new entry ("E2E Member +$250").
+    // Dialog closes and the history lists the new entry as a COUNT, not money.
     await expect(page.getByText('e2e seed contribution')).toBeVisible()
-    await expect(page.getByText('E2E Member +$250')).toBeVisible()
+    await expect(page.getByText('E2E Member +250')).toBeVisible()
+    await expect(page.getByText('E2E Member +$250')).toHaveCount(0)
     await admin.close()
 
     // The member's dashboard shows the new balance ($1 = 1 share).
@@ -41,18 +42,18 @@ test.describe('accounting flows', () => {
     const memberPage = await member.newPage()
     await memberPage.goto(`${ACCOUNTING_URL}/accounting/dashboard`)
     await expect(memberPage.getByRole('heading', { name: 'E2E Member' })).toBeVisible()
-    await expect(memberPage.getByText('$250').first()).toBeVisible()
+    await expect(memberPage.getByText('250').first()).toBeVisible()
 
-    // And the Contributions view includes it.
+    // And the Share purchases view includes it.
     await memberPage.goto(`${ACCOUNTING_URL}/accounting/contributions`)
     await expect(
-      memberPage.getByRole('heading', { name: 'Contributions', exact: true }),
+      memberPage.getByRole('heading', { name: 'Share purchases', exact: true }),
     ).toBeVisible()
     await expect(memberPage.getByText('E2E Member').first()).toBeVisible()
     await member.close()
   })
 
-  test('member confirms the contribution from the approval inbox', async ({ browser }) => {
+  test('member confirms the share purchase from the approval inbox', async ({ browser }) => {
     const member = await contextFor(browser, 'member')
     const page = await member.newPage()
 
@@ -83,11 +84,11 @@ test.describe('accounting flows', () => {
     await openDialog(page, 'Record transfer')
     await page.getByLabel('From', { exact: true }).selectOption({ label: 'E2E Member' })
     await page.getByLabel('To', { exact: true }).selectOption({ label: 'E2E Transferee' })
-    await page.getByLabel(/Amount \(USD\)/).fill('100')
+    await page.getByLabel('Shares', { exact: true }).fill('100')
     await page.getByLabel('Description').fill('e2e transfer')
     await page.getByRole('button', { name: 'Record transfer' }).last().click()
-    // "E2E Member → E2E Transferee · $100"
-    await expect(page.getByText('E2E Member → E2E Transferee · $100')).toBeVisible()
+    // "E2E Member → E2E Transferee · 100"
+    await expect(page.getByText('E2E Member → E2E Transferee · 100')).toBeVisible()
 
     await admin.close()
 
@@ -95,7 +96,7 @@ test.describe('accounting flows', () => {
     const member = await contextFor(browser, 'member')
     const memberPage = await member.newPage()
     await memberPage.goto(`${ACCOUNTING_URL}/accounting/dashboard`)
-    await expect(memberPage.getByText('$150').first()).toBeVisible()
+    await expect(memberPage.getByText('150').first()).toBeVisible()
     await member.close()
   })
 
@@ -121,7 +122,59 @@ test.describe('accounting flows', () => {
     const member = await contextFor(browser, 'member')
     const memberPage = await member.newPage()
     await memberPage.goto(`${ACCOUNTING_URL}/accounting/dashboard`)
-    await expect(memberPage.getByText('$250').first()).toBeVisible()
+    await expect(memberPage.getByText('250').first()).toBeVisible()
+    await member.close()
+  })
+
+  // Dated inside the current fiscal year on purpose, so the goal/ownership
+  // assertions elsewhere in the suite are unaffected.
+  test('admin records a back-dated in-kind share purchase', async ({ browser }) => {
+    const admin = await contextFor(browser, 'admin')
+    const page = await admin.newPage()
+
+    await openDialog(page, 'Record share purchase')
+    await page.getByLabel('Shareholder').selectOption({ label: 'E2E Member' })
+
+    // Yesterday — a real back-date, but safely inside this fiscal year.
+    const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
+    await page.getByLabel('Date').fill(yesterday)
+    await expect(page.getByText(/Lands in FY\d{4}/)).toBeVisible()
+
+    await page.getByLabel('Shares', { exact: true }).fill('40')
+    await page.getByLabel('In kind').check()
+
+    // In kind without a note is refused — the ledger would be unauditable.
+    await page.getByRole('button', { name: 'Record share purchase' }).last().click()
+    await expect(page.getByText('e2e in-kind purchase')).toHaveCount(0)
+
+    await page.getByLabel('Description').fill('e2e in-kind purchase')
+    await page.getByRole('button', { name: 'Record share purchase' }).last().click()
+
+    const row = page.locator('.txcard').filter({ hasText: 'e2e in-kind purchase' })
+    await expect(row.getByText('In kind')).toBeVisible()
+    await expect(row.getByText('E2E Member +40')).toBeVisible()
+    await admin.close()
+
+    // The member sees the flag AND the back-dated day — not today, which is
+    // what a mis-sorted/mis-read ledger date would show.
+    const member = await contextFor(browser, 'member')
+    const memberPage = await member.newPage()
+    await memberPage.goto(`${ACCOUNTING_URL}/accounting/dashboard`)
+    const entry = memberPage.locator('.card').filter({ hasText: 'e2e in-kind purchase' })
+    await expect(entry.getByText('In kind')).toBeVisible()
+    await expect(entry.getByText('+40')).toBeVisible()
+
+    const expectedDay = new Date(`${yesterday}T12:00:00Z`).toLocaleDateString('en-US', {
+      dateStyle: 'medium',
+      timeZone: 'UTC',
+    })
+    await expect(entry.getByText(expectedDay)).toBeVisible()
+
+    // And the approval inbox carries the flag too.
+    await memberPage.goto(`${ACCOUNTING_URL}/accounting/inbox`)
+    await expect(
+      memberPage.locator('.card').filter({ hasText: 'e2e in-kind purchase' }).getByText('In kind'),
+    ).toBeVisible()
     await member.close()
   })
 

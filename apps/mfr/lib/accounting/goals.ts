@@ -1,25 +1,23 @@
-// Contribution-goal lookup + the progress math behind the dashboard's goal
+// Share-purchase-goal lookup + the progress math behind the dashboard's goal
 // tracker. Goals are keyed by fiscal year (see @/lib/fiscalYear).
+//
+// The goal is expressed in shares. The stored column is still
+// `ContributionGoal.amount` and its values are unchanged — $1 buys 1 share, so
+// the number is the same either way; only what it is called changes.
 
 import { eq } from 'drizzle-orm'
 
 import { db } from '@/lib/db/client'
 import { contributionGoal } from '@/lib/db/schema'
+import { formatShares } from './format'
 
 export interface GoalProgress {
   /** 0–100, clamped. */
   pct: number
-  /** Dollars still to raise, floored at 0. */
+  /** Shares still to sell, floored at 0. */
   remaining: number
   note: string
 }
-
-const usd0 = (n: number) =>
-  new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(n)
 
 /** Pure progress math for the dashboard goal tracker. */
 export function computeGoalProgress(goalAmount: number, raised: number): GoalProgress {
@@ -31,7 +29,7 @@ export function computeGoalProgress(goalAmount: number, raised: number): GoalPro
   const note =
     remaining === 0
       ? 'Goal met — thank you, everyone!'
-      : `${pct}% funded · ${usd0(remaining)} to go`
+      : `${pct}% funded · ${formatShares(remaining)} shares to go`
   return { pct, remaining, note }
 }
 

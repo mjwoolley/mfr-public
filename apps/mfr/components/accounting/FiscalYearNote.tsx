@@ -2,7 +2,7 @@ import { currentFiscalYear, fiscalYearLabel } from '@/lib/accounting/fiscalYear'
 
 /**
  * One-line explainer shown on tabs whose figures bucket by fiscal year
- * (Contributions, Expenses), with the current fiscal year as a concrete
+ * (Share purchases, Expenses), with the current fiscal year as a concrete
  * example.
  */
 export function FiscalYearNote() {

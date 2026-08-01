@@ -1,4 +1,4 @@
-// Contributions tab (server half): full ledger grouped per shareholder and
+// Share purchases tab (server half): full ledger grouped per shareholder and
 // per fiscal year (contributionsGrouping.ts). Access follows the admin
 // "visible to everyone" toggle — non-admins are redirected while it's off.
 
@@ -18,13 +18,7 @@ import {
 } from './contributionsGrouping'
 import { ContributionsClient } from './contributions-client'
 import { FiscalYearNote } from '@/components/accounting/FiscalYearNote'
-
-const usd0 = (n: number) =>
-  new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(n)
+import { formatShares } from '@/lib/accounting/format'
 
 export default async function ContributionsPage() {
   const session = await requireAuthorized()
@@ -54,6 +48,7 @@ export default async function ContributionsPage() {
     date: e.transaction.createdAt.toISOString(),
     description: e.transaction.description,
     amount: Number(e.shares),
+    inKind: e.transaction.inKind,
     deleted: e.transaction.deleted,
   }))
 
@@ -67,7 +62,7 @@ export default async function ContributionsPage() {
   const perShareholder = groupEntriesByShareholder(rows, balances)
   const perYear = groupEntriesByYear(rows)
 
-  // Shares sold by year (CONTRIBUTION entries only).
+  // Shares sold by year (share-purchase entries only).
   const totalsByYear = contributionTotalsByYear(rows)
   const years = [...totalsByYear.keys()].sort((a, b) => a - b)
   const maxYearTotal = Math.max(1, ...totalsByYear.values())
@@ -81,12 +76,12 @@ export default async function ContributionsPage() {
 
   const summary =
     years.length === 0
-      ? 'No contributions recorded yet.'
-      : `${usd0(totalContrib)} raised in contributions since ${years[0]}, plus ${usd0(adjTotal)} in reconciling adjustments — ${usd0(Number(total))} in shares outstanding today.`
+      ? 'No share purchases recorded yet.'
+      : `${formatShares(totalContrib)} shares purchased since ${years[0]}, plus ${formatShares(adjTotal)} in reconciling adjustments — ${formatShares(Number(total))} shares outstanding today.`
 
   return (
     <div>
-      <h1 className="mb-2 text-4xl">Contributions</h1>
+      <h1 className="mb-2 text-4xl">Share purchases</h1>
       <p className="text-muted mb-1.5 max-w-[70ch] text-[15px]">{summary}</p>
       <FiscalYearNote />
 
@@ -94,7 +89,7 @@ export default async function ContributionsPage() {
         <div className="card elev-sm mb-8 bg-white px-6 py-5">
           <h2 className="mb-1 text-xl">Shares sold by year</h2>
           <p className="text-muted mb-3 text-[13px]">
-            Every dollar contributed is one share. The founding year raised the down payment.
+            Every dollar contributed buys one share. The founding year raised the down payment.
           </p>
           <div className="flex flex-col gap-[3px]">
             {years.map((year) => {
@@ -104,7 +99,7 @@ export default async function ContributionsPage() {
                 <div
                   key={year}
                   className="flex items-center gap-2.5"
-                  title={`${year} — ${usd0(value)}`}
+                  title={`${year} — ${formatShares(value)} shares`}
                 >
                   <div className="text-muted w-[34px] flex-none text-right text-[11px] font-semibold">
                     {year}
@@ -126,7 +121,7 @@ export default async function ContributionsPage() {
                       color: 'var(--color-accent-2-800)',
                     }}
                   >
-                    {usd0(value)}
+                    {formatShares(value)}
                   </div>
                 </div>
               )

@@ -6,8 +6,8 @@ import { requireShareholder } from '@/lib/accounting/authz'
 import { db } from '@/lib/db/client'
 import { transactionApproval } from '@/lib/db/schema'
 import { and, eq, desc } from 'drizzle-orm'
-import { formatUSD, formatDate } from '@/lib/accounting/format'
-import { transactionTypeTag } from '@/lib/accounting/tags'
+import { formatShares, formatDate } from '@/lib/accounting/format'
+import { transactionTypeTag, IN_KIND_TAG } from '@/lib/accounting/tags'
 import { ApprovalStatus } from '@/lib/accounting/enums'
 import { InboxApprovalActions } from './inbox-approval-actions'
 
@@ -68,6 +68,11 @@ export default async function InboxPage() {
               <div key={approval.id} className="card elev-sm px-5 py-4" style={{ gap: 8 }}>
                 <div className="flex items-center gap-2.5">
                   <span className={typeTag.className}>{typeTag.label}</span>
+                  {approval.transaction.inKind && (
+                    <span className={`${IN_KIND_TAG.className} px-[7px] py-0 text-[10px]`}>
+                      {IN_KIND_TAG.label}
+                    </span>
+                  )}
                   {entry && (
                     <span
                       className="ml-0.5 text-[19px]"
@@ -78,7 +83,7 @@ export default async function InboxPage() {
                       }}
                     >
                       {shares >= 0 ? '+' : ''}
-                      {formatUSD(entry.shares.toString())}
+                      {formatShares(entry.shares.toString())}
                     </span>
                   )}
                   <span className="text-muted ml-auto text-[13px]">

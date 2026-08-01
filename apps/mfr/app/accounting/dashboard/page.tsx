@@ -1,5 +1,5 @@
 // Shareholder dashboard: share balance + ownership %, the current fiscal
-// year's contribution-goal tracker (with Venmo QR when configured), and the
+// year's share-purchase-goal tracker (with Venmo QR when configured), and the
 // shareholder's full entry history with approval/dispute states inline.
 
 import QRCode from 'qrcode'
@@ -12,18 +12,11 @@ import { getShareholderBalance, getTotalSharesOutstanding } from '@/lib/accounti
 import { getContributionGoal, computeGoalProgress } from '@/lib/accounting/goals'
 import { currentFiscalYear, fiscalYearRange, fiscalYearLabel } from '@/lib/accounting/fiscalYear'
 import { getVenmoConfig } from '@/lib/accounting/venmo'
-import { formatUSD, formatDate } from '@/lib/accounting/format'
-import { transactionTypeTag } from '@/lib/accounting/tags'
+import { formatShares, formatDate } from '@/lib/accounting/format'
+import { transactionTypeTag, IN_KIND_TAG } from '@/lib/accounting/tags'
 import { ApprovalStatus, TransactionType } from '@/lib/accounting/enums'
 import { VenmoDialogButton } from './venmo-dialog'
 import { DisputeEntryActions } from './dispute-actions'
-
-const usd0 = (n: number) =>
-  new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(n)
 
 export default async function DashboardPage() {
   const session = await requireShareholder()
@@ -45,18 +38,27 @@ export default async function DashboardPage() {
     })(),
     getShareholderBalance(shareholderId),
     getTotalSharesOutstanding(),
-    db.query.ledgerEntry.findMany({
-      where: eq(ledgerEntry.shareholderId, shareholderId),
-      orderBy: [desc(ledgerEntry.createdAt)],
-      with: {
-        transaction: {
-          with: {
-            approvals: { where: (t, { eq }) => eq(t.shareholderId, shareholderId) },
-            correctsTransaction: { columns: { id: true, type: true } },
+    // Ordered below by the *transaction's* date, not the ledger entry's: they
+    // are written together, but the transaction's is the one every other view
+    // and every fiscal-year figure uses, and it is the one a back-dated
+    // purchase carries. Sorted in JS because Drizzle's relational query builder
+    // can't order a findMany by a joined parent's column — this is one
+    // shareholder's own history, so the list is small.
+    db.query.ledgerEntry
+      .findMany({
+        where: eq(ledgerEntry.shareholderId, shareholderId),
+        with: {
+          transaction: {
+            with: {
+              approvals: { where: (t, { eq }) => eq(t.shareholderId, shareholderId) },
+              correctsTransaction: { columns: { id: true, type: true } },
+            },
           },
         },
-      },
-    }),
+      })
+      .then((rows) =>
+        rows.sort((a, b) => b.transaction.createdAt.getTime() - a.transaction.createdAt.getTime()),
+      ),
     getContributionGoal(currentFY),
     (async () => {
       const [r] = await db
@@ -105,9 +107,9 @@ export default async function DashboardPage() {
             className="mt-2 text-[44px] leading-[1.05]"
             style={{ fontFamily: 'var(--font-heading)' }}
           >
-            {usd0(Number(balance))}
+            {formatShares(Number(balance))}
           </div>
-          <div className="text-muted mt-1 text-[13px]">$1 contributed = 1 share</div>
+          <div className="text-muted mt-1 text-[13px]">Each $1 contributed buys 1 share</div>
         </div>
         <div
           className="card elev-sm min-w-[240px] flex-1 px-6 py-6"
@@ -131,25 +133,25 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* contribution goal tracker */}
+      {/* share purchase goal tracker */}
       {(progress || venmo) && (
         <div className="card elev-sm mb-8 bg-white px-6 py-5">
           <div className="mb-3 flex flex-wrap items-center gap-3.5">
             {goalAmount !== null ? (
               <div>
                 <div className="text-muted text-xs tracking-[0.06em] uppercase">
-                  {fiscalYearLabel(currentFY)} contribution goal
+                  {fiscalYearLabel(currentFY)} share purchase goal
                 </div>
                 <div className="mt-1 text-[26px]" style={{ fontFamily: 'var(--font-heading)' }}>
-                  {usd0(raisedThisYear)}{' '}
+                  {formatShares(raisedThisYear)}{' '}
                   <span className="text-base" style={{ color: 'var(--color-neutral-600)' }}>
-                    of {usd0(goalAmount)}
+                    of {formatShares(goalAmount)} shares
                   </span>
                 </div>
               </div>
             ) : (
               <div className="text-muted text-sm">
-                No contribution goal set for {fiscalYearLabel(currentFY)} yet.
+                No share purchase goal set for {fiscalYearLabel(currentFY)} yet.
               </div>
             )}
             {venmo && qrDataUrl && (
@@ -177,7 +179,7 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      <h2 className="mb-3.5 text-[22px]">Your contribution history</h2>
+      <h2 className="mb-3.5 text-[22px]">Your share purchase history</h2>
       <div className="flex flex-col gap-3">
         {entries.map((e) => {
           const approval = e.transaction.approvals[0]
@@ -197,6 +199,11 @@ export default async function DashboardPage() {
               )}
               <div className="flex items-center gap-2.5">
                 <span className={typeTag.className}>{typeTag.label}</span>
+                {e.transaction.inKind && (
+                  <span className={`${IN_KIND_TAG.className} px-[7px] py-0 text-[10px]`}>
+                    {IN_KIND_TAG.label}
+                  </span>
+                )}
                 <span
                   className="ml-0.5 text-lg"
                   style={{
@@ -205,9 +212,11 @@ export default async function DashboardPage() {
                   }}
                 >
                   {shares >= 0 ? '+' : ''}
-                  {formatUSD(e.shares.toString())}
+                  {formatShares(e.shares.toString())}
                 </span>
-                <span className="text-muted ml-auto text-[13px]">{formatDate(e.createdAt)}</span>
+                <span className="text-muted ml-auto text-[13px]">
+                  {formatDate(e.transaction.createdAt)}
+                </span>
               </div>
               {e.transaction.description && (
                 <div className="text-sm">{e.transaction.description}</div>
@@ -267,7 +276,7 @@ export default async function DashboardPage() {
             </div>
           )
         })}
-        {entries.length === 0 && <p className="text-muted">No contributions yet.</p>}
+        {entries.length === 0 && <p className="text-muted">No share purchases yet.</p>}
       </div>
     </div>
   )

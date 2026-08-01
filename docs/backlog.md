@@ -61,7 +61,7 @@ with the cheap version and only go deeper if it's worth it:
   family Google Chat space in a new tab. Config-driven (space URL in an env
   var / admin setting), no API.
 - **Nicer, later:** show unread/activity hints or post portal events
-  (new contribution recorded, reservation booked) into the space via a Chat
+  (new share purchase recorded, reservation booked) into the space via a Chat
   webhook or the Google Chat API.
 
 **Open questions:** one shared space vs per-topic; whether deep integration is
@@ -94,6 +94,22 @@ expected redirect/error boundary and all e2e pass — but it should be guarded s
 the log is clean and there's no latent crash if the redirect ever changes. Track
 down which page/component (likely a reservations or portal route rendering under
 a redirect) and add the null check.
+
+### Contribution → share purchase: internal names still say "contribution"
+
+The user-facing rename shipped, but the DB enum value (`CONTRIBUTION`), the
+`ContributionGoal` table, the `/accounting/contributions` route, the public
+`/accounting/api/contributions/current-year` endpoint and the matching TS
+symbols still carry the old word. Deliberate — renaming the enum rewrites the
+`type` column on every real row, a table rename is a drop/create away from
+disaster in CI, and the route is referenced by five `revalidatePath` calls plus
+the e2e suite. Worth doing only as its own PR, and the route rename is cheap and
+precedented (`app/accounting/activity/page.tsx` is exactly such a leftover
+redirect stub).
+
+Note `lib/accounting/expenseChart.ts` is now the one place that still reads a
+share count as a dollar amount — it charts money in vs money out, where the
+$1 = 1 share rule makes them identical. If that ratio ever changes, start there.
 
 ## Chores
 

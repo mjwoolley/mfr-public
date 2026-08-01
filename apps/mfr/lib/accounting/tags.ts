@@ -1,10 +1,22 @@
 import type { TransactionType, ExpenseCategory, ApprovalStatus } from '@/lib/accounting/enums'
 
-/** Organic tag class + display label for a transaction type. */
+/**
+ * Marks a share purchase paid in goods or labour rather than money. Defined
+ * once here because five surfaces render it (admin history, member dashboard,
+ * activity, approval inbox, the notification email).
+ */
+export const IN_KIND_TAG = { label: 'In kind', className: 'tag tag-outline' } as const
+
+/**
+ * Organic tag class + display label for a transaction type.
+ *
+ * The `CONTRIBUTION` enum value is the database's, and stays; only what the
+ * family reads changes — they buy shares, so it says "Share purchase".
+ */
 export function transactionTypeTag(type: TransactionType): { label: string; className: string } {
   switch (type) {
     case 'CONTRIBUTION':
-      return { label: 'Contribution', className: 'tag tag-accent-2' }
+      return { label: 'Share purchase', className: 'tag tag-accent-2' }
     case 'TRANSFER':
       return { label: 'Transfer', className: 'tag tag-neutral' }
     case 'ADJUSTMENT':

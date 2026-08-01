@@ -19,8 +19,11 @@ export interface ContributionEntryRow {
   /** ISO date string of the transaction. */
   date: string
   description: string | null
-  /** Signed dollars (= shares). */
+  /** Signed share count. */
   amount: number
+  /** Non-cash share purchase. Optional and display-only — never enters the
+   * grouping math, so fixtures don't need to set it. */
+  inKind?: boolean
   /** Soft-deleted (superseded by a correction) — shown struck through, excluded from all totals. */
   deleted: boolean
 }

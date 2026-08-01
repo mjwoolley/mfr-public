@@ -3,7 +3,7 @@
 
 import { requireAuthorized } from '@/lib/accounting/authz'
 import { getAllShareholderBalances } from '@/lib/accounting/ledger'
-import { formatUSD } from '@/lib/accounting/format'
+import { formatShares } from '@/lib/accounting/format'
 
 export default async function OwnershipPage() {
   const session = await requireAuthorized()
@@ -22,7 +22,7 @@ export default async function OwnershipPage() {
     <div>
       <h1 className="mb-2 text-4xl">Ownership report</h1>
       <p className="text-muted mb-6 text-[15px]">
-        {formatUSD(total.toString())} shares outstanding across {owners.length} shareholder
+        {formatShares(total.toString())} shares outstanding across {owners.length} shareholder
         {owners.length === 1 ? '' : 's'}.
       </p>
 
@@ -55,7 +55,7 @@ export default async function OwnershipPage() {
                     </span>
                   </td>
                   <td className="text-right" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                    {formatUSD(shares.toString())}
+                    {formatShares(shares.toString())}
                   </td>
                   <td
                     className="text-right font-semibold"
@@ -69,7 +69,7 @@ export default async function OwnershipPage() {
             <tfoot>
               <tr style={{ fontFamily: 'var(--font-heading)' }}>
                 <td className="pt-3">Total</td>
-                <td className="pt-3 text-right">{formatUSD(total.toString())}</td>
+                <td className="pt-3 text-right">{formatShares(total.toString())}</td>
                 <td className="pt-3 text-right">100.00%</td>
               </tr>
             </tfoot>

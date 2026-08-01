@@ -9,6 +9,7 @@
  */
 
 import { fiscalYearLabel } from '@/lib/accounting/fiscalYear'
+import { formatUSD0 } from './format'
 
 export interface YearFinancials {
   year: number
@@ -64,12 +65,12 @@ export interface IncomeExpenseChart {
   dotR: number
 }
 
-const usd0 = (n: number) =>
-  new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(n)
+// This chart deliberately reads share counts as dollars: it compares money in
+// against money out, and the $1 = 1 share rule makes the two numerically
+// identical. After the shares-are-counts change it is the ONE remaining place
+// in the app where the two units are conflated — if that ratio ever stops being
+// 1:1, this is the file to revisit.
+const usd0 = formatUSD0
 
 const signed = (n: number) => (n === 0 ? '$0' : (n > 0 ? '+' : '') + usd0(n))
 
@@ -164,7 +165,7 @@ export function computeIncomeExpenseChart(
         w: barW,
         h: inH,
         kind: 'contributions',
-        title: `${fiscalYearLabel(y.year)} · Contributions in: ${usd0(y.contributions)}`,
+        title: `${fiscalYearLabel(y.year)} · Share purchases in: ${usd0(y.contributions)}`,
       })
     if (opH > 0)
       bars.push({

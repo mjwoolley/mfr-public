@@ -1,8 +1,8 @@
 import Link from 'next/link'
 import { desc } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
-import { formatUSD, formatDate } from '@/lib/accounting/format'
-import { transactionTypeTag, approvalStatusTag } from '@/lib/accounting/tags'
+import { signedShares, formatDate } from '@/lib/accounting/format'
+import { transactionTypeTag, approvalStatusTag, IN_KIND_TAG } from '@/lib/accounting/tags'
 import { ApprovalStatus } from '@/lib/accounting/enums'
 import { ResolveDisputeForm } from './resolve-dispute-form'
 
@@ -33,16 +33,18 @@ export default async function AdminActivityPage() {
         {transactions.map((t) => {
           const typeTag = transactionTypeTag(t.type)
           const entryLine = t.entries
-            .map((e) => {
-              const shares = Number(e.shares)
-              return `${e.shareholder.name} ${shares >= 0 ? '+' : ''}${formatUSD(e.shares.toString())}`
-            })
+            .map((e) => `${e.shareholder.name} ${signedShares(e.shares.toString())}`)
             .join(' · ')
           const disputedApprovals = t.approvals.filter((a) => a.status === ApprovalStatus.DISPUTED)
           return (
             <div key={t.id} className="card elev-sm px-4 py-3 text-sm" style={{ gap: 5 }}>
               <div className="flex items-center gap-2.5">
                 <span className={`${typeTag.className} flex-none`}>{typeTag.label}</span>
+                {t.inKind && (
+                  <span className={`${IN_KIND_TAG.className} flex-none px-[7px] py-0 text-[10px]`}>
+                    {IN_KIND_TAG.label}
+                  </span>
+                )}
                 <span
                   className={`min-w-0 text-sm font-semibold ${t.deleted ? 'line-through opacity-60' : ''}`}
                 >
