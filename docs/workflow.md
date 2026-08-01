@@ -69,7 +69,11 @@ the family seeing it.
    [preview-deploys.md](preview-deploys.md) for how previews are wired.
 
 7. **Merge the PR — that IS the production deploy.** Only after the preview looks
-   good and CI is green. The Vercel project builds and auto-promotes.
+   good and CI is green. The Vercel project builds and auto-promotes. **Use "Create a
+   merge commit" — never squash or rebase-merge.** A merge commit keeps each branch's
+   real commits in `main`'s history, so `git log`, `git bisect`, and `git branch --merged`
+   all stay honest; squashing flattens the branch into one commit and orphans the
+   originals (which is why step 9's `git branch -d` works cleanly here).
 
 8. **Smoke-test production for two minutes.** Sign in on the live site and
    exercise the flow you changed. Tests can pass while production config is
