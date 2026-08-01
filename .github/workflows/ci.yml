@@ -1,4 +1,4 @@
-# CI pipeline. Every job here must pass (except `audit`/`semgrep`, which are
+# CI pipeline. Every job here must pass (except `semgrep`, which is
 # advisory) before a PR can merge — branch protection requires the single
 # `ci-ok` gate job, so job renames/additions only need the `needs` list below
 # updated.
@@ -292,32 +292,16 @@ jobs:
       # scan surfaces issues in the log without a red X on the check.
       - run: semgrep scan --config p/default --metrics=off
 
-  audit:
-    name: npm audit (advisory)
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - name: Audit high-severity vulnerabilities
-        # `--omit=dev` scopes the tripwire to production dependencies: a red X
-        # here means a package we actually ship has a high/critical advisory —
-        # dev/build-tooling vulns (which never reach users) are reported but
-        # don't fail the check. Advisory-only regardless (not in `ci-ok`).
-        # Dependabot (alerts + security updates) is the backstop for everything.
-        run: |
-          echo "## npm audit (production, high+)" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          npm audit --omit=dev --audit-level=high 2>&1 | tee -a "$GITHUB_STEP_SUMMARY" || true
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          npm audit --omit=dev --audit-level=high
+  # There is deliberately no `npm audit` job. It was advisory-only and went red
+  # on every PR for advisories nobody could act on — every one of them pinned by
+  # a parent we don't control (postcss by next, brace-expansion by eslint's
+  # minimatch, esbuild by drizzle-kit, qs by stryker), and none reaching the
+  # served app. A check that is permanently red teaches you to ignore red, which
+  # is worse than no check. Dependabot alerts are the backstop; see
+  # docs/backlog.md for the standing triage of what's parked and why.
 
   # The single required status check for branch protection. Everything except
-  # the advisory-only jobs (`audit`, `semgrep`) must succeed.
+  # the advisory-only `semgrep` job must succeed.
   ci-ok:
     name: CI OK
     runs-on: ubuntu-latest

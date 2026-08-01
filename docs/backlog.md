@@ -113,6 +113,37 @@ $1 = 1 share rule makes them identical. If that ratio ever changes, start there.
 
 ## Chores
 
+### Dependency advisories: standing triage
+
+The `npm audit` CI job was removed (2026-08-01). It was advisory-only — never
+part of `ci-ok`, so it never blocked a merge — but it went red on _every_ PR for
+advisories nobody could act on, and a permanently-red check just teaches you to
+ignore red.
+
+All six open Dependabot alerts at the time were pinned by a parent we don't
+control, and none of them reaches the served app. Every one survives
+`npm audit fix` (which would also add ~170 packages):
+
+| Package           | Sev         | Reached via                                   | Why it's parked                                                                                                               |
+| ----------------- | ----------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `postcss` ×3      | high×2, mod | `next`'s bundled copy                         | next pins postcss 8.4.31. Build-time CSS processing, not served code. Unblocks when Next ships a release on postcss ≥ 8.5.18. |
+| `brace-expansion` | high        | `minimatch@3` ← `eslint`                      | Needs eslint to move off minimatch 3.x. Lint tooling only.                                                                    |
+| `esbuild`         | mod         | `@esbuild-kit/core-utils` ← `drizzle-kit`     | Advisory is about `esbuild serve`, which we never run. That package is deprecated; unblocks when drizzle-kit moves to tsx.    |
+| `qs`              | mod         | `typed-rest-client` ← `@stryker-mutator/core` | Mutation testing, weekly CI only. Unblocks when Stryker updates.                                                              |
+
+Forcing any of these (`npm audit fix --force`, or `overrides`) means overriding
+a version a tool pins on purpose, risking the toolchain for no user-facing gain.
+
+**What to actually do:** watch the Dependabot alerts in the Security tab, and
+when a Next bump lands (or any of the parents above updates), re-check whether
+the corresponding alert clears. If a _new_ advisory ever appears on a package we
+genuinely ship and run, that is worth acting on immediately — the reason this
+list is safe to park is that none of these are that.
+
+Note Dependabot's _security_ update runs currently fail for `postcss` and
+`brace-expansion` for exactly the reason above — it can't construct a fix. Its
+routine version updates still work.
+
 ### Speed up the integration CI job (matrix-shard by suite)
 
 The `Integration tests + coverage` job runs ~4.5 min, ~218s of it the tests
