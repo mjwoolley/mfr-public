@@ -53,8 +53,10 @@ describe('requireShareholder()', () => {
   })
 })
 
-// requireAuthorized() gates reports/page.tsx and (as of Phase 12) the
-// promoted activity/page.tsx (admin OR linked shareholder).
+// requireAuthorized() gates the shared books — contributions/page.tsx,
+// ownership/page.tsx and expenses/page.tsx. The books are open to every approved
+// portal user; a Shareholder link is only required for the *personal* views
+// (requireShareholder, above).
 describe('requireAuthorized()', () => {
   it('resolves for an admin, even without a linked shareholder', async () => {
     vi.mocked(auth).mockResolvedValue(session({ isAccountingAdmin: true, shareholderId: null }))
@@ -68,8 +70,15 @@ describe('requireAuthorized()', () => {
     expect(s.user.shareholderId).toBe('sh_1')
   })
 
-  it('redirects an approved user who is neither an admin nor a linked shareholder', async () => {
+  it('resolves for an approved user who is neither an admin nor a linked shareholder', async () => {
     vi.mocked(auth).mockResolvedValue(session({ isAccountingAdmin: false, shareholderId: null }))
+    const s = await requireAuthorized()
+    expect(s.user.shareholderId).toBeNull()
+  })
+
+  it('still redirects a signed-out visitor', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(auth).mockResolvedValue(null as any)
     await expect(requireAuthorized()).rejects.toThrow()
   })
 })
