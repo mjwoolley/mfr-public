@@ -5,6 +5,7 @@
 
 import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2'
 import { render } from '@react-email/render'
+import { siteOrigin } from '@/lib/siteUrl'
 
 let client: SESv2Client | null = null
 
@@ -33,7 +34,7 @@ export function appUrl(path: string) {
   // carries the /accounting segment. Plain string join, not `new URL(path,
   // base)` — that constructor treats a leading-slash path as absolute and would
   // drop the /accounting segment.
-  const origin = (process.env.APP_BASE_URL ?? 'http://localhost:3000').replace(/\/+$/, '')
+  const origin = siteOrigin()
   const base = origin.endsWith('/accounting') ? origin : `${origin}/accounting`
   return `${base}${path.startsWith('/') ? path : `/${path}`}`
 }

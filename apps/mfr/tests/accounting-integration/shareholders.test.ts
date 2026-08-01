@@ -30,6 +30,8 @@ import {
 } from '@/actions/accounting/shareholders'
 import { createContribution } from '@/actions/accounting/contributions'
 import { getAllShareholderBalances } from '@/lib/accounting/ledger'
+import { db } from '@/lib/db/client'
+import { shareholder as shareholderTable } from '@/lib/db/schema'
 
 const ADMIN_SESSION = {
   user: {
@@ -337,6 +339,39 @@ describe('linkShareholderToUser / unlinkShareholder', () => {
 
     const bRow = await testDb.shareholder.findUnique({ where: { id: b.id } })
     expect(bRow?.userId).toBeNull()
+  })
+
+  // The whole point of linking by name: a household Shareholder carries one
+  // spouse's email, so the by-email lookup at sign-in finds nothing and the
+  // link has to be readable by user id. Before extendSession gained that
+  // fallback, this link was written and then silently ignored forever.
+  it('is readable by the by-userId lookup extendSession falls back to, even when the emails differ', async () => {
+    vi.mocked(auth).mockResolvedValue(ADMIN_SESSION)
+
+    const household = await testDb.shareholder.create({
+      data: { name: 'John and Michele Anderegg', email: `john-${Date.now()}@example.com` },
+    })
+    createdShareholderIds.push(household.id)
+
+    const [michele] = await testIdentityDb
+      .insert(users)
+      .values({ email: `michele-${Date.now()}@example.com`, status: 'approved' })
+      .returning()
+    createdUserIds.push(michele.id)
+
+    await linkShareholderToUser(household.id, michele.id)
+
+    // Michele's login email is on no Shareholder row...
+    const byEmail = await db.query.shareholder.findFirst({
+      where: eq(shareholderTable.email, michele.email),
+    })
+    expect(byEmail).toBeUndefined()
+
+    // ...but the manual link resolves her to the household.
+    const byUserId = await db.query.shareholder.findFirst({
+      where: eq(shareholderTable.userId, michele.id),
+    })
+    expect(byUserId?.id).toBe(household.id)
   })
 })
 

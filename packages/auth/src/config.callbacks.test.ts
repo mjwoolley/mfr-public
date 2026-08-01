@@ -205,15 +205,27 @@ describe('events', () => {
     expect(update).not.toHaveBeenCalled()
   })
 
-  it('notifies onUserCreated for brand-new users with id and email', async () => {
+  it('notifies onUserCreated for brand-new users with id, email and name', async () => {
+    const onUserCreated = vi.fn()
+    const config = createAuthConfig({ db: fakeDb().db, basePath: '/api/auth', onUserCreated })
+
+    await config.events!.createUser!({ user: adapterUser({ name: 'Michele Anderegg' }) } as never)
+    expect(onUserCreated).toHaveBeenCalledWith({
+      id: 'user-1',
+      email: 'a@b.c',
+      name: 'Michele Anderegg',
+    })
+
+    await config.events!.createUser!({ user: adapterUser({ email: null as never }) } as never)
+    expect(onUserCreated).toHaveBeenCalledTimes(1)
+  })
+
+  it('passes the name through as undefined when Google supplied none', async () => {
     const onUserCreated = vi.fn()
     const config = createAuthConfig({ db: fakeDb().db, basePath: '/api/auth', onUserCreated })
 
     await config.events!.createUser!({ user: adapterUser() } as never)
-    expect(onUserCreated).toHaveBeenCalledWith({ id: 'user-1', email: 'a@b.c' })
-
-    await config.events!.createUser!({ user: adapterUser({ email: null as never }) } as never)
-    expect(onUserCreated).toHaveBeenCalledTimes(1)
+    expect(onUserCreated).toHaveBeenCalledWith({ id: 'user-1', email: 'a@b.c', name: undefined })
   })
 })
 

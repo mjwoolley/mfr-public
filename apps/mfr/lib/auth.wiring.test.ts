@@ -25,6 +25,19 @@ vi.mock('@mfr/auth', () => ({
 }))
 vi.mock('./identityDb', () => ({ identityDb: { marker: 'identity-db' } }))
 
+const { insertValues, handleNewSignup } = vi.hoisted(() => ({
+  insertValues: vi.fn().mockResolvedValue({}),
+  handleNewSignup: vi.fn().mockResolvedValue('pending-admins-notified'),
+}))
+vi.mock('./db/client', () => ({
+  db: {
+    insert: vi.fn(() => ({ values: insertValues })),
+    query: { shareholder: {} },
+    update: vi.fn(),
+  },
+}))
+vi.mock('./portal/signup', () => ({ handleNewSignup }))
+
 import * as authModule from './auth'
 
 describe('portal auth wiring', () => {
@@ -43,9 +56,29 @@ describe('portal auth wiring', () => {
     expect(opts.db).toEqual({ marker: 'identity-db' })
     expect(opts.getUserRoles).toBeTypeOf('function')
     // The single unified instance merges the two per-section session hooks:
-    // accounting's extendSession (linked Shareholder id) and reservations'
-    // onUserCreated (records user_signed_up in the activity feed).
+    // accounting's extendSession (linked Shareholder id) and onUserCreated
+    // (activity-feed entry, then link/auto-approve or notify the admins).
     expect(opts.extendSession).toBeTypeOf('function')
     expect(opts.onUserCreated).toBeTypeOf('function')
+  })
+
+  it('routes a brand-new signup through the link/approve/notify handler', async () => {
+    const opts = createAuthConfig.mock.calls[0][0] as {
+      onUserCreated: (u: { id: string; email: string; name?: string | null }) => Promise<void>
+    }
+
+    await opts.onUserCreated({ id: 'u-new', email: 'new@example.com', name: 'New Person' })
+
+    // The activity-feed entry still happens...
+    expect(insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({ eventType: 'user_signed_up', actorUserId: 'u-new' }),
+    )
+    // ...and the name is forwarded, not dropped — it drives the notification
+    // subject and the shareholder name matching.
+    expect(handleNewSignup).toHaveBeenCalledWith({
+      id: 'u-new',
+      email: 'new@example.com',
+      name: 'New Person',
+    })
   })
 })

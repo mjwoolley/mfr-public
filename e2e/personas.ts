@@ -102,6 +102,22 @@ export const personas = {
     roles: NO_ROLES,
     sessionToken: 'e2e-session-outsider',
   },
+  /**
+   * Approved with no shareholder link, reserved for the link-by-name spec,
+   * which links them to a household Shareholder mid-suite. Dedicated so it
+   * never disturbs `outsider`, whose whole job is to stay unlinked. Their name
+   * is contained in the household name the spec creates, which is what makes
+   * them a suggested match; their email deliberately is not on it, so the link
+   * only resolves through the by-userId fallback.
+   */
+  household: {
+    id: '99999999-9999-4999-8999-999999999999',
+    email: 'household@e2e.test',
+    name: 'E2E Spouse',
+    status: 'approved',
+    roles: NO_ROLES,
+    sessionToken: 'e2e-session-household',
+  },
 } satisfies Record<string, Persona>
 
 export type PersonaName = keyof typeof personas
