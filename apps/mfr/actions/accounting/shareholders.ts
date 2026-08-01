@@ -175,19 +175,70 @@ export async function setShareholderActive(shareholderId: string, active: boolea
 }
 
 /**
- * Links a shareholder to an identity-DB user found via the shareholder-search
- * API route. `Shareholder.userId` is `@unique`, so linking to a user already
- * linked to a different shareholder fails with a friendly error rather than a
- * raw DB exception.
+ * Links a shareholder to an identity-DB login, optionally copying that login's
+ * email onto the record.
+ *
+ * The email rule, re-derived here rather than trusted from the caller (the
+ * caller's flag only answers the "they differ" case):
+ *
+ *   - shareholder has no email  -> copy it, no questions asked
+ *   - emails already match      -> nothing to do
+ *   - they differ               -> copy only if `adoptEmail`, because a
+ *                                  household row ("John and Michele Anderegg")
+ *                                  legitimately carries the other spouse's
+ *                                  address and must not lose it just to link
+ *
+ * Copying is worth doing: `extendSession` resolves by email *first* and only
+ * then falls back to `userId`, so a record carrying the right address keeps
+ * working even if the link is later cleared. The address is lowercased on the
+ * way in — form-entered emails are stored lowercased and `extendSession`
+ * lowercases before comparing, so a mixed-case Google address stored verbatim
+ * would never match and the copy would silently achieve nothing.
+ *
+ * `Shareholder.userId` and `Shareholder.email` are both unique. A login already
+ * attached elsewhere gives the usual friendly error; an email already held by
+ * another shareholder refuses the whole operation (neither field is written)
+ * and names the holder, since silently linking-but-not-copying would leave the
+ * admin believing the address had moved.
  */
 export async function linkShareholderToUser(
   shareholderId: string,
   userId: string,
+  opts: { adoptEmail?: boolean } = {},
 ): Promise<{ error?: string } | undefined> {
   await requireAdmin()
 
+  const current = await db.query.shareholder.findFirst({
+    where: eq(shareholder.id, shareholderId),
+  })
+  if (!current) return { error: 'Shareholder not found' }
+
+  const [login] = await identityDb
+    .select({ email: users.email })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+  const loginEmail = login?.email?.trim().toLowerCase() || null
+
+  const differs = !!loginEmail && !!current.email && loginEmail !== current.email
+  const adopt = !!loginEmail && (current.email === null || (differs && opts.adoptEmail === true))
+
+  if (adopt) {
+    const holder = await db.query.shareholder.findFirst({
+      where: eq(shareholder.email, loginEmail),
+    })
+    if (holder && holder.id !== shareholderId) {
+      return {
+        error: `"${holder.name}" already uses ${loginEmail}. Clear it there first, then link.`,
+      }
+    }
+  }
+
   try {
-    await db.update(shareholder).set({ userId }).where(eq(shareholder.id, shareholderId))
+    await db
+      .update(shareholder)
+      .set({ userId, ...(adopt ? { email: loginEmail } : {}) })
+      .where(eq(shareholder.id, shareholderId))
   } catch (err) {
     // Drizzle wraps the driver error, so the Postgres SQLSTATE (23505 =
     // unique_violation) surfaces on `err.cause`, not the top-level error.

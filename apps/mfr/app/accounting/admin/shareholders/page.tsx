@@ -44,18 +44,24 @@ export default async function AdminShareholdersPage() {
               const login = s.userId ? loginsById.get(s.userId) : undefined
               return (
                 <tr key={s.id} className={s.active ? undefined : 'opacity-60'}>
-                  <td className="font-semibold">
-                    {s.name}
-                    {!s.active && (
-                      <span className="text-muted ml-1 text-xs font-normal">(inactive)</span>
-                    )}
+                  <td className="align-top">
+                    <span className="block font-semibold">
+                      {s.name}
+                      {!s.active && (
+                        <span className="text-muted ml-1 text-xs font-normal">(inactive)</span>
+                      )}
+                    </span>
+                    {/* break-all for the same reason as the login email below:
+                        one long unbroken address is the only thing that can
+                        push this table wider than a phone. */}
+                    <span className="text-muted block text-xs break-all">
+                      {s.email ?? 'No email'}
+                    </span>
                   </td>
-                  <td>
+                  <td className="align-top">
                     {s.userId ? (
                       <>
                         <span className="block">{login?.name ?? 'Linked'}</span>
-                        {/* break-all: one long unbroken address is the only thing
-                            left that can push this table wider than a phone. */}
                         <span className="text-muted block text-xs break-all">
                           {login?.email ?? '—'}
                         </span>

@@ -10,6 +10,12 @@
 //
 // Only logins not already attached to another shareholder are offered —
 // `Shareholder.userId` is unique, so linking one twice would fail anyway.
+//
+// Linking also decides what happens to the shareholder's own email. A blank one
+// is filled in silently; one that differs from the login's raises a choice,
+// because a household row carrying the other spouse's address must not lose it
+// just to link somebody. The server re-derives all of this — the flag sent from
+// here only answers the "they differ" case.
 
 import { useState, useTransition } from 'react'
 import { linkShareholderToUser, unlinkShareholder } from '@/actions/accounting/shareholders'
@@ -20,12 +26,14 @@ const label = (o: LoginOption) => (o.name ? `${o.name} — ${o.email}` : o.email
 export function LinkLoginControl({
   shareholderId,
   shareholderName,
+  shareholderEmail,
   linkedLogin,
   suggested,
   others,
 }: {
   shareholderId: string
   shareholderName: string
+  shareholderEmail: string | null
   linkedLogin: LoginOption | null
   suggested: LoginOption[]
   others: LoginOption[]
@@ -38,10 +46,14 @@ export function LinkLoginControl({
   const options = [...suggested, ...others]
   const selected = options.find((o) => o.id === selectedId) ?? null
 
-  function link(option: LoginOption) {
+  const nameMismatch = (o: LoginOption) => !suggested.some((s) => s.id === o.id)
+  const emailDiffers = (o: LoginOption) =>
+    !!shareholderEmail && o.email.trim().toLowerCase() !== shareholderEmail.trim().toLowerCase()
+
+  function link(option: LoginOption, adoptEmail = false) {
     setError(null)
     startTransition(async () => {
-      const result = await linkShareholderToUser(shareholderId, option.id)
+      const result = await linkShareholderToUser(shareholderId, option.id, { adoptEmail })
       if (result?.error) {
         setError(result.error)
         setConfirming(null)
@@ -54,10 +66,11 @@ export function LinkLoginControl({
 
   function onLinkClick() {
     if (!selected) return
-    // A suggested login links immediately; anything else needs a deliberate
-    // second step, because a wrong link hands someone another family's balance.
-    if (suggested.some((o) => o.id === selected.id)) link(selected)
-    else setConfirming(selected)
+    // Anything questionable gets a deliberate second step: a wrong link hands
+    // someone another family's balance, and adopting the email overwrites a
+    // record the admin may not have meant to touch.
+    if (nameMismatch(selected) || emailDiffers(selected)) setConfirming(selected)
+    else link(selected)
   }
 
   function unlink() {
@@ -89,14 +102,26 @@ export function LinkLoginControl({
         </>
       ) : confirming ? (
         <div className="mt-2 flex flex-col gap-3">
-          <p className="m-0 text-sm">
-            <strong>{confirming.name ?? confirming.email}</strong> doesn&apos;t appear in{' '}
-            <strong>{shareholderName}</strong>. Link them anyway?
-          </p>
+          {nameMismatch(confirming) && (
+            <p className="m-0 text-sm">
+              <strong>{confirming.name ?? confirming.email}</strong> doesn&apos;t appear in{' '}
+              <strong>{shareholderName}</strong>. Link them anyway?
+            </p>
+          )}
+          {emailDiffers(confirming) && (
+            <p className="m-0 text-sm">
+              This login&apos;s email differs from the shareholder&apos;s:
+              <span className="text-muted mt-1 block text-xs break-all">
+                shareholder <strong>{shareholderEmail}</strong>
+                <br />
+                login <strong>{confirming.email}</strong>
+              </span>
+            </p>
+          )}
           <p className="text-muted m-0 text-xs">
             Linking gives this login access to {shareholderName}&apos;s share balance and approvals.
           </p>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
               className="btn btn-secondary"
@@ -105,14 +130,35 @@ export function LinkLoginControl({
             >
               Back
             </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => link(confirming)}
-              disabled={isPending}
-            >
-              {isPending ? 'Linking…' : 'Link anyway'}
-            </button>
+            {emailDiffers(confirming) ? (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => link(confirming, false)}
+                  disabled={isPending}
+                >
+                  {isPending ? 'Linking…' : `Link, keep ${shareholderEmail}`}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => link(confirming, true)}
+                  disabled={isPending}
+                >
+                  {isPending ? 'Linking…' : `Link and use ${confirming.email}`}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => link(confirming)}
+                disabled={isPending}
+              >
+                {isPending ? 'Linking…' : 'Link anyway'}
+              </button>
+            )}
           </div>
         </div>
       ) : options.length === 0 ? (

@@ -31,6 +31,7 @@ export default async function EditShareholderPage({ params }: { params: Promise<
       <LinkLoginControl
         shareholderId={shareholder.id}
         shareholderName={shareholder.name}
+        shareholderEmail={shareholder.email}
         linkedLogin={linkedLogin}
         suggested={suggested}
         others={others}
