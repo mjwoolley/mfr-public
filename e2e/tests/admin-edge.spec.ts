@@ -71,15 +71,23 @@ test.describe('portal user management', () => {
 
     const row = page.locator('.card').filter({ hasText: 'applicant@e2e.test' })
 
+    // Park the applicant on the pending page *before* approving, so the reload
+    // below reproduces what a real person does: sit on "pending approval", get
+    // approved, hit refresh. This used to strand them — the page rendered the
+    // waiting message unconditionally, so only a sign-out/sign-in got them in.
+    const applicant = await contextFor(browser, 'applicant')
+    const applicantPage = await applicant.newPage()
+    await applicantPage.goto(`${RESERVATIONS_URL}/reservations/calendar`)
+    await expect(applicantPage).toHaveURL(/\/reservations\/pending/)
+
     // Approve the pending applicant.
     await expect(row.getByText('pending', { exact: true })).toBeVisible()
     await row.getByRole('button', { name: 'Approve' }).click()
     await expect(row.getByText('approved', { exact: true })).toBeVisible()
 
-    // The applicant can now enter the reservations app.
-    const applicant = await contextFor(browser, 'applicant')
-    const applicantPage = await applicant.newPage()
-    await applicantPage.goto(`${RESERVATIONS_URL}/reservations/calendar`)
+    // A plain reload of the pending page is enough — no sign-out required. It
+    // lands on /reservations, which forwards to the calendar.
+    await applicantPage.reload()
     await expect(applicantPage).toHaveURL(/\/reservations\/calendar/)
     await applicant.close()
 

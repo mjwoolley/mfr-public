@@ -33,13 +33,18 @@ export async function requirePortalApproved() {
   return gatePortalStatus(session)
 }
 
-/** Admin, or an unlinked-but-allowed account. Redirects unauthorized users away. */
+/**
+ * The books are open to the whole family: any approved portal user can read the
+ * shared accounting views (share purchases, ownership, expenses), whether or not
+ * they're linked to a Shareholder record. Being a shareholder is what gives you
+ * a *personal* view — see `requireShareholder` for those.
+ *
+ * Kept as its own name (rather than calling `requirePortalApproved` directly at
+ * the call sites) because "who may read the books" is a distinct policy that has
+ * changed once already and may change again.
+ */
 export async function requireAuthorized() {
-  const session = await requirePortalApproved()
-  if (!canAdminAccounting(session.user.roles) && !session.user.shareholderId) {
-    redirect('/accounting/unauthorized')
-  }
-  return session
+  return requirePortalApproved()
 }
 
 export async function requireAdmin() {
