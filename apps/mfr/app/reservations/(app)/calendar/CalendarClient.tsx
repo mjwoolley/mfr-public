@@ -244,6 +244,16 @@ export function CalendarClient({ userId, isAdmin }: CalendarClientProps) {
           />
           Booked by family
         </span>
+        <span className="text-muted flex items-center gap-2 text-[13px]">
+          <span
+            className="h-[15px] w-[15px] rounded-[5px]"
+            style={{
+              background:
+                'linear-gradient(135deg, var(--color-accent) 0 50%, var(--color-accent-2) 50% 100%)',
+            }}
+          />
+          Turnover day
+        </span>
       </div>
 
       {/* selection banner / hint */}

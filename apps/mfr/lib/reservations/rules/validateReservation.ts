@@ -51,8 +51,22 @@ export type ValidationCode =
   | 'OVERLAP_BOOKED'
   | 'OVERLAP_BLOCKED'
 
+// Same-day turnover is allowed (half-open ranges don't overlap at a shared
+// boundary day), but it's worth flagging so the two parties can coordinate.
+// These are advisory only — they never make a reservation invalid.
+export type TurnoverCode = 'TURNOVER_CHECKIN' | 'TURNOVER_CHECKOUT'
+
+export interface TurnoverWarning {
+  code: TurnoverCode
+  reason: string
+  /** The existing reservation whose boundary this stay touches. */
+  otherReservationId: string
+  otherUserId: string
+}
+
 export type ValidationResult =
-  { valid: true } | { valid: false; code: ValidationCode; reason: string }
+  | { valid: true; warnings: TurnoverWarning[] }
+  | { valid: false; code: ValidationCode; reason: string }
 
 export function validateReservation(input: ValidateReservationInput): ValidationResult {
   const {
@@ -148,5 +162,32 @@ export function validateReservation(input: ValidateReservationInput): Validation
     }
   }
 
-  return { valid: true }
+  // Advisory: a boundary touch against a confirmed stay (this check-in on
+  // another's checkout, or this checkout on another's check-in). A real night
+  // overlap already returned OVERLAP_BOOKED above, so anything reaching here
+  // is a genuine same-day turnover, not a conflict. Blocked-date adjacency has
+  // no "other party" to coordinate with, so it isn't flagged.
+  const warnings: TurnoverWarning[] = []
+  for (const r of otherConfirmed) {
+    if (startDate === r.endDate) {
+      warnings.push({
+        code: 'TURNOVER_CHECKIN',
+        otherReservationId: r.id,
+        otherUserId: r.userId,
+        reason:
+          'Your check-in is the same day another stay checks out. You can book it — coordinate arrival and departure with the other party.',
+      })
+    }
+    if (endDate === r.startDate) {
+      warnings.push({
+        code: 'TURNOVER_CHECKOUT',
+        otherReservationId: r.id,
+        otherUserId: r.userId,
+        reason:
+          'Your check-out is the same day another stay checks in. You can book it — coordinate arrival and departure with the other party.',
+      })
+    }
+  }
+
+  return { valid: true, warnings }
 }

@@ -45,6 +45,12 @@
   --color-accent-2-800: #3d472b;
   --color-accent-2-900: #272e1b;
 
+  /* Warm amber for advisory/caution UI — distinct from the terracotta accent
+     used for hard errors. */
+  --color-warning-100: #fbeecb;
+  --color-warning-300: #edd08a;
+  --color-warning-800: #5f3d0b;
+
   --font-heading: 'Caprasimo', system-ui, sans-serif;
   --font-heading-weight: 400;
   --font-body: 'Figtree', system-ui, sans-serif;

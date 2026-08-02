@@ -17,6 +17,9 @@ describe('computeDayInfo', () => {
       bookedByName: null,
       bookedByUserId: null,
       isReservationStart: false,
+      checkoutReservationId: null,
+      checkoutByName: null,
+      checkoutByUserId: null,
       isBlocked: false,
       isPastHorizon: false,
     })
@@ -54,7 +57,7 @@ describe('computeDayInfo', () => {
     expect(computeDayInfo('2027-06-11', reservations, [], rules).isReservationStart).toBe(false)
   })
 
-  it('does not report a booking for the half-open end date itself', () => {
+  it('does not report a booked night for the half-open end date itself', () => {
     const reservations: ReservationRow[] = [
       {
         id: 'r1',
@@ -66,7 +69,56 @@ describe('computeDayInfo', () => {
       },
     ]
     const info = computeDayInfo('2027-06-15', reservations, [], rules)
+    // Night slot stays empty (so the day is still selectable for a new
+    // check-in) but the day is shaded via the checkout slot.
+    expect(info.reservationId).toBeNull()
     expect(info.bookedByName).toBeNull()
+    expect(info.checkoutReservationId).toBe('r1')
+    expect(info.checkoutByName).toBe('Jane')
+    expect(info.checkoutByUserId).toBe('u1')
+  })
+
+  it('reports both slots on a turnover day (one stay checks out as another checks in)', () => {
+    const reservations: ReservationRow[] = [
+      {
+        id: 'out',
+        userId: 'u1',
+        startDate: '2027-06-10',
+        endDate: '2027-06-15',
+        status: 'confirmed',
+        userName: 'Jane',
+      },
+      {
+        id: 'in',
+        userId: 'u2',
+        startDate: '2027-06-15',
+        endDate: '2027-06-18',
+        status: 'confirmed',
+        userName: 'Ravi',
+      },
+    ]
+    const info = computeDayInfo('2027-06-15', reservations, [], rules)
+    // Arriving stay occupies the night; departing stay fills the checkout slot.
+    expect(info.reservationId).toBe('in')
+    expect(info.bookedByUserId).toBe('u2')
+    expect(info.isReservationStart).toBe(true)
+    expect(info.checkoutReservationId).toBe('out')
+    expect(info.checkoutByUserId).toBe('u1')
+  })
+
+  it('ignores a cancelled reservation for the checkout slot', () => {
+    const reservations: ReservationRow[] = [
+      {
+        id: 'r1',
+        userId: 'u1',
+        startDate: '2027-06-10',
+        endDate: '2027-06-15',
+        status: 'cancelled',
+        userName: 'Jane',
+      },
+    ]
+    const info = computeDayInfo('2027-06-15', reservations, [], rules)
+    expect(info.checkoutReservationId).toBeNull()
   })
 
   it('ignores a cancelled reservation', () => {
