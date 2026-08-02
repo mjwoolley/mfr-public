@@ -198,8 +198,11 @@ describe('LinkLoginControl — the shareholder email', () => {
 
     expect(linkShareholderToUser).not.toHaveBeenCalled()
     expect(screen.getByText(/differs from the shareholder/)).toBeTruthy()
-    expect(screen.getByText('john@example.com')).toBeTruthy()
-    expect(screen.getByText('michele@example.com')).toBeTruthy()
+    // Read the <code> rows: each address is split across text and <mark> nodes
+    // so the differing run can be highlighted, so getByText can't see it whole.
+    const codes = [...document.querySelectorAll('code')].map((c) => c.textContent)
+    expect(codes).toContain('john@example.com')
+    expect(codes).toContain('michele@example.com')
   })
 
   // The household case: keep john@, still link Michele.
@@ -252,5 +255,64 @@ describe('LinkLoginControl — the shareholder email', () => {
     fireEvent.click(screen.getByRole('button', { name: /Link and use/ }))
 
     await waitFor(() => expect(screen.getByText(/"Ray Miller" already uses/)).toBeTruthy())
+  })
+})
+
+// A near-identical pair is exactly the pair that needs this prompt, and the one
+// most likely to make it look broken. From production: a shareholder record
+// carrying "melanmiller20@" while the login is "melanimiller20@" — one missing
+// character, invisible in prose.
+describe('LinkLoginControl — showing WHERE the emails differ', () => {
+  const melani: LoginOption = {
+    id: 'u-melani',
+    email: 'melanimiller20@gmail.com',
+    name: 'Melani Miller',
+  }
+
+  function openDiff() {
+    renderControl({
+      shareholderName: 'Melani & Ron Pottorf',
+      shareholderEmail: 'melanmiller20@gmail.com',
+      suggested: [],
+      others: [melani],
+    })
+    fireEvent.change(picker(), { target: { value: 'u-melani' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Link' }))
+  }
+
+  it('highlights only the differing character', () => {
+    openDiff()
+
+    const marks = document.querySelectorAll('mark')
+    // One address is missing the character entirely, so only the other is marked.
+    expect(marks).toHaveLength(1)
+    expect(marks[0].textContent).toBe('i')
+  })
+
+  it('still shows both addresses in full', () => {
+    openDiff()
+
+    const codes = [...document.querySelectorAll('code')].map((c) => c.textContent)
+    expect(codes).toContain('melanmiller20@gmail.com')
+    expect(codes).toContain('melanimiller20@gmail.com')
+  })
+
+  it('says which side is missing the highlighted part', () => {
+    openDiff()
+
+    expect(screen.getByText(/the shareholder.s is missing it/)).toBeTruthy()
+  })
+
+  it('marks both sides when each has its own differing run', () => {
+    renderControl({
+      shareholderEmail: 'john@example.com',
+      suggested: [],
+      others: [michele],
+    })
+    fireEvent.change(picker(), { target: { value: 'u-michele' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Link' }))
+
+    const marks = [...document.querySelectorAll('mark')].map((m) => m.textContent)
+    expect(marks).toEqual(['john', 'michele'])
   })
 })

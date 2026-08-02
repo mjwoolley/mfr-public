@@ -19,9 +19,57 @@
 
 import { useState, useTransition } from 'react'
 import { linkShareholderToUser, unlinkShareholder } from '@/actions/accounting/shareholders'
+import { diffEmails } from '@/lib/accounting/emailDiff'
 import type { LoginOption } from '@/lib/accounting/linkCandidates'
 
 const label = (o: LoginOption) => (o.name ? `${o.name} — ${o.email}` : o.email)
+
+/**
+ * The two addresses stacked, monospaced, with only the differing run
+ * highlighted. The pair that most needs this prompt is the pair that differs by
+ * one character — "melanmiller20@" vs "melanimiller20@" — which reads as
+ * identical in prose and makes the warning look like a bug.
+ */
+function EmailComparison({
+  shareholderEmail,
+  loginEmail,
+}: {
+  shareholderEmail: string
+  loginEmail: string
+}) {
+  const diff = diffEmails(shareholderEmail, loginEmail)
+  if (!diff) return null
+
+  const row = (who: string, part: { prefix: string; middle: string; suffix: string }) => (
+    <div className="flex gap-2">
+      <span className="text-muted w-[86px] flex-none">{who}</span>
+      <code className="font-mono text-xs break-all">
+        {part.prefix}
+        {part.middle && (
+          <mark
+            className="rounded-sm px-[2px] font-bold"
+            style={{ background: 'var(--color-accent-200)', color: 'inherit' }}
+          >
+            {part.middle}
+          </mark>
+        )}
+        {part.suffix}
+      </code>
+    </div>
+  )
+
+  return (
+    <div className="mt-1 flex flex-col gap-1 text-xs">
+      {row('shareholder', diff.a)}
+      {row('login', diff.b)}
+      <p className="text-muted m-0 mt-1">
+        Only the highlighted part differs
+        {diff.a.middle === '' && ' — the shareholder’s is missing it'}
+        {diff.b.middle === '' && ' — the login’s is missing it'}.
+      </p>
+    </div>
+  )
+}
 
 export function LinkLoginControl({
   shareholderId,
@@ -109,14 +157,10 @@ export function LinkLoginControl({
             </p>
           )}
           {emailDiffers(confirming) && (
-            <p className="m-0 text-sm">
-              This login&apos;s email differs from the shareholder&apos;s:
-              <span className="text-muted mt-1 block text-xs break-all">
-                shareholder <strong>{shareholderEmail}</strong>
-                <br />
-                login <strong>{confirming.email}</strong>
-              </span>
-            </p>
+            <div className="text-sm">
+              <p className="m-0">This login&apos;s email differs from the shareholder&apos;s:</p>
+              <EmailComparison shareholderEmail={shareholderEmail!} loginEmail={confirming.email} />
+            </div>
           )}
           <p className="text-muted m-0 text-xs">
             Linking gives this login access to {shareholderName}&apos;s share balance and approvals.
