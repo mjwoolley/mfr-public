@@ -162,13 +162,15 @@ export function validateReservation(input: ValidateReservationInput): Validation
     }
   }
 
-  // Advisory: a boundary touch against a confirmed stay (this check-in on
-  // another's checkout, or this checkout on another's check-in). A real night
-  // overlap already returned OVERLAP_BOOKED above, so anything reaching here
-  // is a genuine same-day turnover, not a conflict. Blocked-date adjacency has
-  // no "other party" to coordinate with, so it isn't flagged.
+  // Advisory: a boundary touch against ANOTHER person's confirmed stay (this
+  // check-in on their checkout, or this checkout on their check-in). A real
+  // night overlap already returned OVERLAP_BOOKED above, so anything reaching
+  // here is a genuine same-day turnover, not a conflict. Skip the booker's own
+  // reservations — there's no other party to coordinate with when your stay
+  // simply abuts your own — and skip blocked-date adjacency for the same reason.
   const warnings: TurnoverWarning[] = []
   for (const r of otherConfirmed) {
+    if (r.userId === userId) continue
     if (startDate === r.endDate) {
       warnings.push({
         code: 'TURNOVER_CHECKIN',

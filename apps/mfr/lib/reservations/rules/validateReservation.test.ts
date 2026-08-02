@@ -379,6 +379,53 @@ describe('validateReservation — same-day turnover warnings', () => {
     if (result.valid) expect(result.warnings).toEqual([])
   })
 
+  it("does not warn when the boundary touches the booker's OWN other reservation", () => {
+    // A back-to-back stay against your own reservation needs no coordination —
+    // there is no other party. (Not excluded by id: a genuinely separate stay.)
+    const existing: ExistingReservation[] = [
+      {
+        id: 'r-own',
+        userId: 'user-1', // same as the booker in baseInput
+        startDate: '2027-05-28',
+        endDate: '2027-06-01', // its checkout == the new check-in (2027-06-01)
+        status: 'confirmed',
+      },
+    ]
+    const result = validateReservation(baseInput({ existingReservations: existing }))
+    expect(result.valid).toBe(true)
+    if (result.valid) expect(result.warnings).toEqual([])
+  })
+
+  it("warns only for the other party's boundary, not the booker's own, on the same stay", () => {
+    // Check-in touches someone else's checkout (warn); check-out touches the
+    // booker's own check-in (no warn) — only the cross-party warning survives.
+    const existing: ExistingReservation[] = [
+      {
+        id: 'other',
+        userId: 'someone-else',
+        startDate: '2027-05-28',
+        endDate: '2027-06-01', // their checkout == new check-in -> TURNOVER_CHECKIN
+        status: 'confirmed',
+      },
+      {
+        id: 'mine',
+        userId: 'user-1',
+        startDate: '2027-06-05', // my own check-in == new check-out (no warn)
+        endDate: '2027-06-08',
+        status: 'confirmed',
+      },
+    ]
+    const result = validateReservation(baseInput({ existingReservations: existing }))
+    expect(result.valid).toBe(true)
+    if (result.valid) {
+      expect(result.warnings).toHaveLength(1)
+      expect(result.warnings[0]).toMatchObject({
+        code: 'TURNOVER_CHECKIN',
+        otherReservationId: 'other',
+      })
+    }
+  })
+
   it('does not warn for adjacency to a blocked date range (no other party)', () => {
     // new checkout 2027-06-05 touches blocked range starting 2027-06-05.
     const result = validateReservation(
