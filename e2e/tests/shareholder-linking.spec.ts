@@ -46,14 +46,23 @@ test.describe('shareholder linking', () => {
     await expect(suggested.locator('option', { hasText: personas.household.name })).toHaveCount(1)
 
     await picker.selectOption({ label: `${personas.household.name} — ${personas.household.email}` })
-    await page.getByRole('button', { name: 'Link' }).click()
+    await page.getByRole('button', { name: 'Link', exact: true }).click()
+
+    // The household's email is the OTHER spouse's, so linking raises the
+    // keep-or-adopt choice. Keeping it is the whole point of the household
+    // case: john@ must survive linking Michele.
+    await expect(page.getByText(/differs from the shareholder/)).toBeVisible()
+    await page.getByRole('button', { name: /Link, keep e2e-partner@e2e\.test/ }).click()
     await expect(page.getByText(`Linked to ${personas.household.name}`)).toBeVisible()
 
     // The list now names the login on its own line under the person's name.
     // Scoped to the Login cell: the shareholder's own name contains the
     // persona's name as a substring, so a row-wide text match is ambiguous.
     await page.goto(SHAREHOLDERS)
-    const loginCell = page.locator('tr').filter({ hasText: HOUSEHOLD_NAME }).locator('td').nth(1)
+    const householdRow = page.locator('tr').filter({ hasText: HOUSEHOLD_NAME })
+    // Column 1 keeps the shareholder's own email — it was NOT adopted.
+    await expect(householdRow.locator('td').nth(0)).toContainText('e2e-partner@e2e.test')
+    const loginCell = householdRow.locator('td').nth(1)
     await expect(loginCell).toContainText(personas.household.name)
     await expect(loginCell).toContainText(personas.household.email)
     await admin.close()
@@ -91,7 +100,7 @@ test.describe('shareholder linking', () => {
     await expect(picker.locator('optgroup[label="No name matches"]')).toHaveCount(1)
 
     await picker.selectOption({ label: `${personas.outsider.name} — ${personas.outsider.email}` })
-    await page.getByRole('button', { name: 'Link' }).click()
+    await page.getByRole('button', { name: 'Link', exact: true }).click()
 
     // A confirmation naming both sides, not a link.
     await expect(page.getByText(/doesn't appear in/)).toBeVisible()
@@ -101,6 +110,43 @@ test.describe('shareholder linking', () => {
     await expect(
       page.locator('tr').filter({ hasText: unmatched }).getByText('Not linked'),
     ).toBeVisible()
+
+    await admin.close()
+  })
+
+  // A shareholder with no email of its own: linking should just fill it in,
+  // with no prompt. This is what makes the record resolvable by extendSession's
+  // by-email lookup afterwards.
+  test('linking a shareholder with no email fills it in silently', async ({ browser }) => {
+    const admin = await contextFor(browser, 'admin')
+    const page = await admin.newPage()
+
+    // Named so the visitor persona is a *suggested* match — otherwise the
+    // name-mismatch prompt fires and this test stops being about the email.
+    const blankName = 'E2E Visitor Household'
+    await page.goto(`${SHAREHOLDERS}/new`)
+    await page.getByLabel('Name').fill(blankName)
+    await page.getByRole('button', { name: 'Add shareholder' }).click()
+    await expect(page).toHaveURL(/\/accounting\/admin\/shareholders$/)
+
+    const row = page.locator('tr').filter({ hasText: blankName })
+    await expect(row.locator('td').nth(0)).toContainText('No email')
+
+    await row.getByRole('link', { name: 'Edit' }).click()
+    await page
+      .getByLabel('Link a login')
+      .selectOption({ label: `${personas.visitor.name} — ${personas.visitor.email}` })
+    await page.getByRole('button', { name: 'Link', exact: true }).click()
+
+    // No keep-or-adopt choice — there was nothing to overwrite.
+    await expect(page.getByText(/differs from the shareholder/)).toHaveCount(0)
+    await expect(page.getByText(`Linked to ${personas.visitor.name}`)).toBeVisible()
+
+    // The record now carries the login's address.
+    await page.goto(SHAREHOLDERS)
+    await expect(
+      page.locator('tr').filter({ hasText: blankName }).locator('td').nth(0),
+    ).toContainText(personas.visitor.email)
 
     await admin.close()
   })

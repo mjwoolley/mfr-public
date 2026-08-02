@@ -375,6 +375,131 @@ describe('linkShareholderToUser / unlinkShareholder', () => {
   })
 })
 
+// Linking also decides what happens to the shareholder's own email. The server
+// re-derives this rather than trusting the caller's flag, so these exercise the
+// rule directly.
+describe('linkShareholderToUser — the shareholder email', () => {
+  async function makeLogin(local: string, over: Record<string, unknown> = {}) {
+    const [row] = await testIdentityDb
+      .insert(users)
+      .values({
+        email: `${local}-${Date.now()}-${Math.random()}@example.com`,
+        status: 'approved',
+        ...over,
+      })
+      .returning()
+    createdUserIds.push(row.id)
+    return row
+  }
+
+  async function makeHolder(name: string, email: string | null) {
+    const row = await testDb.shareholder.create({ data: { name, email } })
+    createdShareholderIds.push(row.id)
+    return row
+  }
+
+  it('fills in a blank email from the login, without being asked', async () => {
+    vi.mocked(auth).mockResolvedValue(ADMIN_SESSION)
+    const holder = await makeHolder('No Email Holder', null)
+    const login = await makeLogin('blankfill')
+
+    const result = await linkShareholderToUser(holder.id, login.id)
+    expect(result?.error).toBeUndefined()
+
+    const after = await testDb.shareholder.findUnique({ where: { id: holder.id } })
+    expect(after?.userId).toBe(login.id)
+    expect(after?.email).toBe(login.email.toLowerCase())
+  })
+
+  // extendSession lowercases the login email before comparing, so a verbatim
+  // mixed-case address would never match and the copy would achieve nothing.
+  it('lowercases the adopted address', async () => {
+    vi.mocked(auth).mockResolvedValue(ADMIN_SESSION)
+    const holder = await makeHolder('Mixed Case Holder', null)
+    const upper = `MixedCase-${Date.now()}-${Math.random()}@Example.COM`
+    const login = await makeLogin('unused', { email: upper })
+
+    await linkShareholderToUser(holder.id, login.id)
+
+    const after = await testDb.shareholder.findUnique({ where: { id: holder.id } })
+    expect(after?.email).toBe(upper.toLowerCase())
+  })
+
+  // The household case: john@ must survive linking Michele.
+  it('leaves a differing email alone unless asked', async () => {
+    vi.mocked(auth).mockResolvedValue(ADMIN_SESSION)
+    const holder = await makeHolder('John and Michele', `john-${Date.now()}@example.com`)
+    const login = await makeLogin('michele')
+
+    await linkShareholderToUser(holder.id, login.id)
+
+    const after = await testDb.shareholder.findUnique({ where: { id: holder.id } })
+    expect(after?.userId).toBe(login.id)
+    expect(after?.email).toBe(holder.email)
+  })
+
+  it('replaces a differing email when asked', async () => {
+    vi.mocked(auth).mockResolvedValue(ADMIN_SESSION)
+    const holder = await makeHolder('Adopting Holder', `old-${Date.now()}@example.com`)
+    const login = await makeLogin('adopted')
+
+    await linkShareholderToUser(holder.id, login.id, { adoptEmail: true })
+
+    const after = await testDb.shareholder.findUnique({ where: { id: holder.id } })
+    expect(after?.email).toBe(login.email.toLowerCase())
+  })
+
+  // Shareholder.email is unique; a clash refuses the whole operation so the
+  // admin never believes the address moved when it didn't.
+  it('refuses entirely when another shareholder already owns that email', async () => {
+    vi.mocked(auth).mockResolvedValue(ADMIN_SESSION)
+    const login = await makeLogin('contested')
+    const incumbent = await makeHolder('Ray Miller', login.email.toLowerCase())
+    const holder = await makeHolder('Wants That Email', `other-${Date.now()}@example.com`)
+
+    const result = await linkShareholderToUser(holder.id, login.id, { adoptEmail: true })
+
+    expect(result?.error).toContain('Ray Miller')
+    expect(result?.error).toContain(login.email.toLowerCase())
+
+    // Neither field moved, and the incumbent is untouched.
+    const after = await testDb.shareholder.findUnique({ where: { id: holder.id } })
+    expect(after?.userId).toBeNull()
+    expect(after?.email).toBe(holder.email)
+    const incumbentAfter = await testDb.shareholder.findUnique({ where: { id: incumbent.id } })
+    expect(incumbentAfter?.email).toBe(login.email.toLowerCase())
+  })
+
+  it('refuses a blank-email fill that would collide, rather than linking silently', async () => {
+    vi.mocked(auth).mockResolvedValue(ADMIN_SESSION)
+    const login = await makeLogin('taken')
+    await makeHolder('Incumbent Holder', login.email.toLowerCase())
+    const holder = await makeHolder('Blank Holder', null)
+
+    const result = await linkShareholderToUser(holder.id, login.id)
+
+    expect(result?.error).toContain('Incumbent Holder')
+    const after = await testDb.shareholder.findUnique({ where: { id: holder.id } })
+    expect(after?.userId).toBeNull()
+    expect(after?.email).toBeNull()
+  })
+
+  // The payoff: once adopted, extendSession's by-email path resolves it, so the
+  // link survives even if userId is later cleared.
+  it("makes the record resolvable by extendSession's by-email lookup", async () => {
+    vi.mocked(auth).mockResolvedValue(ADMIN_SESSION)
+    const holder = await makeHolder('Adopt For Lookup', `stale-${Date.now()}@example.com`)
+    const login = await makeLogin('lookup')
+
+    await linkShareholderToUser(holder.id, login.id, { adoptEmail: true })
+
+    const byEmail = await db.query.shareholder.findFirst({
+      where: eq(shareholderTable.email, login.email.toLowerCase()),
+    })
+    expect(byEmail?.id).toBe(holder.id)
+  })
+})
+
 describe("the `active` flag's pre-existing effect, now under real integration test coverage", () => {
   it('excludes inactive shareholders from getAllShareholderBalances (Reports)', async () => {
     const active = await testDb.shareholder.create({
