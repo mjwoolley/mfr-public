@@ -284,6 +284,138 @@ describe('validateReservation — overlap against other reservations', () => {
   })
 })
 
+describe('validateReservation — same-day turnover warnings', () => {
+  it('warns (but stays valid) when the new check-in lands on an existing checkout', () => {
+    // existing checks out 2027-06-01; base input checks in 2027-06-01.
+    const existing: ExistingReservation[] = [
+      {
+        id: 'r1',
+        userId: 'someone-else',
+        startDate: '2027-05-28',
+        endDate: '2027-06-01',
+        status: 'confirmed',
+      },
+    ]
+    const result = validateReservation(baseInput({ existingReservations: existing }))
+    expect(result.valid).toBe(true)
+    if (result.valid) {
+      expect(result.warnings).toHaveLength(1)
+      expect(result.warnings[0]).toMatchObject({
+        code: 'TURNOVER_CHECKIN',
+        otherReservationId: 'r1',
+        otherUserId: 'someone-else',
+      })
+    }
+  })
+
+  it('warns (but stays valid) when the new checkout lands on an existing check-in', () => {
+    // base input checks out 2027-06-05; existing checks in 2027-06-05.
+    const existing: ExistingReservation[] = [
+      {
+        id: 'r2',
+        userId: 'someone-else',
+        startDate: '2027-06-05',
+        endDate: '2027-06-09',
+        status: 'confirmed',
+      },
+    ]
+    const result = validateReservation(baseInput({ existingReservations: existing }))
+    expect(result.valid).toBe(true)
+    if (result.valid) {
+      expect(result.warnings).toHaveLength(1)
+      expect(result.warnings[0]).toMatchObject({
+        code: 'TURNOVER_CHECKOUT',
+        otherReservationId: 'r2',
+      })
+    }
+  })
+
+  it('emits no warning for a fully-separated stay', () => {
+    const existing: ExistingReservation[] = [
+      {
+        id: 'r1',
+        userId: 'someone-else',
+        startDate: '2027-07-01',
+        endDate: '2027-07-05',
+        status: 'confirmed',
+      },
+    ]
+    const result = validateReservation(baseInput({ existingReservations: existing }))
+    expect(result.valid).toBe(true)
+    if (result.valid) expect(result.warnings).toEqual([])
+  })
+
+  it('does not warn against a cancelled reservation at the boundary', () => {
+    const existing: ExistingReservation[] = [
+      {
+        id: 'r1',
+        userId: 'someone-else',
+        startDate: '2027-05-28',
+        endDate: '2027-06-01',
+        status: 'cancelled',
+      },
+    ]
+    const result = validateReservation(baseInput({ existingReservations: existing }))
+    expect(result.valid).toBe(true)
+    if (result.valid) expect(result.warnings).toEqual([])
+  })
+
+  it('does not warn against the reservation being edited (excluded by id)', () => {
+    // Editing r1, whose own checkout equals the new check-in — must not
+    // self-warn.
+    const existing: ExistingReservation[] = [
+      {
+        id: 'r1',
+        userId: 'user-1',
+        startDate: '2027-05-28',
+        endDate: '2027-06-01',
+        status: 'confirmed',
+      },
+    ]
+    const result = validateReservation(
+      baseInput({ existingReservations: existing, excludeReservationId: 'r1' }),
+    )
+    expect(result.valid).toBe(true)
+    if (result.valid) expect(result.warnings).toEqual([])
+  })
+
+  it('does not warn for adjacency to a blocked date range (no other party)', () => {
+    // new checkout 2027-06-05 touches blocked range starting 2027-06-05.
+    const result = validateReservation(
+      baseInput({ blockedDates: [{ startDate: '2027-06-05', endDate: '2027-06-10' }] }),
+    )
+    expect(result.valid).toBe(true)
+    if (result.valid) expect(result.warnings).toEqual([])
+  })
+
+  it('flags a stay that is a turnover on both ends', () => {
+    const existing: ExistingReservation[] = [
+      {
+        id: 'before',
+        userId: 'someone-else',
+        startDate: '2027-05-28',
+        endDate: '2027-06-01',
+        status: 'confirmed',
+      },
+      {
+        id: 'after',
+        userId: 'another',
+        startDate: '2027-06-05',
+        endDate: '2027-06-09',
+        status: 'confirmed',
+      },
+    ]
+    const result = validateReservation(baseInput({ existingReservations: existing }))
+    expect(result.valid).toBe(true)
+    if (result.valid) {
+      expect(result.warnings.map((w) => w.code).sort()).toEqual([
+        'TURNOVER_CHECKIN',
+        'TURNOVER_CHECKOUT',
+      ])
+    }
+  })
+})
+
 describe('validateReservation — overlap against blocked dates', () => {
   it('rejects when overlapping a blocked date range', () => {
     const result = validateReservation(

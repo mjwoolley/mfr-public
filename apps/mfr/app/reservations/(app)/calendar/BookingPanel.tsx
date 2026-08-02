@@ -174,6 +174,33 @@ export function BookingPanel({
           {validation.reason}
         </div>
       )}
+      {/* Same-day turnover: allowed, but flag it so the two parties coordinate.
+          Advisory only — the Confirm button stays enabled. */}
+      {!memberMissing && validation.valid && validation.warnings.length > 0 && (
+        <div
+          className="flex flex-col gap-1 px-3 py-2.5 text-[13px] font-semibold"
+          style={{
+            background: 'var(--color-warning-100)',
+            border: '1px solid var(--color-warning-300)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--color-warning-800)',
+          }}
+        >
+          {validation.warnings.map((w) => {
+            const who =
+              reservations.find((r) => r.id === w.otherReservationId)?.userName ?? 'the other party'
+            const base =
+              w.code === 'TURNOVER_CHECKIN'
+                ? 'Your check-in is the same day another stay checks out.'
+                : 'Your check-out is the same day another stay checks in.'
+            return (
+              <div key={w.otherReservationId + w.code}>
+                ⚠ {base} You can still book it — coordinate arrival and departure with {who}.
+              </div>
+            )
+          })}
+        </div>
+      )}
       {submitError && (
         <div className="text-[13px] font-semibold" style={{ color: 'var(--color-accent-800)' }}>
           {submitError}

@@ -100,14 +100,32 @@ export function CalendarGrid({
         ))}
         {days.map((day) => {
           const booked = day.reservationId !== null
-          const tone = booked ? reservationTone(day.bookedByUserId === userId) : null
+          // Two independent tones: the stay occupying this NIGHT and the stay
+          // checking OUT here. Both set → a turnover day (split color).
+          const nightTone = booked ? reservationTone(day.bookedByUserId === userId) : null
+          const checkoutTone = day.checkoutReservationId
+            ? reservationTone(day.checkoutByUserId === userId)
+            : null
+          // `booked` (night only) still drives disabled/click, so a
+          // checkout-only day stays selectable for a new check-in.
           const disabled = !booked && (day.isBlocked || day.isPastHorizon)
           const isToday = day.date === today
 
           let background = 'var(--color-neutral-100)'
-          if (tone) background = tone.fill
+          if (nightTone && checkoutTone) {
+            // Turnover: top-left = departing (checkout) half, bottom-right =
+            // arriving (check-in) half.
+            background = `linear-gradient(135deg, ${checkoutTone.fill} 0 50%, ${nightTone.fill} 50% 100%)`
+          } else if (nightTone) {
+            background = nightTone.fill
+          } else if (checkoutTone) {
+            background = checkoutTone.fill
+          }
           if (day.isInSelection) background = 'var(--color-accent-200)'
+          // Blocked / past-horizon outranks a cosmetic checkout tint.
           if (disabled) background = 'var(--color-neutral-200)'
+
+          const barTone = nightTone ?? checkoutTone
 
           return (
             <button
@@ -132,10 +150,10 @@ export function CalendarGrid({
                     : undefined,
               }}
             >
-              {tone && (
+              {barTone && (
                 <span
                   className="absolute top-0 bottom-0 left-0 w-[5px]"
-                  style={{ background: tone.bar }}
+                  style={{ background: barTone.bar }}
                 />
               )}
               <span
@@ -144,10 +162,10 @@ export function CalendarGrid({
               >
                 {Number(day.date.slice(-2))}
               </span>
-              {day.isReservationStart && day.bookedByName && tone && (
+              {day.isReservationStart && day.bookedByName && nightTone && (
                 <span
                   className="mt-auto max-w-full overflow-hidden text-[11px] font-semibold text-ellipsis whitespace-nowrap"
-                  style={{ color: tone.ink }}
+                  style={{ color: nightTone.ink }}
                 >
                   {day.bookedByName}
                 </span>
