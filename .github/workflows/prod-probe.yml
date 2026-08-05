@@ -5,9 +5,8 @@
 # Deliberately diagnostic-only: no rollback, no revert PR, no issue filing — it
 # just reports what it sees. Read-only; safe to run any time.
 #
-# Also triggers on push to the probe branch itself: `workflow_dispatch` only
-# resolves for workflows already on the default branch, so the push trigger is
-# what lets this run before it is merged.
+# NOTE: `workflow_dispatch` only resolves for workflows already on the default
+# branch, so this becomes runnable from the Actions tab once merged to `main`.
 name: Prod probe (manual)
 
 on:
@@ -17,8 +16,6 @@ on:
         description: 'Base URL to probe'
         required: false
         default: 'https://millerfamilyreunions.org'
-  push:
-    branches: [claude/neon-branch-cleanup-failure-jsji1r]
 
 jobs:
   probe:
