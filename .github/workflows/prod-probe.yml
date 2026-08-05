@@ -1,0 +1,69 @@
+# On-demand production probe. Runs the same non-destructive scripts/smoke.mjs
+# that post-deploy-smoke.yml runs, but triggered by hand instead of by a deploy,
+# so production health can be checked without waiting for (or forcing) a deploy.
+#
+# Deliberately diagnostic-only: no rollback, no revert PR, no issue filing — it
+# just reports what it sees. Read-only; safe to run any time.
+name: Prod probe (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: 'Base URL to probe'
+        required: false
+        default: 'https://millerfamilyreunions.org'
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      # Raw reachability first: DNS, TLS and the status line, before the script's
+      # higher-level assertions. Never fails the step — this is diagnostics.
+      - name: Raw HTTP check
+        run: |
+          BASE="${{ inputs.base }}"
+          echo "### Raw HTTP: $BASE" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          curl -sS -o /dev/null -m 30 \
+            -w 'http=%{http_code}\ndns=%{time_namelookup}s connect=%{time_connect}s tls=%{time_appconnect}s total=%{time_total}s\n' \
+            "$BASE/" 2>&1 | tee -a "$GITHUB_STEP_SUMMARY" || true
+          echo '--- response headers ---' | tee -a "$GITHUB_STEP_SUMMARY"
+          curl -sSI -m 30 "$BASE/" 2>&1 | head -25 | tee -a "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      # smoke.mjs has no npm deps (global fetch only). Each optional layer
+      # self-skips when its secret is absent.
+      #   exit 0 = all pass · 1 = critical (site broken) · 3 = probe/config only
+      - name: Run smoke
+        id: smoke
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET_PROD }}
+          SMOKE_SESSION_TOKEN: ${{ secrets.SMOKE_SESSION_TOKEN_PROD }}
+        run: |
+          echo "### Smoke: ${{ inputs.base }}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          set +e
+          node scripts/smoke.mjs "${{ inputs.base }}" 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+          code=${PIPESTATUS[0]}
+          set -e
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "smoke exit code: $code" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Report
+        run: |
+          code="${{ steps.smoke.outputs.code }}"
+          case "$code" in
+            0) echo "Production looks healthy (all checks passed)." ;;
+            1) echo "CRITICAL: user-facing checks failed — the site is broken."; exit 1 ;;
+            3) echo "Degraded: only probe/config checks failed; the site itself is up."; exit 1 ;;
+            *) echo "Smoke exited $code (usage/unknown)."; exit 1 ;;
+          esac
