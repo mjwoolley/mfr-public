@@ -16,8 +16,6 @@ on:
         description: 'Base URL to probe'
         required: false
         default: 'https://millerfamilyreunions.org'
-  push:
-    branches: [claude/neon-branch-cleanup-failure-jsji1r]
 
 jobs:
   probe:
