@@ -95,6 +95,26 @@ the log is clean and there's no latent crash if the redirect ever changes. Track
 down which page/component (likely a reservations or portal route rendering under
 a redirect) and add the null check.
 
+### Failed gallery uploads leave orphaned `gallery-tmp/` blobs
+
+A gallery upload is two steps: the browser streams the original to Blob under
+`gallery-tmp/`, then `finalizeUpload` processes it, stores the final image and
+inserts the `portal_photos` row. `finalizeUpload` deletes the temp original on
+success and on a _processing_ failure — but if it never runs at all (function
+timeout, the member closing the tab or backgrounding the browser mid-batch), the
+temp blob is left behind with no row pointing at it and nothing ever collects it.
+
+Invisible to members (orphans aren't in any gallery query) but it accumulates
+storage. Worth a sweep in the existing daily `photo-backup` cron: delete
+`gallery-tmp/*` objects older than ~24h. That prefix is only ever a staging area,
+so age alone is a safe signal. Would also give a countable signal for how often
+finalize is failing — currently there is none.
+
+Related: large HEICs are decoded by pure-JS `heic-convert`, and
+`apps/mfr/vercel.json` sets no `maxDuration`, so a big batch may be running close
+to the default function timeout. If orphan counts turn out to be non-trivial,
+measure that before anything else.
+
 ### Contribution → share purchase: internal names still say "contribution"
 
 The user-facing rename shipped, but the DB enum value (`CONTRIBUTION`), the
