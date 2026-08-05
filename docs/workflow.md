@@ -279,10 +279,12 @@ In CI the E2E job provisions its own ephemeral branches; no setup needed.
 
 ## CI secrets (GitHub repo settings)
 
-`NEON_PROJECT_ID_ACCOUNTING`, `NEON_PROJECT_ID_RESERVATIONS`,
-`NEON_PROJECT_ID_IDENTITY` (set), and `NEON_API_KEY` — an org API key created
-in the Neon console. A daily `cleanup-neon.yml` workflow deletes any `ci-*`
-branch older than 24h that a crashed runner leaked.
+`NEON_API_KEY` — an org API key created in the Neon console. A daily
+`cleanup-neon.yml` workflow deletes any `ci-*` branch older than 24h that a
+crashed runner leaked, in the unified `mfr` project (`lucky-butterfly-29223414`,
+inlined there and in `ci.yml`; project ids aren't secrets). The old per-domain
+`NEON_PROJECT_ID_ACCOUNTING` / `_RESERVATIONS` / `_IDENTITY` secrets are
+obsolete — those projects were consolidated into `mfr` and deleted.
 
 ## Reference: environments
 
