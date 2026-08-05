@@ -4,6 +4,10 @@
 #
 # Deliberately diagnostic-only: no rollback, no revert PR, no issue filing — it
 # just reports what it sees. Read-only; safe to run any time.
+#
+# Also triggers on push to the probe branch itself: `workflow_dispatch` only
+# resolves for workflows already on the default branch, so the push trigger is
+# what lets this run before it is merged.
 name: Prod probe (manual)
 
 on:
@@ -13,11 +17,16 @@ on:
         description: 'Base URL to probe'
         required: false
         default: 'https://millerfamilyreunions.org'
+  push:
+    branches: [claude/neon-branch-cleanup-failure-jsji1r]
 
 jobs:
   probe:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      # inputs.base is empty on a push event — fall back to the prod domain.
+      BASE: ${{ inputs.base || 'https://millerfamilyreunions.org' }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -28,14 +37,20 @@ jobs:
       # higher-level assertions. Never fails the step — this is diagnostics.
       - name: Raw HTTP check
         run: |
-          BASE="${{ inputs.base }}"
           echo "### Raw HTTP: $BASE" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           curl -sS -o /dev/null -m 30 \
             -w 'http=%{http_code}\ndns=%{time_namelookup}s connect=%{time_connect}s tls=%{time_appconnect}s total=%{time_total}s\n' \
             "$BASE/" 2>&1 | tee -a "$GITHUB_STEP_SUMMARY" || true
           echo '--- response headers ---' | tee -a "$GITHUB_STEP_SUMMARY"
-          curl -sSI -m 30 "$BASE/" 2>&1 | head -25 | tee -a "$GITHUB_STEP_SUMMARY" || true
+          curl -sSI -m 30 "$BASE/" 2>&1 | head -30 | tee -a "$GITHUB_STEP_SUMMARY" || true
+          echo '--- body (first 60 lines) ---' | tee -a "$GITHUB_STEP_SUMMARY"
+          curl -sS -m 30 "$BASE/" 2>&1 | head -60 | tee -a "$GITHUB_STEP_SUMMARY" || true
+          echo '--- TLS certificate ---' | tee -a "$GITHUB_STEP_SUMMARY"
+          HOST="$(echo "$BASE" | sed -E 's#^https?://##; s#/.*##')"
+          echo | openssl s_client -servername "$HOST" -connect "$HOST:443" 2>/dev/null \
+            | openssl x509 -noout -subject -issuer -dates 2>&1 \
+            | tee -a "$GITHUB_STEP_SUMMARY" || true
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
       # smoke.mjs has no npm deps (global fetch only). Each optional layer
@@ -47,10 +62,10 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET_PROD }}
           SMOKE_SESSION_TOKEN: ${{ secrets.SMOKE_SESSION_TOKEN_PROD }}
         run: |
-          echo "### Smoke: ${{ inputs.base }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Smoke: $BASE" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           set +e
-          node scripts/smoke.mjs "${{ inputs.base }}" 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+          node scripts/smoke.mjs "$BASE" 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
           code=${PIPESTATUS[0]}
           set -e
           echo '```' >> "$GITHUB_STEP_SUMMARY"
