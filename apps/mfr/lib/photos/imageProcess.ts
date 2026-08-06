@@ -13,6 +13,7 @@
 import sharp from 'sharp'
 import convert from 'heic-convert'
 import exifr from 'exifr'
+import { logger } from '@/lib/reservations/logger'
 import { MAX_DIMENSION } from './constants'
 
 export interface ProcessedImage {
@@ -64,5 +65,37 @@ export async function normalizeImage(input: Buffer, contentType: string): Promis
     .jpeg({ quality: 82, mozjpeg: true })
     .toBuffer({ resolveWithObject: true })
 
-  return { bytes: data, width: info.width, height: info.height, contentType: 'image/jpeg', takenAt }
+  return {
+    bytes: unshare(data),
+    width: info.width,
+    height: info.height,
+    contentType: 'image/jpeg',
+    takenAt,
+  }
+}
+
+/**
+ * Return bytes that are safe to hand to `fetch` (i.e. to the Blob upload).
+ *
+ * sharp normally runs its native binary, whose Buffers are ordinary heap
+ * memory. When the native binary can't be loaded it silently falls back to
+ * `@img/sharp-wasm32`, which allocates a *shared* WebAssembly memory — so its
+ * Buffers are backed by a SharedArrayBuffer, and `fetch` rejects those outright
+ * ("ArrayBuffer: SharedArrayBuffer is not allowed"). That broke every upload in
+ * production for two weeks under sharp 0.35.3 and, because the throw happened
+ * after normalization, it surfaced as an opaque Server Action error rather than
+ * anything a member could act on.
+ *
+ * Copying into a plain Buffer costs one memcpy and makes the fallback merely
+ * slow instead of fatal. The warning is the signal that it happened at all —
+ * it means the native binary is not loading and wants investigating.
+ */
+export function unshare(data: Buffer): Buffer {
+  const shared =
+    typeof SharedArrayBuffer !== 'undefined' && data.buffer instanceof SharedArrayBuffer
+  if (!shared) return data
+  logger.warn(
+    'sharp returned SharedArrayBuffer-backed bytes — the native binary did not load and the WASM fallback is in use',
+  )
+  return Buffer.from(data)
 }

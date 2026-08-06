@@ -14,24 +14,24 @@ jobs:
     timeout-minutes: 10
     env:
       NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      # The unified Neon project ("mfr") — the one CI creates its ci-* branches
+      # in (see NEON_PROJECT_ID in ci.yml). The old per-domain projects
+      # (accounting/reservations/identity/portal) were consolidated into this
+      # one and deleted, so their NEON_PROJECT_ID_* secrets now 404. Project ids
+      # are not secrets (the API key is), so it is inlined here as in ci.yml.
+      NEON_PROJECT_ID: lucky-butterfly-29223414
     steps:
       - name: Delete ci-* branches older than 24h
         run: |
           set -euo pipefail
           cutoff=$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)
-          for project in \
-            "${{ secrets.NEON_PROJECT_ID_ACCOUNTING }}" \
-            "${{ secrets.NEON_PROJECT_ID_RESERVATIONS }}" \
-            "${{ secrets.NEON_PROJECT_ID_IDENTITY }}" \
-            "${{ secrets.NEON_PROJECT_ID_PORTAL }}"; do
-            echo "Checking project $project"
-            branches=$(curl -sf -H "Authorization: Bearer $NEON_API_KEY" \
-              "https://console.neon.tech/api/v2/projects/$project/branches" |
-              jq -r --arg cutoff "$cutoff" \
-                '.branches[] | select(.name | startswith("ci-")) | select(.created_at < $cutoff) | .id')
-            for id in $branches; do
-              echo "Deleting leaked branch $id"
-              curl -sf -X DELETE -H "Authorization: Bearer $NEON_API_KEY" \
-                "https://console.neon.tech/api/v2/projects/$project/branches/$id" > /dev/null
-            done
+          echo "Checking project $NEON_PROJECT_ID"
+          branches=$(curl -sf -H "Authorization: Bearer $NEON_API_KEY" \
+            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" |
+            jq -r --arg cutoff "$cutoff" \
+              '.branches[] | select(.name | startswith("ci-")) | select(.created_at < $cutoff) | .id')
+          for id in $branches; do
+            echo "Deleting leaked branch $id"
+            curl -sf -X DELETE -H "Authorization: Bearer $NEON_API_KEY" \
+              "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$id" > /dev/null
           done

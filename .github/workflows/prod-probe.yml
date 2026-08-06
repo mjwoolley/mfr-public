@@ -1,0 +1,120 @@
+# On-demand production probe. Runs the same non-destructive scripts/smoke.mjs
+# that post-deploy-smoke.yml runs, but triggered by hand instead of by a deploy,
+# so production health can be checked without waiting for (or forcing) a deploy.
+#
+# Deliberately diagnostic-only: no rollback, no revert PR, no issue filing — it
+# just reports what it sees. Read-only; safe to run any time.
+#
+# NOTE: `workflow_dispatch` only resolves for workflows already on the default
+# branch, so this becomes runnable from the Actions tab once merged to `main`.
+name: Prod probe (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: 'Base URL to probe'
+        required: false
+        default: 'https://millerfamilyreunions.org'
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # inputs.base is empty on a push event — fall back to the prod domain.
+      BASE: ${{ inputs.base || 'https://millerfamilyreunions.org' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      # Raw reachability first: DNS, TLS and the status line, before the script's
+      # higher-level assertions. Never fails the step — this is diagnostics.
+      - name: Raw HTTP check
+        run: |
+          echo "### Raw HTTP: $BASE" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          curl -sS -o /dev/null -m 30 \
+            -w 'http=%{http_code}\ndns=%{time_namelookup}s connect=%{time_connect}s tls=%{time_appconnect}s total=%{time_total}s\n' \
+            "$BASE/" 2>&1 | tee -a "$GITHUB_STEP_SUMMARY" || true
+          echo '--- response headers ---' | tee -a "$GITHUB_STEP_SUMMARY"
+          curl -sSI -m 30 "$BASE/" 2>&1 | head -30 | tee -a "$GITHUB_STEP_SUMMARY" || true
+          echo '--- body (first 60 lines) ---' | tee -a "$GITHUB_STEP_SUMMARY"
+          curl -sS -m 30 "$BASE/" 2>&1 | head -60 | tee -a "$GITHUB_STEP_SUMMARY" || true
+          echo '--- TLS certificate ---' | tee -a "$GITHUB_STEP_SUMMARY"
+          HOST="$(echo "$BASE" | sed -E 's#^https?://##; s#/.*##')"
+          echo | openssl s_client -servername "$HOST" -connect "$HOST:443" 2>/dev/null \
+            | openssl x509 -noout -subject -issuer -dates 2>&1 \
+            | tee -a "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      # The sign-in path specifically. smoke.mjs proves a *session cookie* works,
+      # but never exercises the Google OAuth entry/callback — so an auth-only
+      # break (ERR_CONNECTION_CLOSED at sign-in while `/` is fine) hides from it.
+      # Every request prints its status; a closed connection shows as curl's own
+      # error (exit 52/56) rather than a status code, which is the tell.
+      - name: Auth flow check
+        run: |
+          echo "### Auth endpoints" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          probe() { # <label> <path> [extra curl args...]
+            local label="$1" path="$2"; shift 2
+            printf '%-46s ' "$label" | tee -a "$GITHUB_STEP_SUMMARY"
+            curl -sS -o /dev/null -m 25 -w 'http=%{http_code} http_ver=%{http_version} time=%{time_total}s\n' \
+              "$@" "$BASE$path" 2>&1 | tail -1 | tee -a "$GITHUB_STEP_SUMMARY" \
+              || echo "  <- curl error (connection closed/reset)" | tee -a "$GITHUB_STEP_SUMMARY"
+          }
+          probe 'GET /sign-in'                  '/sign-in'
+          probe 'GET /api/auth/providers'       '/api/auth/providers'
+          probe 'GET /api/auth/csrf'            '/api/auth/csrf'
+          probe 'GET /api/auth/session'         '/api/auth/session'
+          probe 'GET /api/auth/signin/google'   '/api/auth/signin/google'
+          probe 'GET /api/auth/callback/google' '/api/auth/callback/google'
+          echo '--- same requests forced to HTTP/1.1 (rules out an h2 fault) ---' | tee -a "$GITHUB_STEP_SUMMARY"
+          probe 'HTTP/1.1 GET /sign-in'         '/sign-in' --http1.1
+          probe 'HTTP/1.1 GET /api/auth/csrf'   '/api/auth/csrf' --http1.1
+          echo '--- mobile Chrome user-agent ---' | tee -a "$GITHUB_STEP_SUMMARY"
+          UA='Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36'
+          probe 'mobile GET /sign-in'           '/sign-in' -A "$UA"
+          echo '--- /api/auth/providers body ---' | tee -a "$GITHUB_STEP_SUMMARY"
+          curl -sS -m 25 "$BASE/api/auth/providers" 2>&1 | head -c 600 | tee -a "$GITHUB_STEP_SUMMARY" || true
+          echo '' >> "$GITHUB_STEP_SUMMARY"
+          echo '--- www + apex variants ---' | tee -a "$GITHUB_STEP_SUMMARY"
+          for h in millerfamilyreunions.org www.millerfamilyreunions.org; do
+            printf '%-46s ' "GET https://$h/sign-in" | tee -a "$GITHUB_STEP_SUMMARY"
+            curl -sS -o /dev/null -m 25 -w 'http=%{http_code}\n' "https://$h/sign-in" 2>&1 | tail -1 \
+              | tee -a "$GITHUB_STEP_SUMMARY" || true
+          done
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      # smoke.mjs has no npm deps (global fetch only). Each optional layer
+      # self-skips when its secret is absent.
+      #   exit 0 = all pass · 1 = critical (site broken) · 3 = probe/config only
+      - name: Run smoke
+        id: smoke
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET_PROD }}
+          SMOKE_SESSION_TOKEN: ${{ secrets.SMOKE_SESSION_TOKEN_PROD }}
+        run: |
+          echo "### Smoke: $BASE" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          set +e
+          node scripts/smoke.mjs "$BASE" 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+          code=${PIPESTATUS[0]}
+          set -e
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "smoke exit code: $code" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Report
+        run: |
+          code="${{ steps.smoke.outputs.code }}"
+          case "$code" in
+            0) echo "Production looks healthy (all checks passed)." ;;
+            1) echo "CRITICAL: user-facing checks failed — the site is broken."; exit 1 ;;
+            3) echo "Degraded: only probe/config checks failed; the site itself is up."; exit 1 ;;
+            *) echo "Smoke exited $code (usage/unknown)."; exit 1 ;;
+          esac

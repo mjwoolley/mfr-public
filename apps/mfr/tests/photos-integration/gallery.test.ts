@@ -231,6 +231,66 @@ describe('finalizeUpload', () => {
     expect(deleteBlobObject).toHaveBeenCalledWith('https://blob/gallery-tmp/bad.txt')
     expect(await testDb.select().from(portalPhotos)).toHaveLength(0)
   })
+
+  // The outage of 2026-07-22: sharp's WASM fallback returned
+  // SharedArrayBuffer-backed bytes and `put` -> `fetch` rejected them. This step
+  // ran unguarded, so the throw escaped as an opaque Server Action error — every
+  // upload failed with nothing a member could act on. It must report instead.
+  it('errors (and keeps the temp original) when storing the image fails', async () => {
+    mockUser(ME)
+    fetchBlobBytes.mockResolvedValue(Buffer.from('original'))
+    normalizeImage.mockResolvedValue({
+      bytes: Buffer.from('processed-bytes'),
+      width: 1600,
+      height: 1200,
+      contentType: 'image/jpeg',
+    })
+    putGalleryImage.mockRejectedValue(
+      new TypeError('ArrayBuffer: SharedArrayBuffer is not allowed.'),
+    )
+
+    const res = await finalizeUpload({
+      url: 'https://blob/gallery-tmp/orig.heic',
+      year: 2026,
+      filename: 'orig.heic',
+      contentType: 'image/heic',
+    })
+
+    expect(res).toEqual({ error: 'Your photo could not be saved. Please try again.' })
+    expect(await testDb.select().from(portalPhotos)).toHaveLength(0)
+    // The temp original is the only surviving copy — recovery depends on it.
+    expect(deleteBlobObject).not.toHaveBeenCalled()
+  })
+
+  it('errors and drops the stored image when the row insert fails', async () => {
+    mockUser(ME)
+    fetchBlobBytes.mockResolvedValue(Buffer.from('original'))
+    normalizeImage.mockResolvedValue({
+      bytes: Buffer.from('processed-bytes'),
+      // A width past int range makes the real insert fail, exercising the
+      // rollback without mocking the DB the rest of the suite runs against.
+      width: 2 ** 40,
+      height: 1200,
+      contentType: 'image/jpeg',
+    })
+    putGalleryImage.mockResolvedValue({
+      url: 'https://blob/gallery/2026/final.jpg',
+      pathname: 'gallery/2026/final.jpg',
+    })
+
+    const res = await finalizeUpload({
+      url: 'https://blob/gallery-tmp/orig.jpg',
+      year: 2026,
+      filename: 'orig.jpg',
+      contentType: 'image/jpeg',
+    })
+
+    expect(res).toEqual({ error: 'Your photo could not be saved. Please try again.' })
+    expect(await testDb.select().from(portalPhotos)).toHaveLength(0)
+    // The orphaned processed image is cleaned up; the temp original is kept.
+    expect(deleteBlobObject).toHaveBeenCalledWith('https://blob/gallery/2026/final.jpg')
+    expect(deleteBlobObject).not.toHaveBeenCalledWith('https://blob/gallery-tmp/orig.jpg')
+  })
 })
 
 describe('updatePhoto', () => {

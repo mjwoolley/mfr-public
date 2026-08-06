@@ -5,9 +5,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import sharp from 'sharp'
 import convert from 'heic-convert'
-import { normalizeImage, readCaptureDate } from './imageProcess'
+import { normalizeImage, readCaptureDate, unshare } from './imageProcess'
 
 vi.mock('heic-convert', () => ({ default: vi.fn() }))
+
+const loggerWarn = vi.fn()
+vi.mock('@/lib/reservations/logger', () => ({
+  logger: { warn: (...a: unknown[]) => loggerWarn(...a) },
+}))
 
 const exifrParse = vi.fn()
 vi.mock('exifr', () => ({ default: { parse: (...a: unknown[]) => exifrParse(...a) } }))
@@ -92,5 +97,36 @@ describe('normalizeImage', () => {
     expect(vi.mocked(convert)).toHaveBeenCalledTimes(1)
     expect(out.contentType).toBe('image/jpeg')
     expect(out.width).toBe(50)
+  })
+
+  it('returns bytes that fetch will accept (not shared-backed)', async () => {
+    const out = await normalizeImage(await png(20, 20), 'image/png')
+    expect(out.bytes.buffer).not.toBeInstanceOf(SharedArrayBuffer)
+  })
+})
+
+// sharp's WASM fallback hands back Buffers over a shared WebAssembly memory, and
+// `fetch` rejects those outright ("ArrayBuffer: SharedArrayBuffer is not
+// allowed") — which is what broke every production upload for two weeks. Only
+// the native binary can be exercised here, so the guard is tested directly.
+describe('unshare', () => {
+  beforeEach(() => loggerWarn.mockReset())
+
+  it('passes ordinary bytes through untouched', () => {
+    const buf = Buffer.from([1, 2, 3])
+    expect(unshare(buf)).toBe(buf)
+    expect(loggerWarn).not.toHaveBeenCalled()
+  })
+
+  it('copies shared-backed bytes and warns that the WASM fallback is in use', () => {
+    const shared = Buffer.from(new SharedArrayBuffer(3))
+    shared.set([4, 5, 6])
+    expect(shared.buffer).toBeInstanceOf(SharedArrayBuffer)
+
+    const out = unshare(shared)
+
+    expect(out.buffer).not.toBeInstanceOf(SharedArrayBuffer)
+    expect([...out]).toEqual([4, 5, 6])
+    expect(loggerWarn).toHaveBeenCalledTimes(1)
   })
 })

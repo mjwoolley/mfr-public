@@ -28,7 +28,7 @@
     "*.{ts,tsx,js,mjs,json,css,md,yml,yaml}": "prettier --write"
   },
   "overrides": {
-    "sharp": "^0.35.3",
+    "sharp": "^0.34.5",
     "shell-quote": "^1.10.0",
     "fast-uri": "^3.1.4"
   },
