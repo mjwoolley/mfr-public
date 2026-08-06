@@ -95,25 +95,46 @@ the log is clean and there's no latent crash if the redirect ever changes. Track
 down which page/component (likely a reservations or portal route rendering under
 a redirect) and add the null check.
 
-### Failed gallery uploads leave orphaned `gallery-tmp/` blobs
+### Restore sharp 0.35.x (reverted to 0.34.5 to end an upload outage)
 
-A gallery upload is two steps: the browser streams the original to Blob under
-`gallery-tmp/`, then `finalizeUpload` processes it, stores the final image and
-inserts the `portal_photos` row. `finalizeUpload` deletes the temp original on
-success and on a _processing_ failure — but if it never runs at all (function
-timeout, the member closing the tab or backgrounding the browser mid-batch), the
-temp blob is left behind with no row pointing at it and nothing ever collects it.
+From 2026-07-22 until the revert, **every** gallery upload failed for **every**
+member. PR #70 bumped sharp 0.34.5 → 0.35.3 for libvips CVEs; in the Vercel
+runtime 0.35.3 does not load `@img/sharp-linux-x64` and silently retries
+`@img/sharp-wasm32` (0.34.5 fails loudly instead). The WASM build allocates a
+_shared_ WebAssembly memory, so its Buffers are SharedArrayBuffer-backed and
+`fetch` rejects them — `TypeError: ArrayBuffer: SharedArrayBuffer is not
+allowed` — which killed the Blob upload inside `finalizeUpload`.
+
+Reverting reopens GHSA-f88m-g3jw-g9cj. To close it, first find out **why** the
+native binary is rejected under 0.35.3: the loader either fails the
+`_isUsingX64V2()` microarchitecture gate or can't load the module at all. A step
+in `prod-probe.yml` hitting an auth-gated diagnostic that reports the loader's
+`errors[]`, `sharp._isUsingX64V2()` and `detect-libc` output would settle it.
+
+`unshare()` in `lib/photos/imageProcess.ts` now copies shared-backed bytes and
+logs a warning, so the fallback degrades to slow rather than fatal — that warning
+in the logs is the signal the native binary stopped loading.
+
+### Sweep orphaned `gallery-tmp/` blobs
+
+`finalizeUpload` deletes the temp original on success and on a processing
+failure, but not when the store/insert step fails (deliberately — it is then the
+only surviving copy) or when it never runs at all: a function timeout, or the
+member closing the tab mid-batch. Those blobs are left with no row pointing at
+them and nothing ever collects them.
 
 Invisible to members (orphans aren't in any gallery query) but it accumulates
 storage. Worth a sweep in the existing daily `photo-backup` cron: delete
 `gallery-tmp/*` objects older than ~24h. That prefix is only ever a staging area,
 so age alone is a safe signal. Would also give a countable signal for how often
-finalize is failing — currently there is none.
+finalize is failing — currently there is none. Pair it with
+`apps/mfr/scripts/recover-orphaned-uploads.ts`, which recovers orphans rather
+than discarding them; sweep only what that has already had a chance at.
 
 Related: large HEICs are decoded by pure-JS `heic-convert`, and
 `apps/mfr/vercel.json` sets no `maxDuration`, so a big batch may be running close
-to the default function timeout. If orphan counts turn out to be non-trivial,
-measure that before anything else.
+to the default function timeout. This was _not_ the cause of the 2026-07-22
+outage, but it remains the slowest path in the app and is worth measuring.
 
 ### Contribution → share purchase: internal names still say "contribution"
 

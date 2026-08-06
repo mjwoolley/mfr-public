@@ -14,6 +14,7 @@ import { canManagePortalContent } from '@mfr/auth'
 import { portalDb } from '@/lib/portalDb'
 import { portalPhotos, portalBlobBackups } from '@/lib/db/schema'
 import { requireApproved } from '@/lib/authz'
+import { logger } from '@/lib/reservations/logger'
 import { putGalleryImage, deleteBlobObject, fetchBlobBytes } from '@/lib/photos/blobStore'
 import { normalizeImage } from '@/lib/photos/imageProcess'
 import { backupObject } from '@/lib/photos/backupStore'
@@ -40,15 +41,71 @@ async function safeDeleteBlob(url: string) {
 
 /** Mirror a stored blob to R2 and record it (best-effort — never throws). */
 async function recordBackup(pathname: string, bytes: Buffer, contentType: string) {
-  const ok = await backupObject({ key: pathname, bytes, contentType })
-  if (!ok) return
-  await portalDb
-    .insert(portalBlobBackups)
-    .values({ blobPathname: pathname, backupKey: pathname, byteSize: bytes.length })
-    .onConflictDoUpdate({
-      target: portalBlobBackups.blobPathname,
-      set: { backupKey: pathname, byteSize: bytes.length, backedUpAt: new Date(), deletedAt: null },
-    })
+  // Runs *after* the photo row exists, so a failure here must never surface as
+  // a failed upload — the photo is already on the site. Only the backup is lost.
+  try {
+    const ok = await backupObject({ key: pathname, bytes, contentType })
+    if (!ok) return
+    await portalDb
+      .insert(portalBlobBackups)
+      .values({ blobPathname: pathname, backupKey: pathname, byteSize: bytes.length })
+      .onConflictDoUpdate({
+        target: portalBlobBackups.blobPathname,
+        set: {
+          backupKey: pathname,
+          byteSize: bytes.length,
+          backedUpAt: new Date(),
+          deletedAt: null,
+        },
+      })
+  } catch (err) {
+    logger.error({ err, pathname }, 'gallery photo backup failed')
+  }
+}
+
+/**
+ * Store the processed image and record its row — the two steps that actually
+ * put a photo on the site. Returns null (never throws) when either fails.
+ *
+ * This ran unguarded until an upload outage made the cost obvious: sharp's WASM
+ * fallback returned SharedArrayBuffer-backed bytes, `put` → `fetch` rejected
+ * them, and the throw escaped as an opaque Server Action error. Every upload
+ * failed while the UI showed nothing a member could act on.
+ *
+ * A stored image with no row would be invisible and unreferenced, so it is
+ * dropped if the insert fails. The caller's temp original is deliberately left
+ * alone — after a failure here it is the only surviving copy of the photo.
+ */
+async function storePhoto(params: {
+  path: string
+  processed: { bytes: Buffer; width: number; height: number; contentType: string }
+  year: number
+  filename: string
+  uploadedBy: string
+}): Promise<{ pathname: string; photoId?: string } | null> {
+  const { path, processed, year, filename, uploadedBy } = params
+  let stored
+  try {
+    stored = await putGalleryImage(path, processed.bytes, processed.contentType)
+    const [inserted] = await portalDb
+      .insert(portalPhotos)
+      .values({
+        year,
+        blobUrl: stored.url,
+        blobPathname: stored.pathname,
+        filename,
+        byteSize: processed.bytes.length,
+        width: processed.width,
+        height: processed.height,
+        uploadedBy,
+      })
+      .returning({ id: portalPhotos.id })
+    return { pathname: stored.pathname, photoId: inserted?.id }
+  } catch (err) {
+    if (stored) await safeDeleteBlob(stored.url)
+    logger.error({ err, filename }, 'gallery upload failed after processing')
+    return null
+  }
 }
 
 const finalizeSchema = z.object({
@@ -91,31 +148,25 @@ export async function finalizeUpload(input: {
   const finalYear =
     capturedYear && capturedYear >= 1900 && capturedYear <= 2200 ? capturedYear : year
 
-  const finalPath = `gallery/${finalYear}/${crypto.randomUUID()}.jpg`
-  const stored = await putGalleryImage(finalPath, processed.bytes, processed.contentType)
-
-  const [inserted] = await portalDb
-    .insert(portalPhotos)
-    .values({
-      year: finalYear,
-      blobUrl: stored.url,
-      blobPathname: stored.pathname,
-      filename,
-      byteSize: processed.bytes.length,
-      width: processed.width,
-      height: processed.height,
-      uploadedBy: session.user.id,
-    })
-    .returning({ id: portalPhotos.id })
+  const saved = await storePhoto({
+    path: `gallery/${finalYear}/${crypto.randomUUID()}.jpg`,
+    processed,
+    year: finalYear,
+    filename,
+    uploadedBy: session.user.id,
+  })
+  // The temp original survives this path on purpose: it is the only remaining
+  // copy, so scripts/recover-orphaned-uploads.ts can still finalize it later.
+  if (!saved) return { error: 'Your photo could not be saved. Please try again.' }
 
   // The temp original is no longer needed once the processed image is stored.
   await safeDeleteBlob(url)
-  await recordBackup(stored.pathname, processed.bytes, processed.contentType)
+  await recordBackup(saved.pathname, processed.bytes, processed.contentType)
 
   await logPhotoActivity({
     eventType: 'photo_uploaded',
     actorUserId: session.user.id,
-    metadata: { photoId: inserted?.id, year: finalYear, filename },
+    metadata: { photoId: saved.photoId, year: finalYear, filename },
   })
 
   revalidateGallery()
