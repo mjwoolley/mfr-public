@@ -22,6 +22,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "e2e": "playwright test",
+    "e2e:preview": "playwright test --config playwright.preview.config.ts",
     "prepare": "husky || true"
   },
   "lint-staged": {

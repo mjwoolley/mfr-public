@@ -1,0 +1,99 @@
+# Smoke every PR preview, including the one thing CI structurally cannot test:
+# a real photo upload running on real Vercel infrastructure.
+#
+# WHY THIS IS SEPARATE FROM post-deploy-smoke.yml
+# That workflow owns production, and production failures mean auto-rollback,
+# revert PRs and alert issues. None of that applies to a preview — a red check on
+# the PR is the entire response. Keeping them apart means preview noise can never
+# reach the rollback machinery.
+#
+# WHY IT EXISTS AT ALL
+# CI runs on GitHub's Ubuntu runners; production runs on Vercel. That gap is not
+# academic: on 2026-07-22 a sharp bump passed every check and then broke every
+# gallery upload for every member for days, because in the Vercel runtime the
+# native binary didn't load and it silently fell back to WASM. A preview runs on
+# the same infrastructure as production, so it is the earliest place that class
+# of bug can be caught — before merge rather than after deploy.
+#
+# NOTE: `deployment_status` is a non-PR event, so GitHub always runs the copy of
+# this workflow on the DEFAULT branch — it only takes effect once merged to main.
+name: Preview smoke
+
+on:
+  deployment_status: {}
+
+# One run per (environment, commit); a newer deploy of the same preview supersedes.
+concurrency:
+  group: preview-smoke-${{ github.event.deployment.environment }}-${{ github.event.deployment.sha }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  preview-smoke:
+    # Successful, non-Production deploys only. Production is post-deploy-smoke.yml's.
+    if: >-
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment.environment != 'Production'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # The event's own URL is the right target here (unlike production, which is
+      # smoked at its stable custom domain): previews have no deployment
+      # protection, and the spec sets the session cookie on whatever host it is
+      # given, so the generated *.vercel.app hostname is fine.
+      - id: target
+        run: |
+          URL="${{ github.event.deployment_status.environment_url }}"
+          if [ -z "$URL" ]; then
+            echo "No environment_url on this deployment_status — nothing to smoke." >> "$GITHUB_STEP_SUMMARY"
+            echo "url=" >> "$GITHUB_OUTPUT"
+          else
+            echo "url=$URL" >> "$GITHUB_OUTPUT"
+            echo "### Preview smoke → $URL" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # Read-only layers first: cheap, and if the site is down there is no point
+      # uploading. smoke.mjs has no npm deps, so this runs before `npm ci`.
+      # The preview's Neon branch is forked from production and inherits the
+      # seeded smoke session row, so the prod token authenticates against it.
+      - name: Read-only smoke
+        if: steps.target.outputs.url != ''
+        env:
+          SMOKE_SESSION_TOKEN: ${{ secrets.SMOKE_SESSION_TOKEN_PROD }}
+        run: |
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          node scripts/smoke.mjs "${{ steps.target.outputs.url }}" 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Install
+        if: steps.target.outputs.url != ''
+        run: npm ci
+
+      - name: Install Playwright browser
+        if: steps.target.outputs.url != ''
+        run: npx playwright install --with-deps chromium
+
+      # The real browser → Blob → sharp → store → row path. Writes to the
+      # preview's own database (disposable) but to the SHARED production blob
+      # store, so the spec deletes what it uploads; see its header.
+      - name: Upload smoke
+        if: steps.target.outputs.url != ''
+        env:
+          PREVIEW_URL: ${{ steps.target.outputs.url }}
+          SMOKE_SESSION_TOKEN: ${{ secrets.SMOKE_SESSION_TOKEN_PROD }}
+        run: npm run e2e:preview
+
+      - name: Upload Playwright report on failure
+        if: failure() && steps.target.outputs.url != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-smoke-report
+          path: playwright-report/
+          retention-days: 7
