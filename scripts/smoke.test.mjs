@@ -62,7 +62,9 @@ test('empty results → code 0', () => {
 // runChecks does I/O, so drive it with a stub `fetch` that answers per-path.
 // `routes` maps a pathname to the status to return; anything unlisted is 200.
 
-const ADMIN_PATHS = ['/admin', '/admin/users', '/accounting/admin']
+// Must match runChecks. `/accounting/admin` is deliberately NOT probed: it 307s
+// to this sub-tab for admins and members alike, so it can't discriminate.
+const ADMIN_PATHS = ['/admin', '/admin/users', '/accounting/admin/transactions']
 const BASE = 'https://example.test'
 
 async function withStubbedFetch(routes, fn) {
@@ -116,8 +118,10 @@ test('a 500 behind the gate is not accepted as a denial', async () => {
 })
 
 test('a changed denial mechanism (403) still passes', async () => {
-  const results = await runSignedIn({ ...healthyRoutes, '/accounting/admin': 403 })
-  const denied = results.find((r) => r.name === 'signed-in GET /accounting/admin → denied')
+  const results = await runSignedIn({ ...healthyRoutes, '/accounting/admin/transactions': 403 })
+  const denied = results.find(
+    (r) => r.name === 'signed-in GET /accounting/admin/transactions → denied',
+  )
   assert.equal(denied.ok, true, '403 is a correct denial and must not roll a deploy back')
 })
 
