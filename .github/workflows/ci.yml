@@ -90,6 +90,11 @@ jobs:
       - run: npm run test -w apps/mfr
       # Coverage + ratchet threshold enforcement for the no-DB packages.
       - run: npm run test:coverage -w packages/ui -w packages/auth
+      # scripts/ is outside the workspaces, so `npm run test --workspaces` never
+      # reaches it. Run its plain node:test suite explicitly — it covers the
+      # post-deploy smoke's exit-code split and authorization layer, which drive
+      # the production auto-rollback.
+      - run: npm run test:smoke
       - name: Coverage summary
         if: always()
         run: |
