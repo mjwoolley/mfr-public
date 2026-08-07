@@ -33,6 +33,11 @@ import { pathToFileURL } from 'node:url'
 // on purpose — the first is the hole we're looking for, the second is a crash.
 export const DENIED_STATUSES = new Set([301, 302, 303, 307, 308, 401, 403, 404])
 
+// The heading app/documents/page.tsx renders when the Drive read throws. It
+// swallows the error and still returns 200, so this string is the only signal
+// that the Documents feature is broken. Keep it in sync with that page.
+export const DRIVE_UNAVAILABLE = 'Documents are temporarily unavailable'
+
 // Pure: given the collected results, decide the exit code and group the
 // failures by severity. No I/O — unit-testable in isolation.
 export function classify(results) {
@@ -115,6 +120,39 @@ export async function runChecks(base, env = process.env) {
         { headers: { cookie }, redirect: 'manual' },
       )
     }
+
+    // 3b. Documents — the ONE page whose backing service is external (Google
+    //     Drive, via a service account). A status check alone is worthless here:
+    //     app/documents/page.tsx catches every Drive error and still renders 200
+    //     with a "temporarily unavailable" card, so the page looks healthy while
+    //     the feature is dead. Assert on the body instead.
+    //
+    //     Nothing else covers this. e2e says so in its own comment — CI has no
+    //     service-account key, so it can only assert the page shell. This check
+    //     is the only place the real Drive credentials are exercised, and they
+    //     have already broken once (a GOOGLE_DRIVE_SA_KEY typo in Vercel).
+    //
+    //     NON-critical on purpose. Every other signed-in check is critical
+    //     because rolling back fixes it. This one usually isn't the deploy's
+    //     fault — an expired key, revoked folder sharing, or a Google outage
+    //     would all trip it, and rolling back fixes none of them. It should page
+    //     a human, not revert the release.
+    await probe(
+      'signed-in GET /documents → Drive reachable',
+      false,
+      async (r) => {
+        if (r.status !== 200) return { ok: false, detail: `got ${r.status}` }
+        const body = await r.text()
+        return {
+          ok: !body.includes(DRIVE_UNAVAILABLE),
+          detail: body.includes(DRIVE_UNAVAILABLE)
+            ? 'page rendered "Documents are temporarily unavailable" — check GOOGLE_DRIVE_SA_KEY and that the folder is still shared with the service account'
+            : 'ok',
+        }
+      },
+      `${base}/documents`,
+      { headers: { cookie }, redirect: 'manual' },
+    )
 
     // 4. authorization — the smoke user holds no portal role, so every admin
     //    area must turn it away. A 200 here means an ordinary member can reach
