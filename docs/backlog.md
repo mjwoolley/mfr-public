@@ -115,6 +115,64 @@ in `prod-probe.yml` hitting an auth-gated diagnostic that reports the loader's
 logs a warning, so the fallback degrades to slow rather than fatal — that warning
 in the logs is the signal the native binary stopped loading.
 
+### Email can stop working and nothing would notice
+
+**The gap.** Email logic is well covered — `accounting-integration/emails.test.ts`,
+`reservations-integration/notifications.test.ts`, and the `resolveRecipient`
+unit tests all pass. But `EMAIL_ENABLED=true` only in production, so **no test
+anywhere performs a real SES send**. Reservation confirmations, signup alerts and
+approval notices are fire-and-forget: nobody is waiting on them, so if SES stops
+working the first signal is a family member saying "I never got that."
+
+**Why it fails silently.** `sendEmail` in `lib/accounting/email.ts` (and its twin
+in `lib/reservations/email.ts`) ends with:
+
+```js
+} catch (error) {
+  console.error('Failed to send email:', error)
+}
+```
+
+Every failure is swallowed. Callers believe the send succeeded, no test can
+assert on it, and the only trace is a Vercel log line nobody reads. Fix this
+first — monitoring layered on top of a discarded error only tells you afterwards.
+
+**Plan, cheapest first. Each stands alone; stop wherever the value runs out.**
+
+1. **Make failures visible.** Have `sendEmail` return a result (`{ sent: true }` /
+   `{ sent: false, error }`) instead of returning `undefined` either way. Callers
+   that can surface it should; the rest should at minimum log at error level with
+   a stable, greppable prefix. Cheap, and it is what makes everything below
+   testable.
+
+2. **Add an SES check to `/api/health`.** Two read-only SESv2 calls, no mail sent,
+   alongside the existing DB and R2 probes — so the production post-deploy smoke
+   picks it up for free:
+   - `GetAccountCommand` → assert `SendingEnabled === true` and `EnforcementStatus`
+     is healthy (catches a paused or sandboxed account, rotated or wrong
+     credentials, wrong `SES_REGION`).
+   - `GetEmailIdentityCommand` for the sender domain → assert
+     `VerifiedForSendingStatus === true` and DKIM `Status === 'SUCCESS'` (catches
+     lapsed domain verification and failed DKIM rotation).
+
+   Non-critical, like the R2 probe: it must alert, never auto-roll-back — a
+   rollback cannot fix an expired AWS key.
+
+3. **Exercise a real send against the SES mailbox simulator.** Send to
+   `success@simulation.amazonses.com`, which SES accepts and discards without
+   touching deliverability or reputation. That runs the whole path — credentials,
+   identity, `SendEmailCommand`, and React template rendering, which is its own
+   failure mode — with no real inbox involved. Belongs in the preview smoke
+   (`preview-smoke.yml`), where writes are already acceptable.
+
+4. **Deliverability, if it ever matters.** Steps 1–3 prove "SES accepted it", not
+   "it reached an inbox". Only bounce/complaint tracking closes that: SES event
+   destinations → SNS, or the built-in reputation dashboard alarms. Configuration
+   rather than code, and worth doing only if mail actually starts going astray.
+
+Steps 1 and 2 are the high-value pair. Step 3 is a nice-to-have. Step 4 is
+speculative — do not build it pre-emptively.
+
 ### The production smoke session token is copied into every forked branch
 
 A session token _is_ the credential — `sessions.session_token` is the value the

@@ -1,0 +1,19 @@
+// Type-checks the TypeScript that lives OUTSIDE the npm workspaces.
+//
+// `npm run typecheck` runs `--workspaces`, which reaches apps/mfr and packages/*
+// and nothing else — so the whole Playwright suite and both Playwright configs
+// were never type-checked at all. Playwright transpiles specs with esbuild and
+// does not check types, so a type error there surfaced (if at all) as a runtime
+// failure mid-run rather than as a red typecheck.
+//
+// scripts/ is deliberately not included: it is plain .mjs with no annotations,
+// and it has its own suite (`npm run test:smoke`, wired into CI).
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    // These files never ship; nothing needs emitting or incremental state.
+    "incremental": false
+  },
+  "include": ["e2e/**/*.ts", "playwright.config.ts", "playwright.preview.config.ts"]
+}
