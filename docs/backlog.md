@@ -115,6 +115,29 @@ in `prod-probe.yml` hitting an auth-gated diagnostic that reports the loader's
 logs a warning, so the fallback degrades to slow rather than fatal — that warning
 in the logs is the signal the native binary stopped loading.
 
+### The production smoke session token is copied into every forked branch
+
+A session token _is_ the credential — `sessions.session_token` is the value the
+cookie carries, stored in plaintext. The smoke identity is seeded into
+`production`, so **every branch forked from it inherits that row**: each PR's
+preview database, each ephemeral `ci-*` branch, and any dev branch re-forked from
+prod. Anyone who can read one of those databases can read the live
+`SMOKE_SESSION_TOKEN_PROD` and sign in to millerfamilyreunions.org as the smoke
+user.
+
+The blast radius is small on purpose — the smoke identity is a plain approved
+member with no portal role, which is the least-privilege design in
+`scripts/seed-smoke-user.mjs` paying off — and branch access is limited to the
+project owner and the deploys. But the value is more widely copied than "it's a
+GitHub secret" implies, and it never expires (the seeded row runs to 2035).
+
+Fix: stop inheriting it. Have each forked branch delete the inherited smoke
+session on creation and seed its own token, so the prod credential exists only in
+prod. CI already runs `seed-smoke-user.mjs`-style setup per branch, so the shape
+exists; the missing half is a `DELETE FROM sessions WHERE user_id = <smoke id>`
+on fork, plus a per-branch token rather than the prod secret. Rotate
+`SMOKE_SESSION_TOKEN_PROD` when this lands.
+
 ### Sweep orphaned `gallery-tmp/` blobs
 
 `finalizeUpload` deletes the temp original on success and on a processing

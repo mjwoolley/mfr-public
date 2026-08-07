@@ -10,6 +10,11 @@
 //   3. Signed-in  — with SMOKE_SESSION_TOKEN, GET the gated gallery pages and
 //      expect 200. This actually runs the gated `portal_photos` queries (the
 //      anon 307 never does), so it catches a schema-missing 500 behind the gate.
+//   4. Authorization — the smoke identity is deliberately a PLAIN APPROVED
+//      MEMBER (see scripts/seed-smoke-user.mjs), so every admin area must turn
+//      it away. This is the one layer that can catch an authz regression in
+//      production; e2e covers the same gates, but only ever on a throwaway
+//      branch. It needs no privileged credential — that is the point.
 //
 // Severity split — each check is `critical` or not, and the exit code reflects
 // which class failed, so the post-deploy workflow can auto-rollback a broken
@@ -21,6 +26,12 @@
 //   2 — usage error (no base URL)
 
 import { pathToFileURL } from 'node:url'
+
+// Statuses that count as "the gate turned this user away" for the authorization
+// layer. Redirects are what the app does today; 401/403/404 are accepted so a
+// future change of mechanism doesn't read as a breach. 200 and 5xx are not here
+// on purpose — the first is the hole we're looking for, the second is a crash.
+export const DENIED_STATUSES = new Set([301, 302, 303, 307, 308, 401, 403, 404])
 
 // Pure: given the collected results, decide the exit code and group the
 // failures by severity. No I/O — unit-testable in isolation.
@@ -100,6 +111,27 @@ export async function runChecks(base, env = process.env) {
         `signed-in GET ${p} → 200`,
         true,
         (r) => ({ ok: r.status === 200, detail: `got ${r.status}` }),
+        `${base}${p}`,
+        { headers: { cookie }, redirect: 'manual' },
+      )
+    }
+
+    // 4. authorization — the smoke user holds no portal role, so every admin
+    //    area must turn it away. A 200 here means an ordinary member can reach
+    //    user management or the accounting admin: critical, and worth the
+    //    auto-rollback. Deliberately not pinned to 307 — the gates redirect
+    //    today (`redirect('/')` / `/accounting/unauthorized`), but a future
+    //    403/404 is still a correct denial and must not roll a good deploy
+    //    back. A 500 is NOT accepted as a denial; that is its own bug.
+    //
+    //    Probe the accounting admin at its *sub-tab*, not `/accounting/admin`:
+    //    that bare path 307s to `/accounting/admin/transactions` for everyone,
+    //    admins included, so asserting on it would pass no matter who asked.
+    for (const p of ['/admin', '/admin/users', '/accounting/admin/transactions']) {
+      await probe(
+        `signed-in GET ${p} → denied`,
+        true,
+        (r) => ({ ok: DENIED_STATUSES.has(r.status), detail: `got ${r.status}` }),
         `${base}${p}`,
         { headers: { cookie }, redirect: 'manual' },
       )
