@@ -48,8 +48,13 @@ export const STALE_CI_AGE_MS = 2 * 60 * 60 * 1000
 
 /**
  * Does this response mean "no branch slots left" (as opposed to a real error)?
- * Neon has used more than one status for it over time, so match on the body too
- * rather than trusting a single code.
+ *
+ * Observed live while three CI runs contended for the cap:
+ *   422 {"code":"BRANCHES_LIMIT_EXCEEDED","message":"branches limit exceeded"}
+ *
+ * The body is matched as well as the status because the status alone has not
+ * been stable across Neon API revisions, and misreading a quota rejection as a
+ * hard error is the failure this whole script exists to prevent.
  */
 export function isQuotaError(status, bodyText = '') {
   if (status === 422 || status === 423 || status === 429) return true

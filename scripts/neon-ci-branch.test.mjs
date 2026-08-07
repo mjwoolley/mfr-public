@@ -133,6 +133,18 @@ test('pooledUrl is idempotent on an already-pooled url', () => {
   assert.equal(pooledUrl(already), already)
 })
 
+// The exact payload observed from Neon while three CI runs contended for the
+// branch cap. Pinned so a future refactor of isQuotaError can't stop matching
+// the one response that actually occurs in production.
+const REAL_QUOTA_BODY =
+  '{"request_id":"85633798-22cc-45d2-a6ac-a319bb65e2bc","code":"BRANCHES_LIMIT_EXCEEDED","message":"branches limit exceeded"}'
+
+test('isQuotaError matches the real BRANCHES_LIMIT_EXCEEDED response', () => {
+  assert.equal(isQuotaError(422, REAL_QUOTA_BODY), true)
+  // …and on the body alone, in case the status changes in a future API revision.
+  assert.equal(isQuotaError(400, REAL_QUOTA_BODY), true)
+})
+
 test('isQuotaError matches the statuses and the message Neon uses', () => {
   assert.equal(isQuotaError(422, ''), true)
   assert.equal(isQuotaError(423, ''), true)
