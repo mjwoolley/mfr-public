@@ -23,6 +23,20 @@ updates:
       - dependency-name: '*'
         update-types:
           - version-update:semver-major
+      # sharp 0.35.x is deliberately held back. On Vercel it fails to load
+      # @img/sharp-linux-x64 and silently falls back to @img/sharp-wasm32, whose
+      # SharedArrayBuffer-backed Buffers `fetch` rejects — which broke EVERY
+      # gallery upload for two weeks (see "Restore sharp 0.35.x" in
+      # docs/backlog.md). Reverting reopened GHSA-f88m-g3jw-g9cj, so Dependabot
+      # security updates kept re-proposing the exact bump we know is broken;
+      # each attempt cost a full CI run and a preview database.
+      #
+      # `ignore` applies to security updates as well as version updates, but
+      # does NOT touch Dependabot alerts — the advisory stays visible on the
+      # Security tab, which is where it belongs until the loader is fixed.
+      # Remove this entry the moment /api/health/image explains the failure.
+      - dependency-name: 'sharp'
+        versions: ['>=0.35.0']
   - package-ecosystem: github-actions
     directory: /
     open-pull-requests-limit: 3
