@@ -11,11 +11,44 @@
 // or at any preview URL — pointing it at a preview built with sharp 0.35.3 is
 // how we find out why the native binary is rejected without risking prod.
 
-import { createRequire } from 'node:module'
-import { readFileSync } from 'node:fs'
-import { buildImageReport } from '@/lib/photos/imageDiagnostics'
+import { existsSync, readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { buildImageReport, parseCpuFlags } from '@/lib/photos/imageDiagnostics'
 
-const require = createRequire(import.meta.url)
+/**
+ * Locate an optional `@img/*` package by walking `node_modules` up from the
+ * working directory, and report its path + version.
+ *
+ * Deliberately filesystem-only. The obvious implementation —
+ * `createRequire(import.meta.url).resolve(id)` — does not survive bundling:
+ * the compiler rewrites a `require.resolve()` on a non-literal specifier and
+ * every probe comes back "Cannot find module as expression is too dynamic",
+ * which is indistinguishable from the package genuinely being absent. That
+ * would silently destroy the one signal this route exists to provide. `fs` is
+ * not rewritten, so this reports what is actually on disk in the deployed
+ * bundle. Six levels up covers a monorepo's hoisted root from an app subdir.
+ */
+function probePackage(id: string): { path: string; version?: string } {
+  const segments = id.split('/')
+  let dir = process.cwd()
+  for (let i = 0; i < 6; i++) {
+    const candidate = join(dir, 'node_modules', ...segments)
+    const manifest = join(candidate, 'package.json')
+    if (existsSync(manifest)) {
+      let version: string | undefined
+      try {
+        version = JSON.parse(readFileSync(manifest, 'utf8')).version
+      } catch {
+        // A present-but-unreadable manifest still proves the package shipped.
+      }
+      return { path: candidate, version }
+    }
+    const parent = dirname(dir)
+    if (parent === dir) break
+    dir = parent
+  }
+  throw new Error(`not found in any node_modules above ${process.cwd()}`)
+}
 
 export async function GET(request: Request): Promise<Response> {
   const secret = process.env.CRON_SECRET
@@ -31,13 +64,9 @@ export async function GET(request: Request): Promise<Response> {
       const mod = await import('sharp')
       return (mod as unknown as { default?: unknown }).default ?? mod
     },
-    resolveModule: (id) => require.resolve(id),
-    readCpuFlags: () => {
-      const line = readFileSync('/proc/cpuinfo', 'utf8')
-        .split('\n')
-        .find((l) => l.startsWith('flags'))
-      return line?.split(':').slice(1).join(':').trim()
-    },
+    resolveModule: probePackage,
+    // Throws off Linux; probe() reports that rather than losing the report.
+    readCpuFlags: () => parseCpuFlags(readFileSync('/proc/cpuinfo', 'utf8')),
     platform: process.platform,
     arch: process.arch,
     nodeVersion: process.version,

@@ -5,8 +5,11 @@
 
 import { afterEach, describe, it, expect, vi } from 'vitest'
 
+// Only buildImageReport is stubbed. parseCpuFlags stays real, so the route's
+// readCpuFlags wiring is exercised for what it is rather than against a stub.
 const buildImageReport = vi.fn()
-vi.mock('@/lib/photos/imageDiagnostics', () => ({
+vi.mock('@/lib/photos/imageDiagnostics', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/photos/imageDiagnostics')>()),
   buildImageReport: (...a: unknown[]) => buildImageReport(...a),
 }))
 
@@ -57,6 +60,10 @@ describe('GET /api/health/image', () => {
     expect(res.status).toBe(200)
   })
 
+  // The route's whole job is assembling these probes correctly, so the test
+  // EXECUTES each one rather than just checking it was handed over. A closure
+  // that is passed along but never called is exactly the kind of wiring bug
+  // that only shows up in production.
   it('wires real runtime probes through to buildImageReport', async () => {
     process.env.CRON_SECRET = 's3cret'
     buildImageReport.mockResolvedValue({})
@@ -65,9 +72,37 @@ describe('GET /api/health/image', () => {
     expect(deps.platform).toBe(process.platform)
     expect(deps.arch).toBe(process.arch)
     expect(deps.nodeVersion).toBe(process.version)
-    // resolveModule must resolve a real dependency and throw on a fake one, so
-    // "present on disk" in the report means what it says.
-    expect(deps.resolveModule('sharp')).toContain('sharp')
-    expect(() => deps.resolveModule('@img/definitely-not-installed')).toThrow()
+
+    // Loads the real sharp module and hands back the callable, not the ESM
+    // namespace object (sharp is CommonJS — the callable is on `default`).
+    await expect(deps.loadSharp()).resolves.toBeTypeOf('function')
+
+    // glibc is reported on Linux and simply absent elsewhere; either way it
+    // must not throw, or the whole report would be lost to one probe.
+    expect(() => deps.glibcVersion()).not.toThrow()
+
+    // /proc/cpuinfo exists on the Linux CI runner and not on macOS. Both are
+    // valid — a flags string, or a throw that probe() turns into a reported
+    // error — but the closure must run.
+    let flags: string | undefined
+    try {
+      flags = deps.readCpuFlags()
+    } catch {
+      flags = undefined
+    }
+    if (process.platform === 'linux') {
+      expect(flags).toEqual(expect.stringContaining('fpu'))
+    } else {
+      expect(flags).toBeUndefined()
+    }
+    // resolveModule must find a real dependency on disk and throw on a fake
+    // one, so "present" in the report means what it says. This is a real fs
+    // probe on purpose: a bundler rewrites `require.resolve` on a dynamic
+    // specifier into an always-throwing stub, which would make every package
+    // look missing. Catching that regression here is the whole point.
+    const found = deps.resolveModule('sharp') as { path: string; version?: string }
+    expect(found.path).toContain('node_modules/sharp')
+    expect(found.version).toMatch(/^\d+\./)
+    expect(() => deps.resolveModule('@img/definitely-not-installed')).toThrow(/not found/)
   })
 })

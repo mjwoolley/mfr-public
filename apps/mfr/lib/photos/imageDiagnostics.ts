@@ -29,8 +29,9 @@ export type ProbeResult = { ok: boolean; value?: unknown; error?: string }
 export type ImageDiagnosticsDeps = {
   /** Dynamic so a total load failure is reportable rather than fatal. */
   loadSharp: () => Promise<unknown>
-  /** Resolve a package to a path, throwing if it isn't installed/traced. */
-  resolveModule: (id: string) => string
+  /** Locate a package, throwing if it isn't installed/traced into the bundle.
+   *  Whatever it returns (path, version, …) is reported verbatim. */
+  resolveModule: (id: string) => unknown
   /** The `flags` line from /proc/cpuinfo, or undefined off Linux. */
   readCpuFlags: () => string | undefined
   platform: string
@@ -63,6 +64,17 @@ export function candidatePackages(platform: string, arch: string): string[] {
   const host = `@img/sharp-${platform}-${arch}`
   const always = ['@img/sharp-linux-x64', '@img/sharp-libvips-linux-x64', '@img/sharp-wasm32']
   return always.includes(host) ? always : [host, ...always]
+}
+
+/**
+ * Extract the `flags` line's values from /proc/cpuinfo contents. Lives here
+ * rather than inline in the route so it's testable on any platform — on macOS
+ * the read throws before any parsing would run, which would otherwise leave
+ * this logic covered only by luck of the CI runner's OS.
+ */
+export function parseCpuFlags(cpuinfo: string): string | undefined {
+  const line = cpuinfo.split('\n').find((l) => l.startsWith('flags'))
+  return line?.split(':').slice(1).join(':').trim()
 }
 
 /**

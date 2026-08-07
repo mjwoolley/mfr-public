@@ -9,6 +9,7 @@ import {
   candidatePackages,
   encodeProbe,
   missingX64V2Flags,
+  parseCpuFlags,
   probe,
   X64_V2_FLAGS,
   type ImageDiagnosticsDeps,
@@ -73,6 +74,27 @@ describe('candidatePackages', () => {
   it('adds the host binary so the report is useful on a dev machine too', () => {
     expect(candidatePackages('darwin', 'arm64')[0]).toBe('@img/sharp-darwin-arm64')
     expect(candidatePackages('darwin', 'arm64')).toContain('@img/sharp-linux-x64')
+  })
+})
+
+describe('parseCpuFlags', () => {
+  const CPUINFO = [
+    'processor\t: 0',
+    'model name\t: AMD EPYC 7R13',
+    `flags\t\t: ${V2_FLAGS_LINE}`,
+    'bugs\t\t: sysret_ss_attrs',
+  ].join('\n')
+
+  it('pulls the flag values out of a real /proc/cpuinfo block', () => {
+    expect(parseCpuFlags(CPUINFO)).toBe(V2_FLAGS_LINE)
+  })
+
+  it('is undefined when there is no flags line (e.g. arm64 uses "Features")', () => {
+    expect(parseCpuFlags('processor\t: 0\nFeatures\t: fp asimd')).toBeUndefined()
+  })
+
+  it('keeps values containing a colon intact', () => {
+    expect(parseCpuFlags('flags\t: a b c:d')).toBe('a b c:d')
   })
 })
 
