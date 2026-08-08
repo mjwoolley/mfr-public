@@ -4,9 +4,11 @@
 # updated.
 #
 # Post single-app merge there is ONE app (apps/mfr) and ONE Neon database.
-# Integration + e2e run against a single ephemeral Neon branch created off the
-# unified project's production branch; the Drizzle schema is pushed onto it
-# (db:push + push-only.sql) and the branch is deleted when the job ends.
+# Integration + e2e each run against their own ephemeral Neon branch created off
+# the unified project's production branch; migrations are applied onto it
+# (db:migrate + push-only.sql) and the branch is deleted when the job ends.
+# Branch creation waits for a free slot rather than queueing via GitHub
+# `concurrency:` — see the long note on the `integration` job for why.
 name: CI
 
 on:
@@ -138,13 +140,19 @@ jobs:
   integration:
     name: Integration tests + coverage
     runs-on: ubuntu-latest
-    timeout-minutes: 25
-    # The unified Neon project fits a limited number of ephemeral branches, so
-    # DB-using jobs queue per job name across runs instead of failing branch
-    # creation with 422.
-    concurrency:
-      group: neon-integration
-      cancel-in-progress: false
+    # Generous because the job may WAIT for a free Neon branch slot before it
+    # starts (see "Create DB branch" below), on top of its own ~5 min runtime.
+    timeout-minutes: 40
+    # DELIBERATELY NO `concurrency:` HERE. This job used to carry a repo-global
+    # group (`neon-integration`, cancel-in-progress: false) so DB jobs queued
+    # instead of exhausting the Neon branch cap. That queue ate its own tail:
+    # GitHub keeps only ONE pending job per concurrency group, so a third
+    # overlapping run CANCELS whichever job is waiting — and
+    # `cancel-in-progress: false` protects the running job, never the pending
+    # one. Any burst of 3+ runs (i.e. every Dependabot batch) silently cancelled
+    # the middle run's DB jobs and turned `ci-ok` red on an innocent PR.
+    # Serialization now happens INSIDE the job instead, where waiting can't be
+    # evicted. Do not reinstate this block.
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -152,14 +160,13 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      # Waits for a free branch slot instead of failing (or being cancelled)
+      # when the project is at its branch cap; sets db_url / db_url_pooled.
       - name: Create DB branch
         id: db
-        uses: neondatabase/create-branch-action@v6
-        with:
-          project_id: ${{ env.NEON_PROJECT_ID }}
-          parent_branch: ${{ env.NEON_PARENT_BRANCH }}
-          branch_name: ci-${{ github.run_id }}-${{ github.run_attempt }}-int
-          api_key: ${{ secrets.NEON_API_KEY }}
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: node scripts/neon-ci-branch.mjs create ci-${{ github.run_id }}-${{ github.run_attempt }}-int
       - name: Apply Drizzle migrations
         working-directory: apps/mfr
         env:
@@ -192,20 +199,18 @@ jobs:
           if-no-files-found: ignore
       - name: Delete DB branch
         if: always()
-        uses: neondatabase/delete-branch-action@v3
-        with:
-          project_id: ${{ env.NEON_PROJECT_ID }}
-          branch: ci-${{ github.run_id }}-${{ github.run_attempt }}-int
-          api_key: ${{ secrets.NEON_API_KEY }}
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: node scripts/neon-ci-branch.mjs delete ci-${{ github.run_id }}-${{ github.run_attempt }}-int
 
   e2e:
     name: E2E tests (Playwright)
     runs-on: ubuntu-latest
-    timeout-minutes: 25
-    # See integration: serialize Neon-branch-using jobs across runs.
-    concurrency:
-      group: neon-e2e
-      cancel-in-progress: false
+    # See integration: may wait for a Neon branch slot on top of its own runtime.
+    timeout-minutes: 40
+    # See integration: NO `concurrency:` block on purpose — a pending job in a
+    # concurrency group gets cancelled by the next arrival, which is exactly the
+    # failure this replaced. The wait happens inside "Create DB branch".
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -215,12 +220,9 @@ jobs:
       - run: npm ci
       - name: Create DB branch
         id: db
-        uses: neondatabase/create-branch-action@v6
-        with:
-          project_id: ${{ env.NEON_PROJECT_ID }}
-          parent_branch: ${{ env.NEON_PARENT_BRANCH }}
-          branch_name: ci-${{ github.run_id }}-${{ github.run_attempt }}-e2e
-          api_key: ${{ secrets.NEON_API_KEY }}
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: node scripts/neon-ci-branch.mjs create ci-${{ github.run_id }}-${{ github.run_attempt }}-e2e
       - name: Apply Drizzle migrations
         working-directory: apps/mfr
         env:
@@ -256,11 +258,9 @@ jobs:
           path: playwright-report/
       - name: Delete DB branch
         if: always()
-        uses: neondatabase/delete-branch-action@v3
-        with:
-          project_id: ${{ env.NEON_PROJECT_ID }}
-          branch: ci-${{ github.run_id }}-${{ github.run_attempt }}-e2e
-          api_key: ${{ secrets.NEON_API_KEY }}
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: node scripts/neon-ci-branch.mjs delete ci-${{ github.run_id }}-${{ github.run_attempt }}-e2e
 
   gitleaks:
     name: Secret scan

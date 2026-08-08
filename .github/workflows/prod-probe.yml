@@ -89,6 +89,31 @@ jobs:
           done
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
+      # Why sharp's native binary did or didn't load, straight from the deployed
+      # runtime. Diagnostic-only and never fails the step.
+      #
+      # Against production (sharp 0.34.5) this is the healthy BASELINE. The
+      # reading that actually matters comes from re-running this workflow with
+      # `base` set to the preview URL of a branch that bumps sharp to 0.35.3:
+      # same Vercel runtime, no production risk. Look for
+      # `sharp.encode.value.verdict` — "wasm fallback in use" reproduces the
+      # outage — then at `packages` (was @img/sharp-linux-x64 even deployed?)
+      # and `cpu.missingX64V2Flags` (did the microarchitecture gate reject it?).
+      # See "Restore sharp 0.35.x" in docs/backlog.md.
+      - name: Image pipeline diagnostic
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET_PROD }}
+        run: |
+          echo "### sharp / image pipeline" >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo '(skipped — no CRON_SECRET for this environment)' | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            curl -sS -m 30 -H "Authorization: Bearer $CRON_SECRET" "$BASE/api/health/image" 2>&1 \
+              | (jq . 2>/dev/null || cat) | tee -a "$GITHUB_STEP_SUMMARY" || true
+          fi
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
       # smoke.mjs has no npm deps (global fetch only). Each optional layer
       # self-skips when its secret is absent.
       #   exit 0 = all pass · 1 = critical (site broken) · 3 = probe/config only

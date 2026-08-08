@@ -1,12 +1,25 @@
-# Safety net: CI deletes its ephemeral Neon branches with `if: always()`,
-# but a crashed runner can still leak them, and the free tier caps branches
-# per project. Delete any `ci-*` branch older than 24 hours, daily.
-name: Cleanup leaked Neon CI branches
+# Safety net for the project's branch cap, which is the scarce resource CI
+# contends over. Two leaks to sweep, daily:
+#
+#   1. `ci-*` — CI deletes its own ephemeral branches with `if: always()`, but a
+#      crashed runner can still leak one.
+#   2. `preview/*` — Vercel's Neon integration forks one per PR and is supposed
+#      to remove it when the PR closes. It doesn't always: three survivors from
+#      already-merged/closed PRs were sitting in the project on 2026-08-07,
+#      permanently eating the headroom that CI's branch-slot wait depends on.
+#
+# Both sweeps are name-prefixed and re-checked before deleting, so `production`,
+# `main` and `dev` can never match.
+name: Cleanup leaked Neon branches
 
 on:
   schedule:
     - cron: '17 6 * * *'
   workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
 
 jobs:
   cleanup:
@@ -34,4 +47,47 @@ jobs:
             echo "Deleting leaked branch $id"
             curl -sf -X DELETE -H "Authorization: Bearer $NEON_API_KEY" \
               "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$id" > /dev/null
+          done
+
+      # Vercel's Neon integration forks `preview/<head-ref>` per PR and should
+      # delete it on close. When it doesn't, the branch is invisible waste. Match
+      # each survivor's head ref against the repo's OPEN PRs; anything with no
+      # open PR is safe to drop — a reopened PR just gets a fresh fork.
+      - name: Delete preview/* branches whose PR is closed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Belt-and-braces against a race with a just-opened PR: only consider
+          # branches that have already survived a full cleanup cycle.
+          cutoff=$(date -u -d '6 hours ago' +%Y-%m-%dT%H:%M:%SZ)
+
+          open_refs=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 200 \
+            --json headRefName -q '.[].headRefName' | sort -u)
+          echo "Open PR head refs:"; echo "${open_refs:-(none)}"
+
+          curl -sf -H "Authorization: Bearer $NEON_API_KEY" \
+            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" |
+            jq -r --arg cutoff "$cutoff" \
+              '.branches[]
+               | select(.creation_source == "vercel")
+               | select(.name | startswith("preview/"))
+               | select(.created_at < $cutoff)
+               | "\(.id) \(.name)"' |
+          while read -r id name; do
+            ref=${name#preview/}
+            # Re-assert the prefix actually stripped: a branch named exactly
+            # "preview/" (or anything that slipped the jq filter) must not
+            # resolve to an empty ref and get deleted on an empty match.
+            if [ -z "$ref" ] || [ "$ref" = "$name" ]; then
+              echo "Skipping $name — unexpected name shape"
+              continue
+            fi
+            if printf '%s\n' "$open_refs" | grep -Fxq "$ref"; then
+              echo "Keeping $name — PR for '$ref' is still open"
+            else
+              echo "Deleting $name ($id) — no open PR for '$ref'"
+              curl -sf -X DELETE -H "Authorization: Bearer $NEON_API_KEY" \
+                "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$id" > /dev/null
+            fi
           done

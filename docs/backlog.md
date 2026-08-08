@@ -107,9 +107,39 @@ allowed` — which killed the Blob upload inside `finalizeUpload`.
 
 Reverting reopens GHSA-f88m-g3jw-g9cj. To close it, first find out **why** the
 native binary is rejected under 0.35.3: the loader either fails the
-`_isUsingX64V2()` microarchitecture gate or can't load the module at all. A step
-in `prod-probe.yml` hitting an auth-gated diagnostic that reports the loader's
-`errors[]`, `sharp._isUsingX64V2()` and `detect-libc` output would settle it.
+`_isUsingX64V2()` microarchitecture gate or can't load the module at all.
+
+**The diagnostic now exists.** `GET /api/health/image` (secret-gated with the
+same Bearer `CRON_SECRET` as `/api/health`; logic in
+`lib/photos/imageDiagnostics.ts`) reports, from inside the deployed runtime:
+whether each `@img/*` package resolves on disk, `sharp.versions`,
+`sharp._isUsingX64V2()`, the CPU's x86-64-v2 feature flags, the runtime glibc
+version, and a live 8×8 encode that says whether the bytes came back
+SharedArrayBuffer-backed. The **Prod probe (manual)** workflow dumps it into the
+job summary.
+
+**How to settle it:**
+
+1. Open a throwaway branch bumping sharp to 0.35.3 and let Vercel build its
+   preview (same runtime as production, no production risk).
+2. Run **Prod probe (manual)** with `base` set to that preview URL. Note that
+   `CRON_SECRET` must exist in Vercel's _Preview_ environment for the step to
+   report anything — the workflow passes `CRON_SECRET_PROD` and skips cleanly
+   when there's no value.
+3. Read `sharp.encode.value.verdict`. `"wasm fallback in use"` reproduces the
+   outage. Then:
+   - `packages["@img/sharp-linux-x64"].ok === false` → the binary never made it
+     into the deployed bundle. A **tracing/bundling** problem
+     (`outputFileTracingIncludes`, optional-dependency install).
+   - package present but `cpu.missingX64V2Flags` non-empty → sharp's
+     microarchitecture gate is rejecting Vercel's CPU. A **sharp/loader**
+     problem; take it upstream.
+   - both fine but still wasm → look at `sharp.loadError` and glibc.
+
+Running it against production (0.34.5) gives the healthy baseline to compare
+against. Once the cause is fixed, **remove the `sharp` entry from the `ignore`
+list in `.github/dependabot.yml`** — it's suppressing the security PRs for this
+advisory and would otherwise hide the eventual real fix.
 
 `unshare()` in `lib/photos/imageProcess.ts` now copies shared-backed bytes and
 logs a warning, so the fallback degrades to slow rather than fatal — that warning
