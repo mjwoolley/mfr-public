@@ -5,7 +5,7 @@
 # Trigger: Vercel's GitHub app emits `deployment_status` when a deploy is ready
 # (same event production-smoke.yml uses). We act only on **preview** deploys
 # that map to an open PR:
-#   - Production     → skipped (env is "Production")
+#   - Production     → job skipped at the `if`, so no runner is consumed
 #   - any PR preview → upsert the URL comment
 #
 # NOTE: `deployment_status` is a non-PR event, so GitHub always runs the copy of
@@ -27,7 +27,13 @@ concurrency:
 
 jobs:
   comment:
-    if: github.event.deployment_status.state == 'success'
+    # Successful PREVIEW deploys only. Filtering at the job level (rather than
+    # inside the script below) means a production deploy never boots a runner
+    # just to return early — `deployment_status` has no event-level
+    # environment filter, so this workflow starts on every deploy regardless.
+    if: >-
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment.environment != 'Production'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/github-script@v9
@@ -35,7 +41,8 @@ jobs:
           script: |
             const dep = context.payload.deployment
             const status = context.payload.deployment_status
-            // Production isn't a preview; skip it.
+            // Unreachable given the job-level gate; kept so the script stays
+            // correct on its own if that condition is ever relaxed.
             if ((dep.environment || '') === 'Production') return
 
             const url = status.environment_url || status.target_url

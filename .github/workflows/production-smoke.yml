@@ -14,7 +14,7 @@
 # session-cookie domain the signed-in layer needs) — the event only tells us
 # WHICH environment deployed:
 #   - Production → main was pushed → millerfamilyreunions.org
-#   - any preview (PRs) → skipped
+#   - any preview (PRs) → job skipped at the `if`, so no runner is consumed
 #
 # On failure (both severities are colour-coded by smoke.mjs's exit code):
 #   - PROD, any failure (code 1 or 3): open/update a labeled GitHub issue with
@@ -51,8 +51,16 @@ permissions:
 
 jobs:
   smoke:
-    # Only when Vercel reports the deploy succeeded (ignores pending/error/failure).
-    if: github.event.deployment_status.state == 'success'
+    # Successful PRODUCTION deploys only. Both conditions are job-level so a
+    # preview deploy costs nothing: `deployment_status` has no event-level
+    # environment filter, so this workflow is *started* by every deploy
+    # (preview included) and has to filter itself. Gating here means the
+    # runner never boots for a preview; gating in a step instead would boot a
+    # VM, check out the repo and install node before deciding to do nothing.
+    # preview-smoke.yml is the mirror image of this condition.
+    if: >-
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment.environment == 'Production'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -63,7 +71,13 @@ jobs:
         with:
           node-version: 22
 
-      # Smoke production only; every preview (PR) deploy is skipped here.
+      # The job-level `if` already guarantees this is a production deploy, so
+      # the non-production branch below is unreachable in normal operation.
+      # It stays deliberately: `which` gates the rollback, auto-revert and
+      # alert steps further down, so if that job condition is ever loosened,
+      # this still prevents a preview being smoked — and rolled back — as
+      # though it were production. Cheap belt-and-braces on the one path that
+      # can take the live site down.
       - id: target
         run: |
           ENV="${{ github.event.deployment.environment }}"
