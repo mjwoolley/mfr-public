@@ -1,7 +1,7 @@
 # Smoke every PR preview, including the one thing CI structurally cannot test:
 # a real photo upload running on real Vercel infrastructure.
 #
-# WHY THIS IS SEPARATE FROM post-deploy-smoke.yml
+# WHY THIS IS SEPARATE FROM production-smoke.yml
 # That workflow owns production, and production failures mean auto-rollback,
 # revert PRs and alert issues. None of that applies to a preview — a red check on
 # the PR is the entire response. Keeping them apart means preview noise can never
@@ -32,7 +32,7 @@ permissions:
 
 jobs:
   preview-smoke:
-    # Successful, non-Production deploys only. Production is post-deploy-smoke.yml's.
+    # Successful, non-Production deploys only. Production is production-smoke.yml's.
     if: >-
       github.event.deployment_status.state == 'success' &&
       github.event.deployment.environment != 'Production'

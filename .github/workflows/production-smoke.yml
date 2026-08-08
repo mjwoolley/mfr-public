@@ -1,7 +1,12 @@
-# Post-deploy smoke test. Runs the (non-destructive, read-only) scripts/smoke.mjs
+# Production smoke test. Runs the (non-destructive, read-only) scripts/smoke.mjs
 # against the live site right after Vercel finishes a deploy, so a broken deploy
 # (down site, schema missing behind the auth gate, bad DB/R2 creds) surfaces
 # without anyone remembering to run it by hand.
+#
+# Named for its TARGET, not its timing: preview-smoke.yml is equally
+# "post-deploy", so preview-vs-production is the axis that actually separates
+# them. The two are deliberately split — see that file's header for why preview
+# failures must never reach this file's rollback machinery.
 #
 # Trigger: Vercel's GitHub app emits a `deployment_status` event when a deploy
 # is ready. We smoke the *stable custom domain* (not the event's generated
@@ -28,7 +33,7 @@
 #
 # NOTE: `deployment_status` is a non-PR event, so GitHub always runs the copy of
 # this workflow on the DEFAULT branch — it only takes effect once merged to main.
-name: Post-deploy smoke
+name: Production smoke
 
 on:
   deployment_status: {}
@@ -139,7 +144,7 @@ jobs:
             try {
               await github.rest.issues.createLabel({
                 ...context.repo, name: label, color: 'b60205',
-                description: 'Automated: production post-deploy smoke failed',
+                description: 'Automated: production smoke failed',
               })
             } catch (e) { /* already exists */ }
 
@@ -165,7 +170,7 @@ jobs:
                   '```',
                 ]
             const body = [
-              `Production post-deploy smoke failed @ \`${short}\` (exit code ${code}).`,
+              `Production smoke failed @ \`${short}\` (exit code ${code}).`,
               '',
               severity,
               '',
@@ -258,7 +263,7 @@ jobs:
           git push -u origin "$BRANCH" --force-with-lease
           gh pr create --base main --head "$BRANCH" \
             --title "Revert \"$SHORT\" — production smoke failed" \
-            --body "Automated revert of \`$SHA\` after its production post-deploy smoke failed (critical). The alias was rolled back live; this PR makes the revert durable on \`main\`. Review, verify on its preview, and merge (or close if the deploy was fixed forward)."
+            --body "Automated revert of \`$SHA\` after its production smoke failed (critical). The alias was rolled back live; this PR makes the revert durable on \`main\`. Review, verify on its preview, and merge (or close if the deploy was fixed forward)."
 
       # ── Fail the job so the run goes red on any smoke failure (visible signal) ─
       - name: Fail the job on any smoke failure

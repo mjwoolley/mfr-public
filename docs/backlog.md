@@ -176,7 +176,7 @@ first — monitoring layered on top of a discarded error only tells you afterwar
    testable.
 
 2. **Add an SES check to `/api/health`.** Two read-only SESv2 calls, no mail sent,
-   alongside the existing DB and R2 probes — so the production post-deploy smoke
+   alongside the existing DB and R2 probes — so the production smoke
    picks it up for free:
    - `GetAccountCommand` → assert `SendingEnabled === true` and `EnforcementStatus`
      is healthy (catches a paused or sandboxed account, rotated or wrong

@@ -90,8 +90,8 @@ the family seeing it.
 
 **Rollback:** `vercel rollback` in the affected app's directory instantly
 restores the previous deployment; `git revert` the commit afterward (via a PR).
-A **critical** production post-deploy smoke failure (user-facing site broken,
-smoke exit code 1) now does this automatically — `post-deploy-smoke.yml` rolls
+A **critical** production smoke failure (user-facing site broken,
+smoke exit code 1) now does this automatically — `production-smoke.yml` rolls
 the prod alias back, opens a `revert/<sha>` PR, and files a `prod-smoke-failure`
 issue. A _degraded_ failure (exit code 3 — a probe/config check like
 `CRON_SECRET`, site still up) only files the issue; no rollback.
