@@ -3,7 +3,7 @@
 # from the PR.
 #
 # Trigger: Vercel's GitHub app emits `deployment_status` when a deploy is ready
-# (same event post-deploy-smoke.yml uses). We act only on **preview** deploys
+# (same event production-smoke.yml uses). We act only on **preview** deploys
 # that map to an open PR:
 #   - Production     → skipped (env is "Production")
 #   - any PR preview → upsert the URL comment

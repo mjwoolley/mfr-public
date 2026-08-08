@@ -132,9 +132,12 @@ name (e.g. `DATABASE_URL_UNPOOLED`), add a fallback so previews migrate:
 
 ## Step 5 — Simplify the gate to the PR's own preview (done)
 
-With per-PR previews, `post-deploy-smoke.yml` smokes the PR's **own** preview URL
-from the `deployment_status` event (the URL is on the event), making attribution
-trivial — the Phase-1 `git merge-base --is-ancestor` step was removed. The PR's
+With per-PR previews, the PR's **own** preview URL is smoked from the
+`deployment_status` event (the URL is on the event), making attribution trivial —
+the Phase-1 `git merge-base --is-ancestor` step was removed. (At the time this
+step shipped, one workflow did both previews and production; preview smoking has
+since moved to its own `preview-smoke.yml`, and the production half is now named
+`production-smoke.yml`.) The PR's
 preview **is** the pre-merge integration gate now; the always-on `staging`
 environment was retired in favour of it (`docs/workflow.md` updated to match).
 

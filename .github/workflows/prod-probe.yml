@@ -1,5 +1,5 @@
 # On-demand production probe. Runs the same non-destructive scripts/smoke.mjs
-# that post-deploy-smoke.yml runs, but triggered by hand instead of by a deploy,
+# that production-smoke.yml runs, but triggered by hand instead of by a deploy,
 # so production health can be checked without waiting for (or forcing) a deploy.
 #
 # Deliberately diagnostic-only: no rollback, no revert PR, no issue filing — it
