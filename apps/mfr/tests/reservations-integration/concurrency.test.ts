@@ -1,5 +1,8 @@
 // Integration: two simultaneous bookings for the same dates — exactly one
-// wins; the loser gets the DB exclusion-constraint 409, not a double booking.
+// wins and exactly one confirmed row lands, never a double booking. The
+// loser's status code is timing-dependent (409 from the DB exclusion
+// constraint, or 400 if the app-level check got there first) and is not
+// pinned; see the comment above expectExactlyOneWinner below.
 
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { eq } from 'drizzle-orm'
@@ -123,11 +126,36 @@ async function runRaceOnce(dateSuffix: string) {
   return { responseA, responseB, userA, userB }
 }
 
+// Exactly one request wins; the other is rejected. WHICH rejection it gets is
+// timing-dependent and deliberately not asserted:
+//
+//   409 — both requests passed the app-level overlap check before either
+//         committed, so the DB exclusion constraint is what stopped the
+//         second. This is the interesting interleaving.
+//   400 — the winner committed before the loser ran its overlap check, so
+//         `validateReservation` rejected it first (route.ts:145) and the
+//         constraint was never reached.
+//
+// Both outcomes are correct: one booking, no double-book. Pinning the code to
+// 409 made this test fail on loaded CI runners (~1 in N), because a slow
+// enough machine serialises what the test needs to interleave — and a test
+// that fails randomly trains people to ignore red CI.
+//
+// Nothing is lost by relaxing it: constraints.test.ts proves the
+// reservations_no_overlap EXCLUDE constraint directly and deterministically
+// (overlap rejected, same-day turnover allowed, cancelled rows ignored,
+// blocked ranges enforced). What only THIS file can prove is the end-to-end
+// invariant under a genuine race, which is what it now asserts.
+function expectExactlyOneWinner(statuses: number[]) {
+  expect(statuses.filter((s) => s === 201)).toHaveLength(1)
+  const rejection = statuses.find((s) => s !== 201)
+  expect([400, 409]).toContain(rejection)
+}
+
 describe('concurrent booking race', () => {
   it('allows exactly one of two simultaneous overlapping POSTs to succeed (run 1)', async () => {
     const { responseA, responseB } = await runRaceOnce('01')
-    const statuses = [responseA.status, responseB.status].sort()
-    expect(statuses).toEqual([201, 409])
+    expectExactlyOneWinner([responseA.status, responseB.status])
 
     // Confirm the database itself ended up with exactly one confirmed
     // reservation for these dates — the app-level statuses agree with what
@@ -143,8 +171,7 @@ describe('concurrent booking race', () => {
 
   it('allows exactly one of two simultaneous overlapping POSTs to succeed (run 2, rules out a lucky single pass)', async () => {
     const { responseA, responseB } = await runRaceOnce('11')
-    const statuses = [responseA.status, responseB.status].sort()
-    expect(statuses).toEqual([201, 409])
+    expectExactlyOneWinner([responseA.status, responseB.status])
 
     const rows = await testDb
       .select()
