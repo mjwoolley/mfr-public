@@ -1,14 +1,20 @@
-# Weekly dependency update PRs. npm workspaces are handled from the root
+# Monthly dependency update PRs. npm workspaces are handled from the root
 # lockfile. Grouping + a low PR limit keep the volume down: without them
 # Dependabot's first run opened nine PRs at once, each triggering a full CI
 # run and three Vercel preview builds.
+#
+# Monthly, not weekly: the app is in maintenance mode, and every merged bump
+# is a production deploy under this repo's merge model. In the Aug 4-8 week,
+# dependency PRs were 10 of 22 -- pure cadence cost. SECURITY updates ignore
+# this schedule entirely and still arrive as soon as an advisory lands, so
+# slowing the routine cadence costs nothing on the axis that matters.
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /
     open-pull-requests-limit: 3
     schedule:
-      interval: weekly
+      interval: monthly
     groups:
       # Everything shippable lands in a single weekly PR.
       minor-and-patch:
@@ -41,7 +47,7 @@ updates:
     directory: /
     open-pull-requests-limit: 3
     schedule:
-      interval: weekly
+      interval: monthly
     # One grouped PR for all action bumps. Majors are NOT ignored here on
     # purpose: actions are pinned by major tag (@v4), so major bumps are their
     # normal, low-risk update cadence — ignoring them would freeze CI actions
