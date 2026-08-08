@@ -3,11 +3,23 @@
 # merged into main, so leftover PR debris gets noticed (and removed) instead of
 # accumulating. Read-only — it never deletes anything itself.
 #
-# PRs here are SQUASH-merged, so a merged branch's commits never become
-# ancestors of main and `git branch --merged` misses them. GitHub deletes the
-# remote branch on merge, though, so after pruning stale remote-tracking refs a
-# merged branch's upstream shows `[gone]`. We treat a branch as done if it's
-# `--merged main` (classic merge / local ff) OR its upstream is `[gone]`.
+# A branch is "done" if it's `--merged main` OR its upstream is `[gone]`. Both
+# checks are kept, because each catches what the other misses:
+#
+#   --merged  PRs here land as MERGE COMMITS (docs/workflow.md: "never squash or
+#             rebase-merge", and the repo has allow_squash_merge disabled), so a
+#             merged branch IS an ancestor of main and this check is reliable.
+#             It is the primary signal.
+#   [gone]    GitHub has delete_branch_on_merge enabled, so merging removes the
+#             remote branch; after pruning stale remote-tracking refs the local
+#             branch's upstream reads `[gone]`. This still catches branches that
+#             predate the merge-commit policy (older PRs were squash-merged, and
+#             a squashed branch never becomes an ancestor of main).
+#
+# Note `[gone]` deliberately does NOT fire for a PR closed without merging —
+# auto-delete only runs on merge — so a closed-unmerged branch keeps its
+# upstream, fails both checks, and is correctly left alone. It may still hold
+# the only copy of that work.
 #
 # Kept POSIX/bash-3.2 compatible (macOS default bash) — no associative arrays.
 set -euo pipefail
@@ -77,7 +89,11 @@ done < <(printf '%s\n' "$done_branches" | sort -u)
 msg="Stale (already merged into main):"
 [ -n "$stale_worktrees" ] && msg="${msg} worktrees: ${stale_worktrees%; }."
 [ -n "$stale_branches" ] && msg="${msg} branches: ${stale_branches%, }."
-msg="${msg} If no uncommitted work remains, clean up with 'git worktree remove <path>' / 'git branch -D <name>' (squash-merged branches aren't 'fully merged', so -D not -d)."
+# Recommend `-d`, not `-D`: with merge commits a genuinely merged branch deletes
+# cleanly, and `-d` REFUSES anything still holding unique commits — which is the
+# check you want, not one to override. A branch flagged only by `[gone]` (an old
+# squash-merge) may need `-D`; confirm with `git log main..<branch>` first.
+msg="${msg} If no uncommitted work remains, clean up with 'git worktree remove <path>' / 'git branch -d <name>'. If -d refuses, the branch still has commits not in main — check 'git log main..<branch>' before reaching for -D."
 
 esc=$(printf '%s' "$msg" | sed 's/\\/\\\\/g; s/"/\\"/g')
 printf '{"systemMessage": "%s", "hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": "%s"}}\n' "$esc" "$esc"
