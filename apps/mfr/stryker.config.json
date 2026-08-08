@@ -6,7 +6,7 @@
     "lib/**/*.ts",
     "app/**/actions.ts",
     "!**/*.test.ts",
-    "!lib/db/schema.ts",
+    "!lib/db/schema/**",
     "!lib/portalDb.ts",
     "!lib/identityDb.ts",
     "!lib/auth.ts"

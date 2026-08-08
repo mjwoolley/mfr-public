@@ -244,11 +244,20 @@ logic changed — a much stronger signal than line coverage. It is
 - The **`mutation.yml` workflow** runs the full sweep weekly (Mondays 06:00
   UTC, or `gh workflow run mutation.yml`): scores land in the job summary,
   browsable HTML reports in the artifacts.
-- Low scores mostly mean _uncovered code_ (`NoCoverage` mutants) — the same
-  gap the coverage ratchet tracks. `Survived` mutants on covered code are
-  the interesting ones: they point at weak assertions.
-- Baseline scores 2026-07-16: reservations 40.7%, accounting 26.6%,
-  web 10.4%, auth 33.1%.
+- **Read the `covered` column, not `total`.** Because Stryker sees only the
+  unit tests, everything covered _exclusively_ by an integration suite counts
+  as `NoCoverage` and drags `total` down — e.g. all four `app/**/actions.ts`
+  score 0% here while line coverage has them at 100%. `Survived` mutants on
+  covered code are the interesting ones: they point at weak assertions.
+- Keep the `mutate` globs in `stryker.config.json` in sync when files move.
+  Stryker warns (`Glob pattern "…" did not exclude any files`) but exits 0, so
+  a stale negative glob silently pollutes the score — a dead
+  `!lib/db/schema.ts` left the Drizzle table definitions under mutation and
+  cost ~6.5 points plus 12 minutes of runtime until 2026-08-07.
+- Baseline scores 2026-08-07: mfr 55.4% total / 83.0% covered,
+  auth 89.8%. Weakest genuinely-unit-tested files: `portalStatusGate.ts` 20%,
+  `lib/accounting/authz.ts` 63.6%, `lib/photos/backupStore.ts` 63.3%,
+  `lib/drive/client.ts` 72.3% (52 survivors).
 
 ## E2E tests (Playwright)
 
