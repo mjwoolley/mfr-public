@@ -296,6 +296,40 @@ Note Dependabot's _security_ update runs currently fail for `postcss` and
 `brace-expansion` for exactly the reason above — it can't construct a fix. Its
 routine version updates still work.
 
+### Strengthen weak-assertion tests found by mutation testing (2026-08-08)
+
+The first successful mutation sweep after the PR #107 repair scored apps/mfr at
+83.0% covered (mutants the unit tests exercise and kill). Most survivors are
+noise, but one is not:
+
+- **`lib/reservations/auth/portalStatusGate.ts` — 20% (4 of 5 mutants
+  survive).** This is an auth gate: the tests execute it but would not notice
+  if its logic inverted. Highest-value test to strengthen in the repo.
+- Lesser cases, worth a pass if touching the area anyway:
+  `lib/accounting/authz.ts` 63.6%, `lib/photos/backupStore.ts` 63.3%,
+  `lib/photos/imageProcess.ts` 68.2%, `lib/drive/client.ts` 72.3% (52
+  survivors).
+
+Read survivors per file in the weekly `mutation.yml` artifact
+(`mutation-report-mfr` → `mutation.html`); each lists the exact mutation and
+the tests that ran without failing.
+
+### Decide whether the mutation sweep should see the integration suites
+
+The headline mutation score (55.4% total) is an artifact, not a verdict: 827 of
+2,488 mutants report `NoCoverage` because Stryker runs the **unit** config only
+(`vitest.stryker.config.ts`), so anything covered exclusively by the
+integration suites counts as uncovered — all four `app/**/actions.ts` score 0%
+there despite 100% line coverage. The `covered` column (83.0%) is the honest
+number today.
+
+Making `total` honest means giving `mutation.yml` database credentials +
+per-run Neon branches, which its header deliberately avoids ("no database
+secrets are needed") — and a mutation run executes the suite hundreds of times,
+so an integration-backed sweep is also a runtime/cost question, likely needing
+`--since`-style scoping. Decide deliberately; until then, read `covered`, not
+`total` (workflow.md documents this).
+
 ### Speed up the integration CI job (matrix-shard by suite)
 
 The `Integration tests + coverage` job runs ~4.5 min, ~218s of it the tests
