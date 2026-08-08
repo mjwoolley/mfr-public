@@ -8,8 +8,10 @@
 #   - Production     → job skipped at the `if`, so no runner is consumed
 #   - any PR preview → upsert the URL comment
 #
-# NOTE: `deployment_status` is a non-PR event, so GitHub always runs the copy of
-# this workflow on the DEFAULT branch — it only takes effect once merged to main.
+# NOTE: `deployment_status` runs the copy of this workflow from the DEPLOYED
+# REF, not the default branch — so edits DO take effect on a PR's own preview
+# deploy and can be verified before merge. See production-smoke.yml's header
+# for the evidence that disproved the earlier default-branch claim.
 name: Preview URL
 
 on:

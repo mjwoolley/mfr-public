@@ -31,8 +31,13 @@
 #
 # Rollback needs three repo secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID.
 #
-# NOTE: `deployment_status` is a non-PR event, so GitHub always runs the copy of
-# this workflow on the DEFAULT branch — it only takes effect once merged to main.
+# NOTE: `deployment_status` runs the copy of this workflow from the DEPLOYED
+# REF, not the default branch — so edits DO take effect on a PR's own preview
+# deploy and can be verified before merge. (A previous version of this note
+# claimed the opposite. Disproved 2026-08-08: run 31236689068, on the branch
+# that renamed this file, reported the new workflow name 8 minutes BEFORE that
+# rename merged to main. Unlike `schedule` / `repository_dispatch`, which
+# really are default-branch-only.)
 name: Production smoke
 
 on:
