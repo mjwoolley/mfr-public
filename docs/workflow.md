@@ -233,9 +233,12 @@ Mutation testing measures whether the tests would actually _fail_ if the
 logic changed — a much stronger signal than line coverage. It is
 **report-only** and never gates a merge.
 
-- `npm run test:mutation -w <workspace>` — run locally for reservations,
-  accounting, web, or `packages/auth`. Repeat runs are fast thanks to
-  Stryker's incremental file (`reports/stryker-incremental.json`).
+- `npm run test:mutation -w <workspace>` — a full run, for `apps/mfr` or
+  `packages/auth`. Use `test:mutation:incremental` instead to make repeat
+  local runs fast via Stryker's incremental file
+  (`reports/stryker-incremental.json`). Incremental is opt-in **on the CLI
+  only**: `--incremental` is a valueless flag with no off switch, so config
+  must never default it on or CI could never ask for a full run.
 - The apps use `vitest.stryker.config.ts` (flat, unit-only) so mutation runs
   never touch a database.
 - The **`mutation.yml` workflow** runs the full sweep weekly (Mondays 06:00

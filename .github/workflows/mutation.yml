@@ -27,10 +27,16 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      # Full authoritative run each week (incremental mode is a local-DX
-      # feature; in CI there is no prior state worth trusting).
+      # Full authoritative run each week. Incremental mode is a local-DX
+      # feature and is opt-in via `test:mutation:incremental`, so plain
+      # `test:mutation` is already the full run CI wants — there is
+      # deliberately no CLI override here. Stryker's `--incremental` is a
+      # valueless commander flag: `--incremental false` parses "false" as the
+      # config-file positional ("Invalid config file \"false\"") and
+      # `--incremental=false` is rejected as an unknown option. Neither can
+      # turn it off; only config can.
       - name: Run Stryker
-        run: npm run test:mutation -w ${{ matrix.workspace }} -- --incremental false
+        run: npm run test:mutation -w ${{ matrix.workspace }}
       - name: Mutation score summary
         if: always()
         run: |
