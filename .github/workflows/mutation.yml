@@ -1,6 +1,7 @@
 # Weekly mutation-testing sweep (StrykerJS). Report-only — it never gates
-# merges. Stryker runs each workspace's UNIT tests only (a dedicated flat
-# vitest config in the apps), so no database secrets are needed.
+# merges, and a low score never fails a job. Stryker runs each workspace's
+# UNIT tests only (a dedicated flat vitest config in the apps), so no database
+# secrets are needed.
 # Trigger manually with: gh workflow run mutation.yml
 name: Mutation tests
 
@@ -8,6 +9,11 @@ on:
   schedule:
     - cron: '0 6 * * 1' # Mondays 06:00 UTC
   workflow_dispatch:
+
+# `alert` files an issue when the unattended weekly run breaks.
+permissions:
+  contents: read
+  issues: write
 
 jobs:
   mutation:
@@ -27,10 +33,16 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      # Full authoritative run each week (incremental mode is a local-DX
-      # feature; in CI there is no prior state worth trusting).
+      # Full authoritative run each week. Incremental mode is a local-DX
+      # feature and is opt-in via `test:mutation:incremental`, so plain
+      # `test:mutation` is already the full run CI wants — there is
+      # deliberately no CLI override here. Stryker's `--incremental` is a
+      # valueless commander flag: `--incremental false` parses "false" as the
+      # config-file positional ("Invalid config file \"false\"") and
+      # `--incremental=false` is rejected as an unknown option. Neither can
+      # turn it off; only config can.
       - name: Run Stryker
-        run: npm run test:mutation -w ${{ matrix.workspace }} -- --incremental false
+        run: npm run test:mutation -w ${{ matrix.workspace }}
       - name: Mutation score summary
         if: always()
         run: |
@@ -50,3 +62,86 @@ jobs:
           name: mutation-report-${{ matrix.name }}
           path: ${{ matrix.workspace }}/reports/mutation/
           if-no-files-found: ignore
+
+  # ── Alert: a report-only job on a cron fails SILENTLY. This sweep was broken
+  # from 2026-07-20 to 2026-08-07 (3 consecutive Mondays, `--incremental false`
+  # → "Invalid config file") and nothing surfaced it, so there was no mutation
+  # score for three weeks. Since scores never fail a job, a failure here is
+  # always an infrastructure/config break — exactly the class that went unseen.
+  #
+  # One aggregate job rather than a step inside the matrix: two matrix legs
+  # failing together would otherwise race to create the same issue and file
+  # duplicates. `needs.mutation.result` is 'failure' if ANY leg failed.
+  #
+  # Scheduled runs only — a `workflow_dispatch` run is attended by definition
+  # (you're watching its output), and filing an issue for a manual experiment
+  # is noise. Unattended breakage is the whole problem being solved.
+  alert:
+    name: Alert on failure
+    needs: mutation
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open/update issue
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const label = 'mutation-sweep-failure'
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+
+            // Ensure the label exists (ignore "already exists").
+            try {
+              await github.rest.issues.createLabel({
+                ...context.repo, name: label, color: 'd93f0b',
+                description: 'Automated: the weekly Stryker sweep failed to run',
+              })
+            } catch (e) { /* already exists */ }
+
+            // Name the workspaces that actually failed, so the issue is
+            // actionable without opening the run.
+            const { data: jobs } = await github.rest.actions.listJobsForWorkflowRun({
+              ...context.repo, run_id: context.runId, per_page: 100,
+            })
+            const failed = jobs.jobs
+              .filter((j) => j.name.startsWith('Stryker (') && j.conclusion !== 'success')
+              .map((j) => `\`${j.name}\` → ${j.conclusion}`)
+
+            const body = [
+              'The weekly mutation sweep did not complete, so there is **no mutation score** for this week.',
+              '',
+              'Scores are report-only and never fail a job, so this is a **broken run**',
+              '(config, dependency, or runner problem) — not a quality regression.',
+              '',
+              '**Failed jobs:**',
+              ...(failed.length ? failed.map((f) => `- ${f}`) : ['- (could not determine — see the run)']),
+              '',
+              `- Workflow run: ${runUrl}`,
+              '',
+              'Reproduce locally:',
+              '```sh',
+              'npm run test:mutation -w apps/mfr',
+              'npm run test:mutation -w packages/auth',
+              '```',
+              '',
+              'Close this issue once a sweep completes again.',
+            ].join('\n')
+
+            // Reuse an open issue if one exists; else open a new one. Keeps a
+            // repeatedly-failing cron to a single thread instead of one issue
+            // per week.
+            const { data: open } = await github.rest.issues.listForRepo({
+              ...context.repo, state: 'open', labels: label, per_page: 1,
+            })
+            if (open.length) {
+              await github.rest.issues.createComment({
+                ...context.repo, issue_number: open[0].number,
+                body: `Failed again on ${new Date().toISOString().slice(0, 10)}:\n\n${body}`,
+              })
+            } else {
+              await github.rest.issues.create({
+                ...context.repo,
+                title: '⚠️ Weekly mutation sweep failed to run',
+                labels: [label],
+                body,
+              })
+            }

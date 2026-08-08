@@ -13,6 +13,7 @@
     "test:coverage:unit": "COVERAGE_UNIT_ONLY=1 vitest run --project unit --coverage",
     "test:integration": "vitest run --project integration --passWithNoTests",
     "test:mutation": "stryker run",
+    "test:mutation:incremental": "stryker run --incremental",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:check": "drizzle-kit check",

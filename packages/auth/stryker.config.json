@@ -13,7 +13,6 @@
   "reporters": ["html", "json", "clear-text", "progress"],
   "htmlReporter": { "fileName": "reports/mutation/mutation.html" },
   "jsonReporter": { "fileName": "reports/mutation/mutation.json" },
-  "incremental": true,
   "incrementalFile": "reports/stryker-incremental.json",
   "tempDirName": ".stryker-tmp",
   "timeoutMS": 10000
