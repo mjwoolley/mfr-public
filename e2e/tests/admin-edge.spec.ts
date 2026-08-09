@@ -110,7 +110,8 @@ test.describe('portal user management', () => {
     await expect(page.getByRole('heading', { name: 'User management' })).toBeVisible()
 
     // Role toggles never render for a manager — role assignment is owner-only.
-    await expect(page.getByText('Roles')).toHaveCount(0)
+    // (exact — the page intro's "…assign roles." would match a substring probe)
+    await expect(page.getByText('Roles', { exact: true })).toHaveCount(0)
 
     // The owner's status is off-limits to a manager.
     const ownerRow = page.locator('.card').filter({ hasText: 'owner@e2e.test' })
