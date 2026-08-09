@@ -1,9 +1,9 @@
 // Admin dashboard: composes the content panels (schedule, links, events) and
-// shows the Users link only to the site owner.
+// shows the Users link to user admins (site owner or manager).
 
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { canManageUsers } from '@mfr/auth'
+import { canApproveMembers } from '@mfr/auth'
 import { auth } from '@/lib/auth'
 import { getPortalSettings, getEvents } from '@/lib/portal'
 import { ScheduleForm, LinksForm, EventsEditor } from './AdminPanels'
@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: 'Admin' }
 
 export default async function AdminPage() {
   const session = await auth()
-  const isOwner = session?.user?.roles ? canManageUsers(session.user.roles) : false
+  const canSeeUsers = session?.user?.roles ? canApproveMembers(session.user.roles) : false
   const [settings, events] = await Promise.all([getPortalSettings(), getEvents()])
 
   return (
@@ -41,7 +41,7 @@ export default async function AdminPage() {
         right away.
       </p>
 
-      {isOwner && (
+      {canSeeUsers && (
         <Link
           href="/admin/users"
           className="card elev-sm bg-white mt-6 flex items-center gap-4 no-underline"
@@ -76,7 +76,7 @@ export default async function AdminPage() {
           <div className="flex-1">
             <div style={{ fontFamily: 'var(--font-heading)', fontSize: 18 }}>User management</div>
             <div style={{ fontSize: 13.5, color: 'var(--color-neutral-600)' }}>
-              Approve or block members and assign roles &mdash; site owner only.
+              Approve or block members &mdash; the site owner can also assign roles.
             </div>
           </div>
           <span aria-hidden style={{ color: 'var(--color-accent-700)', fontWeight: 700 }}>

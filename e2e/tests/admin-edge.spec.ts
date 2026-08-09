@@ -64,7 +64,7 @@ test.describe('reservations admin', () => {
 })
 
 test.describe('portal user management', () => {
-  test('the owner approves an applicant, grants a role, and can block', async ({ browser }) => {
+  test('the owner approves an applicant and grants a role', async ({ browser }) => {
     const owner = await contextFor(browser, 'owner')
     const page = await owner.newPage()
     await page.goto(`${WEB_URL}/admin/users`)
@@ -98,19 +98,30 @@ test.describe('portal user management', () => {
     await granted.click()
     await expect(row.getByRole('button', { name: 'Site manager', exact: true })).toBeVisible()
 
-    // Block the applicant (their arc ends here — no other spec uses them).
-    await row.getByRole('button', { name: 'Block' }).click()
-    await expect(row.getByText('blocked', { exact: true })).toBeVisible()
-
+    // The applicant stays approved here; the manager test below blocks them.
     await owner.close()
   })
 
-  test('a non-owner admin cannot open User Management', async ({ browser }) => {
+  test('a site manager can block members but not owners or roles', async ({ browser }) => {
     const admin = await contextFor(browser, 'admin') // site manager, not owner
     const page = await admin.newPage()
 
     await page.goto(`${WEB_URL}/admin/users`)
-    await expect(page).not.toHaveURL(/\/admin\/users/)
+    await expect(page.getByRole('heading', { name: 'User management' })).toBeVisible()
+
+    // Role toggles never render for a manager — role assignment is owner-only.
+    await expect(page.getByText('Roles')).toHaveCount(0)
+
+    // The owner's status is off-limits to a manager.
+    const ownerRow = page.locator('.card').filter({ hasText: 'owner@e2e.test' })
+    await expect(ownerRow.getByRole('button', { name: 'Approve' })).toBeDisabled()
+    await expect(ownerRow.getByRole('button', { name: 'Block' })).toBeDisabled()
+
+    // But a manager can block a plain member: the applicant's arc ends blocked
+    // here (no other spec uses them), same end state as before this test split.
+    const applicantRow = page.locator('.card').filter({ hasText: 'applicant@e2e.test' })
+    await applicantRow.getByRole('button', { name: 'Block' }).click()
+    await expect(applicantRow.getByText('blocked', { exact: true })).toBeVisible()
 
     await admin.close()
   })

@@ -74,13 +74,25 @@ test.describe('web portal', () => {
     await context.close()
   })
 
-  test('a non-owner is redirected away from User Management', async ({ browser }) => {
+  test('a site manager can reach User Management but sees no role toggles', async ({ browser }) => {
     const context = await contextFor(browser, 'admin')
     const page = await context.newPage()
 
     await page.goto(`${WEB_URL}/admin/users`)
 
-    // requireSiteOwner bounces a non-owner (even an admin) to the home page.
+    await expect(page.getByRole('heading', { name: 'User management' })).toBeVisible()
+    // Role assignment stays owner-only, so the toggles never render for a manager.
+    await expect(page.getByRole('button', { name: 'Site manager', exact: true })).toHaveCount(0)
+    await context.close()
+  })
+
+  test('a plain member is redirected away from User Management', async ({ browser }) => {
+    const context = await contextFor(browser, 'member')
+    const page = await context.newPage()
+
+    await page.goto(`${WEB_URL}/admin/users`)
+
+    // requireUserAdmin bounces anyone who is neither owner nor manager home.
     await expect(page).toHaveURL(`${WEB_URL}/`)
     await context.close()
   })

@@ -1,9 +1,10 @@
 'use server'
 
-// Site-owner-only user administration, spanning both databases: status
-// (pending/approved/blocked) writes to the identity DB, role grants upsert
-// portal_user_roles in the portal DB. Self-lockout guards below keep the
-// owner from stranding the portal with no owner.
+// User administration, spanning both databases: status (pending/approved/
+// blocked) writes to the identity DB — open to owner and site managers — while
+// role grants upsert portal_user_roles in the portal DB and stay owner-only.
+// Self-lockout guards below keep the owner from stranding the portal with no
+// owner.
 
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
@@ -12,7 +13,7 @@ import { users } from '@mfr/auth'
 import { identityDb } from '@/lib/identityDb'
 import { portalDb } from '@/lib/portalDb'
 import { portalUserRoles } from '@/lib/db/schema'
-import { requireSiteOwner } from '@/lib/authz'
+import { requireSiteOwner, requireUserAdmin } from '@/lib/authz'
 
 export type ActionResult = { ok: true } | { error: string }
 
@@ -28,14 +29,28 @@ const roleSchema = z.object({
 })
 
 export async function setUserStatus(input: z.input<typeof statusSchema>): Promise<ActionResult> {
-  const session = await requireSiteOwner()
+  const session = await requireUserAdmin()
   const parsed = statusSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Invalid input' }
   const { userId, status } = parsed.data
 
-  // An owner can't lock themselves out of their own account.
+  // An admin can't lock themselves out of their own account.
   if (userId === session.user.id && status !== 'approved') {
     return { error: "You can't change your own account status." }
+  }
+
+  // A manager can't change a site owner's status (only an owner can). Checked
+  // against portal_user_roles; the SITE_OWNER_EMAIL bootstrap owner may lack a
+  // row here, but their session callback force-approves them anyway, so a
+  // status write can't actually lock them out.
+  if (!session.user.roles.siteOwner) {
+    const [target] = await portalDb
+      .select({ isSiteOwner: portalUserRoles.isSiteOwner })
+      .from(portalUserRoles)
+      .where(eq(portalUserRoles.identityUserId, userId))
+    if (target?.isSiteOwner) {
+      return { error: "Only the site owner can change another owner's status." }
+    }
   }
 
   await identityDb.update(users).set({ status }).where(eq(users.id, userId))

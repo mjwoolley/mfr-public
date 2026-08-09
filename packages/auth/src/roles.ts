@@ -6,8 +6,9 @@ import postgres from 'postgres'
  * and attached to every session by `@mfr/auth`'s shared session callback.
  *
  *  - siteOwner:        full power over everything, including user management.
- *  - siteManager:      portal content admin + reservations admin (everything
- *                      except accounting admin and user management).
+ *  - siteManager:      portal content admin + reservations admin + member
+ *                      approval (everything except accounting admin and role
+ *                      assignment).
  *  - accountingManager: the capability to enter contributions/expenses
  *                      (what used to be `isAccountingAdmin`).
  */
@@ -28,8 +29,12 @@ export const NO_ROLES: UserRoles = {
 // so authorization stays consistent across the portal, accounting and
 // reservations.
 
-/** Manage users and their roles — the highest privilege. Owner only. */
+/** Assign/revoke roles — the highest privilege. Owner only. */
 export const canManageUsers = (r: UserRoles): boolean => r.siteOwner
+
+/** Approve/block members (account status). Owner or manager; role assignment
+ * stays owner-only (`canManageUsers`). */
+export const canApproveMembers = (r: UserRoles): boolean => r.siteOwner || r.siteManager
 
 /** Edit portal content: reunion schedule, photo albums, events, meals. */
 export const canManagePortalContent = (r: UserRoles): boolean => r.siteOwner || r.siteManager

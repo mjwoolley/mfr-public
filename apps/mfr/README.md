@@ -7,16 +7,16 @@ admin screens where users are approved and roles granted.
 
 ## Routes
 
-| Route                     | Access                    | What it is                                                                     |
-| ------------------------- | ------------------------- | ------------------------------------------------------------------------------ |
-| `/`                       | public                    | Home: hero slideshow; fundraising goal card + upcoming events (signed-in only) |
-| `/photos`                 | approved members          | Per-year Google Photos album cards                                             |
-| `/meals`                  | approved members          | Reunion-week lunch/dinner RSVPs, headcounts, roster grid                       |
-| `/documents`              | approved members          | Embedded shared Google Drive folder                                            |
-| `/sign-in`                | public                    | Canonical Google sign-in for all three apps (callbackUrl round-trip)           |
-| `/admin`                  | site owner **or** manager | Content editing: reunion schedule, links, photo albums, events                 |
-| `/admin/users`            | site owner only           | Approve/block users; grant siteOwner / siteManager / accountingManager         |
-| `/api/auth/[...nextauth]` | —                         | Auth.js handlers                                                               |
+| Route                     | Access                    | What it is                                                                                    |
+| ------------------------- | ------------------------- | --------------------------------------------------------------------------------------------- |
+| `/`                       | public                    | Home: hero slideshow; fundraising goal card + upcoming events (signed-in only)                |
+| `/photos`                 | approved members          | Per-year Google Photos album cards                                                            |
+| `/meals`                  | approved members          | Reunion-week lunch/dinner RSVPs, headcounts, roster grid                                      |
+| `/documents`              | approved members          | Embedded shared Google Drive folder                                                           |
+| `/sign-in`                | public                    | Canonical Google sign-in for all three apps (callbackUrl round-trip)                          |
+| `/admin`                  | site owner **or** manager | Content editing: reunion schedule, links, photo albums, events                                |
+| `/admin/users`            | site owner **or** manager | Approve/block users; role grants (siteOwner / siteManager / accountingManager) are owner-only |
+| `/api/auth/[...nextauth]` | —                         | Auth.js handlers                                                                              |
 
 ## Stack & data
 

@@ -36,7 +36,8 @@ export const personas = {
     sessionToken: 'e2e-session-member',
   },
   /** Approved admin of both portals: site manager (reservations) + accounting
-   * manager. Not a site owner, so cannot reach user management. */
+   * manager. Not a site owner, so can approve/block members but not assign
+   * roles. */
   admin: {
     id: '22222222-2222-4222-8222-222222222222',
     email: 'admin@e2e.test',

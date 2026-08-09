@@ -14,6 +14,7 @@ export {
   createReservationsAdminIdsReader,
   createReservationsAdminIdsReaderFromEnv,
   canManageUsers,
+  canApproveMembers,
   canManagePortalContent,
   canAdminReservations,
   canAdminAccounting,
