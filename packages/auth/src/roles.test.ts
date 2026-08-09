@@ -3,6 +3,7 @@ import {
   NO_ROLES,
   mapRolesRow,
   canManageUsers,
+  canApproveMembers,
   canManagePortalContent,
   canAdminReservations,
   canAdminAccounting,
@@ -24,10 +25,17 @@ describe('mapRolesRow', () => {
 })
 
 describe('capabilities', () => {
-  it('user management is owner-only', () => {
+  it('role assignment (user management) is owner-only', () => {
     expect(canManageUsers(roles({ siteOwner: true }))).toBe(true)
     expect(canManageUsers(roles({ siteManager: true }))).toBe(false)
     expect(canManageUsers(roles({ accountingManager: true }))).toBe(false)
+  })
+
+  it('member approval is owner or manager', () => {
+    expect(canApproveMembers(roles({ siteOwner: true }))).toBe(true)
+    expect(canApproveMembers(roles({ siteManager: true }))).toBe(true)
+    expect(canApproveMembers(roles({ accountingManager: true }))).toBe(false)
+    expect(canApproveMembers(NO_ROLES)).toBe(false)
   })
 
   it('portal content admin is owner or manager', () => {

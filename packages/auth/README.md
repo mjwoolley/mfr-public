@@ -19,18 +19,19 @@ via `transpilePackages`, so a change here ships to the whole portal at once.
   `IDENTITY_DIRECT_DATABASE_URL`.
 - **Portal roles** (`src/roles.ts`) — the authorization model. Three stackable
   role flags stored in the **portal DB's** `portal_user_roles` (managed at the
-  portal's `/admin/users`, site owner only), read via
+  portal's `/admin/users`; role grants are site-owner only), read via
   `createRolesReaderFromEnv()` (`PORTAL_DATABASE_URL`):
 
-  | Role                | Capabilities                              |
-  | ------------------- | ----------------------------------------- |
-  | `siteOwner`         | everything, including user management     |
-  | `siteManager`       | portal content admin + reservations admin |
-  | `accountingManager` | accounting admin                          |
+  | Role                | Capabilities                                                |
+  | ------------------- | ----------------------------------------------------------- |
+  | `siteOwner`         | everything, including role assignment                       |
+  | `siteManager`       | portal content admin + reservations admin + member approval |
+  | `accountingManager` | accounting admin                                            |
 
   Apps never check role flags directly — they use the derived capability
-  helpers (`canManageUsers`, `canManagePortalContent`, `canAdminReservations`,
-  `canAdminAccounting`) so the mapping lives in exactly one place.
+  helpers (`canManageUsers`, `canApproveMembers`, `canManagePortalContent`,
+  `canAdminReservations`, `canAdminAccounting`) so the mapping lives in exactly
+  one place.
 
 - **`createPortalStatusGate`** (`src/portalStatusGate.ts`) — the shared
   pending/blocked/sign-in redirect ladder each app configures with its paths.

@@ -1,5 +1,10 @@
 import { redirect } from 'next/navigation'
-import { createPortalStatusGate, canManageUsers, canManagePortalContent } from '@mfr/auth'
+import {
+  createPortalStatusGate,
+  canManageUsers,
+  canApproveMembers,
+  canManagePortalContent,
+} from '@mfr/auth'
 import { auth } from '@/lib/auth'
 
 // The portal's gate ladder, mirroring accounting's lib/authz.ts. The portal is
@@ -24,9 +29,16 @@ export async function requirePortalContentAdmin() {
   return session
 }
 
-/** User management — site owner only. */
+/** Role assignment — site owner only. */
 export async function requireSiteOwner() {
   const session = await requireApproved()
   if (!canManageUsers(session.user.roles)) redirect('/')
+  return session
+}
+
+/** User management page + member status control — site owner or manager. */
+export async function requireUserAdmin() {
+  const session = await requireApproved()
+  if (!canApproveMembers(session.user.roles)) redirect('/')
   return session
 }

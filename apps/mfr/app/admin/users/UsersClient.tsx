@@ -1,8 +1,8 @@
 'use client'
 
-// User Management table (site owner only): per-user status dropdown
-// (approve/block) and the three portal-role checkboxes, calling the actions
-// in ./actions.ts with per-row busy/error state.
+// User Management table (site owner or manager): per-user status buttons
+// (approve/block) and, for owners only, the three portal-role toggles, calling
+// the actions in ./actions.ts with per-row busy/error state.
 
 import { useState, useTransition } from 'react'
 import { setUserStatus, setUserRole, type ActionResult } from './actions'
@@ -32,9 +32,11 @@ function initials(u: UserWithRoles) {
 export function UsersClient({
   users,
   currentUserId,
+  viewerIsOwner,
 }: {
   users: UserWithRoles[]
   currentUserId: string
+  viewerIsOwner: boolean
 }) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -65,6 +67,8 @@ export function UsersClient({
       {users.map((u) => {
         const isSelf = u.id === currentUserId
         const rowBusy = isPending && busyId === u.id
+        // A manager can't change an owner's status (server enforces this too).
+        const targetLocked = !viewerIsOwner && u.siteOwner
         return (
           <div key={u.id} className="card elev-sm bg-white gap-4 p-5">
             <div className="flex flex-wrap items-center gap-3">
@@ -94,7 +98,7 @@ export function UsersClient({
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  disabled={rowBusy || isSelf || u.status === 'approved'}
+                  disabled={rowBusy || isSelf || targetLocked || u.status === 'approved'}
                   onClick={() =>
                     run(u.id, () => setUserStatus({ userId: u.id, status: 'approved' }))
                   }
@@ -104,7 +108,7 @@ export function UsersClient({
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  disabled={rowBusy || isSelf || u.status === 'blocked'}
+                  disabled={rowBusy || isSelf || targetLocked || u.status === 'blocked'}
                   onClick={() =>
                     run(u.id, () => setUserStatus({ userId: u.id, status: 'blocked' }))
                   }
@@ -113,36 +117,40 @@ export function UsersClient({
                 </button>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-muted text-xs font-bold tracking-wide uppercase">Roles</span>
-                {ROLES.map(({ key, label }) => {
-                  const on = u[key]
-                  const lockSelfOwner = isSelf && key === 'siteOwner' && on
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      aria-pressed={on}
-                      disabled={rowBusy || lockSelfOwner}
-                      onClick={() =>
-                        run(u.id, () => setUserRole({ userId: u.id, role: key, value: !on }))
-                      }
-                      className="btn"
-                      style={
-                        on
-                          ? { background: 'var(--color-accent-2)', color: '#fff' }
-                          : {
-                              border: '1.5px solid var(--color-neutral-300)',
-                              color: 'var(--color-text)',
-                            }
-                      }
-                    >
-                      {on ? '✓ ' : ''}
-                      {label}
-                    </button>
-                  )
-                })}
-              </div>
+              {viewerIsOwner && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-muted text-xs font-bold tracking-wide uppercase">
+                    Roles
+                  </span>
+                  {ROLES.map(({ key, label }) => {
+                    const on = u[key]
+                    const lockSelfOwner = isSelf && key === 'siteOwner' && on
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        aria-pressed={on}
+                        disabled={rowBusy || lockSelfOwner}
+                        onClick={() =>
+                          run(u.id, () => setUserRole({ userId: u.id, role: key, value: !on }))
+                        }
+                        className="btn"
+                        style={
+                          on
+                            ? { background: 'var(--color-accent-2)', color: '#fff' }
+                            : {
+                                border: '1.5px solid var(--color-neutral-300)',
+                                color: 'var(--color-text)',
+                              }
+                        }
+                      >
+                        {on ? '✓ ' : ''}
+                        {label}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           </div>
         )

@@ -28,6 +28,14 @@ const ownerSession = (id: string) => ({
   },
   expires: '2099-01-01',
 })
+const managerSession = (id: string) => ({
+  user: {
+    id,
+    status: 'approved',
+    roles: { siteOwner: false, siteManager: true, accountingManager: false },
+  },
+  expires: '2099-01-01',
+})
 const memberSession = (id: string) => ({
   user: {
     id,
@@ -78,13 +86,80 @@ describe('user management actions', () => {
     expect(row.isSiteManager).toBe(false)
   })
 
-  it('rejects a non-owner (site manager) from user management', async () => {
-    vi.mocked(auth).mockResolvedValue(memberSession(randomUUID()) as never)
+  it('lets a site manager approve a pending user', async () => {
+    vi.mocked(auth).mockResolvedValue(managerSession(randomUUID()) as never)
+    const target = await makeUser('pending')
+
+    const res = await setUserStatus({ userId: target.id, status: 'approved' })
+
+    expect(res).toEqual({ ok: true })
+    const [row] = await identityDb.select().from(users).where(eq(users.id, target.id))
+    expect(row.status).toBe('approved')
+  })
+
+  it('lets a site manager block an approved non-owner user', async () => {
+    vi.mocked(auth).mockResolvedValue(managerSession(randomUUID()) as never)
+    const target = await makeUser('approved')
+
+    const res = await setUserStatus({ userId: target.id, status: 'blocked' })
+
+    expect(res).toEqual({ ok: true })
+    const [row] = await identityDb.select().from(users).where(eq(users.id, target.id))
+    expect(row.status).toBe('blocked')
+  })
+
+  it('rejects a site manager from assigning roles', async () => {
+    vi.mocked(auth).mockResolvedValue(managerSession(randomUUID()) as never)
     const target = await makeUser('approved')
 
     await expect(
       setUserRole({ userId: target.id, role: 'siteManager', value: true }),
     ).rejects.toThrow(/REDIRECT/)
+  })
+
+  it('rejects a plain member from user management', async () => {
+    vi.mocked(auth).mockResolvedValue(memberSession(randomUUID()) as never)
+    const target = await makeUser('approved')
+
+    await expect(setUserStatus({ userId: target.id, status: 'approved' })).rejects.toThrow(
+      /REDIRECT/,
+    )
+    await expect(
+      setUserRole({ userId: target.id, role: 'siteManager', value: true }),
+    ).rejects.toThrow(/REDIRECT/)
+  })
+
+  it("won't let a site manager change a site owner's status", async () => {
+    vi.mocked(auth).mockResolvedValue(managerSession(randomUUID()) as never)
+    const target = await makeUser('approved')
+    await portalDb.insert(portalUserRoles).values({ identityUserId: target.id, isSiteOwner: true })
+
+    const res = await setUserStatus({ userId: target.id, status: 'blocked' })
+
+    expect(res).toEqual({ error: expect.stringContaining('site owner') })
+    const [row] = await identityDb.select().from(users).where(eq(users.id, target.id))
+    expect(row.status).toBe('approved')
+  })
+
+  it("lets an owner change another owner's status", async () => {
+    vi.mocked(auth).mockResolvedValue(ownerSession(randomUUID()) as never)
+    const target = await makeUser('approved')
+    await portalDb.insert(portalUserRoles).values({ identityUserId: target.id, isSiteOwner: true })
+
+    const res = await setUserStatus({ userId: target.id, status: 'blocked' })
+
+    expect(res).toEqual({ ok: true })
+    const [row] = await identityDb.select().from(users).where(eq(users.id, target.id))
+    expect(row.status).toBe('blocked')
+  })
+
+  it("won't let a site manager change their own account status (lockout guard)", async () => {
+    const managerId = randomUUID()
+    vi.mocked(auth).mockResolvedValue(managerSession(managerId) as never)
+
+    const res = await setUserStatus({ userId: managerId, status: 'blocked' })
+
+    expect(res).toEqual({ error: expect.stringContaining('own account') })
   })
 
   it("won't let an owner change their own account status (lockout guard)", async () => {
