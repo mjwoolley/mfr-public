@@ -105,6 +105,7 @@ describe('home page — signed out', () => {
     const html = await render()
     expect(html).toContain('Sign in to see this year')
     expect(html).not.toContain('2026 share goal')
+    expect(html).not.toContain('fiscal year runs March 1')
   })
 
   it('hides the upcoming events section', async () => {
@@ -124,7 +125,8 @@ describe('home page — signed in', () => {
 
   it('shows the live fundraising goal card, in shares rather than dollars', async () => {
     const html = await render()
-    expect(html).toContain('2026 share goal')
+    expect(html).toContain('FY2026 share goal')
+    expect(html).toContain('fiscal year runs March 1')
     expect(html).toContain('7,400')
     expect(html).toContain('of 12,000 shares')
     expect(html).toContain('Venmo')
