@@ -8,6 +8,8 @@ import { getPortalSettings, getFundraising, getEvents } from '@/lib/portal'
 import { getFeaturedPhotos } from '@/lib/photos/gallery'
 import { computeGoalProgress } from '@/lib/accounting/goals'
 import { formatShares } from '@/lib/accounting/format'
+import { fiscalYearLabel } from '@/lib/accounting/fiscalYear'
+import { FiscalYearNote } from '@/components/accounting/FiscalYearNote'
 import { HomeSlideshow } from './HomeSlideshow'
 
 // Fallback hero image (public/) shown to signed-out visitors and whenever no
@@ -162,7 +164,7 @@ export default async function Home() {
                     className="text-[11px] uppercase"
                     style={{ letterSpacing: '.06em', color: 'var(--color-neutral-600)' }}
                   >
-                    {year} share goal
+                    {fiscalYearLabel(year)} share goal
                   </div>
                   <div style={{ fontFamily: 'var(--font-heading)', fontSize: 22, lineHeight: 1 }}>
                     {formatShares(raised)}{' '}
@@ -222,6 +224,7 @@ export default async function Home() {
                     Full ledger &rarr;
                   </Link>
                 </div>
+                <FiscalYearNote className="text-muted mt-2 mb-0 text-[12.5px]" />
               </div>
             )}
           </div>
