@@ -15,6 +15,7 @@ import { getVenmoConfig } from '@/lib/accounting/venmo'
 import { formatShares, formatDate } from '@/lib/accounting/format'
 import { transactionTypeTag, IN_KIND_TAG } from '@/lib/accounting/tags'
 import { ApprovalStatus, TransactionType } from '@/lib/accounting/enums'
+import { FiscalYearNote } from '@/components/accounting/FiscalYearNote'
 import { VenmoDialogButton } from './venmo-dialog'
 import { DisputeEntryActions } from './dispute-actions'
 
@@ -176,6 +177,7 @@ export default async function DashboardPage() {
               <div className="text-muted mt-2 text-[13px]">{progress.note}</div>
             </>
           )}
+          <FiscalYearNote className="text-muted mt-3 mb-0 text-[13px]" />
         </div>
       )}
 

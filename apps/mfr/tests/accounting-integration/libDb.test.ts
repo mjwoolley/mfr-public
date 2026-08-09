@@ -77,6 +77,53 @@ describe('getRaisedThisYear', () => {
     })
     expect(Number(mine._sum.shares)).toBe(77)
   })
+
+  it('excludes transfers and adjustments — only CONTRIBUTIONs count toward the goal', async () => {
+    const sender = await testDb.shareholder.create({
+      data: { name: `Transfer Sender ${Date.now()}`, email: null },
+    })
+    const receiver = await testDb.shareholder.create({
+      data: { name: `Transfer Receiver ${Date.now()}`, email: null },
+    })
+    createdShareholderIds.push(sender.id, receiver.id)
+
+    const before = await getRaisedThisYear()
+
+    // The app's real transfer shape (actions/accounting/transfers.ts): one
+    // TRANSFER transaction, double-entry ledger rows. Catches a future
+    // aggregation that counts only the receiving (positive) leg.
+    const transfer = await testDb.transaction.create({
+      data: {
+        type: TransactionType.TRANSFER,
+        createdById: 'admin-1',
+        entries: {
+          create: [
+            { shareholderId: sender.id, shares: -1_000_000 },
+            { shareholderId: receiver.id, shares: 1_000_000 },
+          ],
+        },
+      },
+    })
+    createdTransactionIds.push(transfer.id)
+
+    // A one-sided ADJUSTMENT (actions/accounting/adjustments.ts) — unlike a
+    // balanced transfer it can't hide by netting to zero, so it catches the
+    // CONTRIBUTION type filter being dropped from the raised query.
+    const adjustment = await testDb.transaction.create({
+      data: {
+        type: TransactionType.ADJUSTMENT,
+        createdById: 'admin-1',
+        entries: { create: { shareholderId: receiver.id, shares: 1_000_000 } },
+      },
+    })
+    createdTransactionIds.push(adjustment.id)
+
+    const after = await getRaisedThisYear()
+    // Other suites may insert small contributions between the two reads, so
+    // bound the delta below the deliberately distinctive 1M fixtures rather
+    // than asserting exactly zero.
+    expect(after.raised - before.raised).toBeLessThan(1_000_000)
+  })
 })
 
 describe('getContributionGoal', () => {
