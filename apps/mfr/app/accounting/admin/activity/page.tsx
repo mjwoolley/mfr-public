@@ -1,36 +1,77 @@
 import Link from 'next/link'
 import { desc } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
-import { signedShares, formatDate } from '@/lib/accounting/format'
-import { transactionTypeTag, approvalStatusTag, IN_KIND_TAG } from '@/lib/accounting/tags'
+import { expense } from '@/lib/db/schema'
+import { signedShares, formatUSD0, formatDate } from '@/lib/accounting/format'
+import {
+  transactionTypeTag,
+  expenseCategoryTag,
+  approvalStatusTag,
+  IN_KIND_TAG,
+} from '@/lib/accounting/tags'
 import { ApprovalStatus } from '@/lib/accounting/enums'
+import { mergeActivityFeed } from '@/lib/accounting/activityFeed'
 import { ResolveDisputeForm } from './resolve-dispute-form'
 
 /**
- * The full transaction ledger with the dispute-resolution workflow.
- * Formerly the top-level /accounting/activity tab; folded into Admin in the
- * Organic redesign (the Contributions tab now gives shareholders their
+ * The full activity feed: every ledger transaction (with the
+ * dispute-resolution workflow) interleaved with every house expense, newest
+ * first. Formerly the top-level /accounting/activity tab; folded into Admin in
+ * the Organic redesign (the Contributions tab now gives shareholders their
  * transparency view). The admin layout's requireAdmin() gates this.
  */
 export default async function AdminActivityPage() {
-  const transactions = await db.query.transaction.findMany({
-    orderBy: (t) => [desc(t.createdAt)],
-    with: {
-      entries: { with: { shareholder: { columns: { name: true } } } },
-      approvals: { with: { shareholder: { columns: { name: true } } } },
-      correctsTransaction: { columns: { id: true, type: true } },
-    },
-  })
+  const [transactions, expenses] = await Promise.all([
+    db.query.transaction.findMany({
+      orderBy: (t) => [desc(t.createdAt)],
+      with: {
+        entries: { with: { shareholder: { columns: { name: true } } } },
+        approvals: { with: { shareholder: { columns: { name: true } } } },
+        correctsTransaction: { columns: { id: true, type: true } },
+      },
+    }),
+    db.query.expense.findMany({ orderBy: [desc(expense.incurredAt)] }),
+  ])
+  const feed = mergeActivityFeed(transactions, expenses)
 
   return (
     <div>
       <p className="text-muted mb-4 text-sm">
-        Every transaction on the ledger, with each shareholder&apos;s confirmation status and any
-        open disputes.
+        Every transaction on the ledger — with each shareholder&apos;s confirmation status and any
+        open disputes — alongside every recorded expense.
       </p>
 
       <div className="flex flex-col gap-2">
-        {transactions.map((t) => {
+        {feed.map((item) => {
+          if (item.kind === 'expense') {
+            const x = item.expense
+            const categoryTag = expenseCategoryTag(x.category)
+            return (
+              <div key={x.id} className="card elev-sm px-4 py-3 text-sm" style={{ gap: 5 }}>
+                <div className="flex items-center gap-2.5">
+                  <span className={`${categoryTag.className} flex-none`}>
+                    Expense · {categoryTag.label}
+                  </span>
+                  {x.capital && (
+                    <span className="tag tag-outline flex-none px-[7px] py-0 text-[10px]">
+                      Capital
+                    </span>
+                  )}
+                  <span className="min-w-0 text-sm font-semibold">{formatUSD0(x.amount)}</span>
+                  <span className="text-muted ml-auto flex-none text-xs whitespace-nowrap">
+                    {formatDate(x.incurredAt)}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-muted text-xs">{x.description}</span>
+                </div>
+                <div className="text-muted text-xs">
+                  Recorded by {x.createdByName ?? x.createdByEmail ?? 'an admin'}
+                </div>
+              </div>
+            )
+          }
+          const t = item.transaction
           const typeTag = transactionTypeTag(t.type)
           const entryLine = t.entries
             .map((e) => `${e.shareholder.name} ${signedShares(e.shares.toString())}`)
@@ -128,7 +169,7 @@ export default async function AdminActivityPage() {
             </div>
           )
         })}
-        {transactions.length === 0 && <p className="text-muted">No transactions yet.</p>}
+        {feed.length === 0 && <p className="text-muted">No activity yet.</p>}
       </div>
     </div>
   )

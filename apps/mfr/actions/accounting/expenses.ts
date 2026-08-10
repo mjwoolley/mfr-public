@@ -30,6 +30,7 @@ export type ActionState = { error?: string; success?: boolean } | undefined
 function revalidateExpenseViews() {
   revalidatePath('/accounting/expenses')
   revalidatePath('/accounting/admin/expenses')
+  revalidatePath('/accounting/admin/activity')
 }
 
 export async function createExpense(
