@@ -7,12 +7,27 @@ import { auth, signIn } from '@/lib/auth'
 // after Google sign-in we send the user back there. @mfr/auth's redirect
 // callback validates the target (same registrable domain), so an off-domain
 // callbackUrl safely falls back to the portal home.
+// Auth.js redirects sign-in failures here (pages.signIn AND pages.error both
+// point at this page): kind-"signIn" errors keep their code, everything
+// non-client-safe is collapsed to "Configuration" by @auth/core.
+const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  OAuthAccountNotLinked:
+    'This email address is already registered here. Try signing in again with the same Google account you used before; if this keeps happening, contact the site owner.',
+  AccessDenied: 'Sign-in was cancelled or not allowed. Please try again.',
+  Configuration:
+    'Something is wrong on our end and sign-in cannot complete right now. Please contact the site owner.',
+  OAuthCallbackError: 'Something went wrong while talking to Google. Please try again.',
+  Verification: 'That sign-in link is no longer valid. Please sign in again.',
+  Default:
+    'Something went wrong while signing you in. Please try again; if it keeps happening, contact the site owner.',
+}
+
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ callbackUrl?: string }>
+  searchParams: Promise<{ callbackUrl?: string; error?: string }>
 }) {
-  const { callbackUrl } = await searchParams
+  const { callbackUrl, error } = await searchParams
   const target = callbackUrl || '/'
 
   const session = await auth()
@@ -24,6 +39,24 @@ export default async function SignInPage({
         <h1 className="text-3xl">Miller Family Reunions</h1>
         <p className="text-muted mt-2">Sign in to access the family portal.</p>
       </div>
+      {error && (
+        <div
+          role="alert"
+          className="max-w-sm px-4 py-3 text-left text-sm leading-relaxed"
+          style={{
+            border: '1px solid var(--color-accent-300)',
+            borderRadius: 'var(--radius-sm)',
+            background: 'var(--color-accent-100)',
+            color: 'var(--color-accent-800)',
+          }}
+        >
+          <p>{AUTH_ERROR_MESSAGES[error] ?? AUTH_ERROR_MESSAGES.Default}</p>
+          {/* The raw code makes a family member's screenshot diagnosable. */}
+          <p className="mt-1 text-xs" style={{ color: 'var(--color-accent-700)' }}>
+            Error code: {error}
+          </p>
+        </div>
+      )}
       <div className="flex max-w-sm flex-col items-center gap-4">
         <form
           action={async () => {

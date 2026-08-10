@@ -24,7 +24,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth(
   createAuthConfig({
     db: identityDb,
     basePath: '/api/auth',
-    pages: { signIn: '/sign-in' },
+    // The sign-in page doubles as the error page: signIn-kind failures
+    // (OAuthAccountNotLinked, OAuthCallbackError) already land on
+    // /sign-in?error=CODE, and error-kind ones (AccessDenied, Verification,
+    // Configuration) now do too instead of Auth.js's unstyled /api/auth/error.
+    pages: { signIn: '/sign-in', error: '/sign-in' },
     getUserRoles: createRolesReader(process.env.DATABASE_URL!),
     onUserCreated: async ({ id, email, name }) => {
       await db.insert(activityLog).values({

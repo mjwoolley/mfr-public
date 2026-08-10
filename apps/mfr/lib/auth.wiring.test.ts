@@ -52,7 +52,7 @@ describe('portal auth wiring', () => {
     expect(createAuthConfig).toHaveBeenCalledTimes(1)
     const opts = createAuthConfig.mock.calls[0][0]
     expect(opts.basePath).toBe('/api/auth')
-    expect(opts.pages).toEqual({ signIn: '/sign-in' })
+    expect(opts.pages).toEqual({ signIn: '/sign-in', error: '/sign-in' })
     expect(opts.db).toEqual({ marker: 'identity-db' })
     expect(opts.getUserRoles).toBeTypeOf('function')
     // The single unified instance merges the two per-section session hooks:

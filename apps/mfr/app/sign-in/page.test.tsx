@@ -30,7 +30,9 @@ describe('sign-in page', () => {
     redirectMock.mockClear()
   })
 
-  const props = (callbackUrl?: string) => ({ searchParams: Promise.resolve({ callbackUrl }) })
+  const props = (callbackUrl?: string, error?: string) => ({
+    searchParams: Promise.resolve({ callbackUrl, error }),
+  })
 
   it('renders the Google sign-in form when signed out', async () => {
     authMock.mockResolvedValue(null)
@@ -50,6 +52,43 @@ describe('sign-in page', () => {
     expect(html).toContain('https://accounts.google.com/signup')
     expect(html).toContain('/google-signup-existing-email.jpg')
     expect(html).toContain('Use your existing email')
+  })
+
+  it('explains an OAuthAccountNotLinked error and keeps the retry form', async () => {
+    authMock.mockResolvedValue(null)
+
+    const html = renderToStaticMarkup(await SignInPage(props(undefined, 'OAuthAccountNotLinked')))
+
+    expect(html).toContain('already registered')
+    expect(html).toContain('Error code: OAuthAccountNotLinked')
+    expect(html).toContain('Sign in with Google')
+  })
+
+  it('points unrecoverable errors at the site owner', async () => {
+    authMock.mockResolvedValue(null)
+
+    const html = renderToStaticMarkup(await SignInPage(props(undefined, 'Configuration')))
+
+    expect(html).toContain('contact the site owner')
+    expect(html).toContain('Error code: Configuration')
+  })
+
+  it('falls back to the default message for unknown error codes', async () => {
+    authMock.mockResolvedValue(null)
+
+    const html = renderToStaticMarkup(await SignInPage(props(undefined, 'Bogus')))
+
+    expect(html).toContain('Something went wrong while signing you in')
+    expect(html).toContain('Error code: Bogus')
+  })
+
+  it('shows no alert without an error param', async () => {
+    authMock.mockResolvedValue(null)
+
+    const html = renderToStaticMarkup(await SignInPage(props()))
+
+    expect(html).not.toContain('role="alert"')
+    expect(html).not.toContain('Error code:')
   })
 
   it('redirects home when already signed in', async () => {
