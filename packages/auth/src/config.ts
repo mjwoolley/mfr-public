@@ -88,6 +88,11 @@ export function createAuthConfig(opts: CreateAuthConfigOptions): NextAuthConfig 
       Google({
         clientId: process.env.AUTH_GOOGLE_ID,
         clientSecret: process.env.AUTH_GOOGLE_SECRET,
+        // Google is the only provider and verifies email ownership, so linking
+        // a Google sign-in to an existing users row by (verified) email is
+        // safe. Without it, a users row with no accounts row makes sign-in for
+        // that email permanently fail with OAuthAccountNotLinked.
+        allowDangerousEmailAccountLinking: true,
       }),
     ],
     session: { strategy: 'database' },
@@ -156,10 +161,26 @@ export function createAuthConfig(opts: CreateAuthConfigOptions): NextAuthConfig 
     events: {
       async linkAccount({ user, account }) {
         if (account.provider === 'google' && user.id) {
-          await opts.db
-            .update(users)
-            .set({ googleSub: account.providerAccountId })
-            .where(eq(users.id, user.id))
+          try {
+            await opts.db
+              .update(users)
+              .set({ googleSub: account.providerAccountId })
+              .where(eq(users.id, user.id))
+          } catch (err) {
+            // Email-linking can target a row while ANOTHER row still holds
+            // this google_sub (stale identity). The accounts row is already
+            // written by the adapter when this event fires, so throwing would
+            // turn a cosmetic backfill miss into a failed sign-in. Swallow
+            // only unique_violation; Drizzle can surface the SQLSTATE on
+            // err.code OR err.cause.code.
+            const code =
+              (err as { code?: string })?.code ??
+              (err as { cause?: { code?: string } })?.cause?.code
+            if (code !== '23505') throw err
+            console.error('[auth] linkAccount googleSub backfill skipped (unique violation)', {
+              userId: user.id,
+            })
+          }
         }
       },
       async createUser({ user }) {

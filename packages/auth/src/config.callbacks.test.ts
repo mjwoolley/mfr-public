@@ -177,6 +177,14 @@ describe('bootstrap owner', () => {
   })
 })
 
+describe('google provider', () => {
+  it('links by verified email so an orphan users row cannot dead-end sign-in', () => {
+    const config = createAuthConfig({ db: fakeDb().db, basePath: '/api/auth' })
+    const google = config.providers[0] as { options?: Record<string, unknown> }
+    expect(google.options?.allowDangerousEmailAccountLinking).toBe(true)
+  })
+})
+
 describe('events', () => {
   it('backfills googleSub when a google account links', async () => {
     const { db, update, set } = fakeDb()
@@ -203,6 +211,52 @@ describe('events', () => {
     } as never)
 
     expect(update).not.toHaveBeenCalled()
+  })
+
+  it('swallows a unique-violation on the googleSub backfill (code on err.cause)', async () => {
+    const { db, where } = fakeDb()
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    where.mockRejectedValueOnce(Object.assign(new Error('dup'), { cause: { code: '23505' } }))
+    const config = createAuthConfig({ db, basePath: '/api/auth' })
+
+    await config.events!.linkAccount!({
+      user: adapterUser(),
+      account: { provider: 'google', providerAccountId: 'sub-123' },
+      profile: {},
+    } as never)
+
+    expect(error).toHaveBeenCalledWith(expect.stringContaining('backfill skipped'), {
+      userId: 'user-1',
+    })
+  })
+
+  it('swallows a unique-violation with the code directly on the error', async () => {
+    const { db, where } = fakeDb()
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    where.mockRejectedValueOnce(Object.assign(new Error('dup'), { code: '23505' }))
+    const config = createAuthConfig({ db, basePath: '/api/auth' })
+
+    await expect(
+      config.events!.linkAccount!({
+        user: adapterUser(),
+        account: { provider: 'google', providerAccountId: 'sub-123' },
+        profile: {},
+      } as never),
+    ).resolves.toBeUndefined()
+  })
+
+  it('rethrows non-unique-violation backfill failures', async () => {
+    const { db, where } = fakeDb()
+    where.mockRejectedValueOnce(Object.assign(new Error('deadlock'), { code: '40001' }))
+    const config = createAuthConfig({ db, basePath: '/api/auth' })
+
+    await expect(
+      config.events!.linkAccount!({
+        user: adapterUser(),
+        account: { provider: 'google', providerAccountId: 'sub-123' },
+        profile: {},
+      } as never),
+    ).rejects.toThrow('deadlock')
   })
 
   it('notifies onUserCreated for brand-new users with id, email and name', async () => {
