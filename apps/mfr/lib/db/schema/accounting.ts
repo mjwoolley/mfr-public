@@ -93,6 +93,14 @@ export const transaction = pgTable(
     createdAt: timestamp({ precision: 3, mode: 'date' })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
+    // When the row was actually inserted. `createdAt` can't serve as the audit
+    // timestamp because back-dating writes the chosen business day into it
+    // (see @/lib/accounting/transactionDate) — so this column is never set by
+    // the actions and always keeps the DB default. Pre-existing rows were
+    // backfilled from createdAt (migration 0003), the best proxy available.
+    enteredAt: timestamp({ precision: 3, mode: 'date' })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
     createdById: text().notNull(),
     createdByName: text(),
     createdByEmail: text(),
