@@ -162,10 +162,16 @@ export async function runChecks(base, env = process.env) {
     //    403/404 is still a correct denial and must not roll a good deploy
     //    back. A 500 is NOT accepted as a denial; that is its own bug.
     //
-    //    Probe the accounting admin at its *sub-tab*, not `/accounting/admin`:
-    //    that bare path 307s to `/accounting/admin/transactions` for everyone,
-    //    admins included, so asserting on it would pass no matter who asked.
-    for (const p of ['/admin', '/admin/users', '/accounting/admin/transactions']) {
+    //    Probe the admin areas at their *sub-tabs*, not the bare paths:
+    //    `/admin` 307s to `/admin/schedule` and `/accounting/admin` to
+    //    `/accounting/admin/transactions` for everyone, admins included, so
+    //    asserting on the bare paths would pass no matter who asked.
+    for (const p of [
+      '/admin/schedule',
+      '/admin/users',
+      '/admin/activity',
+      '/accounting/admin/transactions',
+    ]) {
       await probe(
         `signed-in GET ${p} → denied`,
         true,

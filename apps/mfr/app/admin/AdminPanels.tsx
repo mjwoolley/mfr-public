@@ -1,8 +1,8 @@
 'use client'
 
-// The four content-admin editor panels composed by admin/page.tsx: reunion
-// schedule, sharing links, photo albums, and events — each a small form
-// wrapping its server action in ./actions.ts with busy/error state.
+// The content-admin editor panels, one per tab under /admin (reunion
+// schedule, sharing links, events) — each a small form wrapping its server
+// action in ./actions.ts with busy/error state.
 
 import { useState, useTransition, type CSSProperties } from 'react'
 import {
@@ -15,8 +15,20 @@ import {
 } from './actions'
 import { buildDays } from '@/lib/reunionDays'
 
+// Keeping a field inside its card takes all four of these. iOS Safari gives
+// `input[type=date]` an intrinsic width and honours neither width:100% nor a
+// flex shrink until `appearance: none` turns off the native control, so the
+// field ends up its padding-width too wide, runs past the card, and the root
+// `overflow-x: hidden` guard in organic.css clips it out of reach instead of
+// letting the page scroll to it. box-sizing and maxWidth are the belt to that
+// brace — cheap, and they hold whichever way the browser resolves the width.
 const inputStyle: CSSProperties = {
   width: '100%',
+  maxWidth: '100%',
+  minWidth: 0,
+  boxSizing: 'border-box',
+  appearance: 'none',
+  WebkitAppearance: 'none',
   fontFamily: 'var(--font-body)',
   fontSize: 15,
   color: 'var(--color-text)',
@@ -34,7 +46,16 @@ const labelStyle: CSSProperties = {
   letterSpacing: '.04em',
   textTransform: 'uppercase',
   color: 'var(--color-neutral-600)',
+  // Flex items default to min-width:auto, so a label would otherwise refuse to
+  // shrink below whatever the input inside it claims to need.
+  minWidth: 0,
+  maxWidth: '100%',
 }
+
+// Card padding that eases off on narrow phones, where 24px a side is most of
+// the room. Inline because organic.css's unlayered `.card` rule outranks
+// Tailwind's layered padding utilities.
+const cardPadding = 'clamp(15px, 4.5vw, 24px)'
 
 function useAction() {
   const [pending, start] = useTransition()
@@ -100,7 +121,7 @@ export function ScheduleForm({
   const days = buildDays(start, end)
 
   return (
-    <div className="card elev-sm bg-white" style={{ padding: '24px 24px 22px' }}>
+    <div className="card elev-sm bg-white" style={{ padding: cardPadding }}>
       <h2 className="m-0 text-[22px]">Reunion schedule</h2>
       <p
         className="mt-2"
@@ -201,7 +222,7 @@ export function LinksForm({
   )
 
   return (
-    <div className="card elev-sm bg-white" style={{ padding: '24px 24px 22px' }}>
+    <div className="card elev-sm bg-white" style={{ padding: cardPadding }}>
       <h2 className="m-0 text-[22px]">Links &amp; sharing</h2>
       <p
         className="mt-2"
@@ -244,10 +265,7 @@ interface EventItem {
 export function EventsEditor({ events }: { events: EventItem[] }) {
   const { pending, error, run } = useAction()
   return (
-    <div
-      className="card elev-sm bg-white"
-      style={{ padding: '24px 24px 22px', gridColumn: '1 / -1' }}
-    >
+    <div className="card elev-sm bg-white" style={{ padding: cardPadding }}>
       <h2 className="m-0 text-[22px]">Upcoming events</h2>
       <p
         className="mt-2"

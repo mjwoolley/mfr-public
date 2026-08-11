@@ -69,9 +69,15 @@ test('empty results → code 0', () => {
 // carries permanent critical failures, every exit-code assertion is 1 whatever
 // happens, and a test asserting "a breach gives exit 1" passes with no breach.
 
-// Must match runChecks. `/accounting/admin` is deliberately NOT probed: it 307s
-// to this sub-tab for admins and members alike, so it can't discriminate.
-const ADMIN_PATHS = ['/admin', '/admin/users', '/accounting/admin/transactions']
+// Must match runChecks. The bare `/admin` and `/accounting/admin` are
+// deliberately NOT probed: they 307 to their first sub-tab for admins and
+// members alike, so they can't discriminate.
+const ADMIN_PATHS = [
+  '/admin/schedule',
+  '/admin/users',
+  '/admin/activity',
+  '/accounting/admin/transactions',
+]
 const GATED_PATHS = ['/photos', '/photos/featured', '/photos/history']
 const BASE = 'https://example.test'
 
@@ -131,8 +137,8 @@ test('an admin page reachable by a plain member is a critical failure', async ()
 })
 
 test('a 500 behind the gate is not accepted as a denial', async () => {
-  const results = await runSignedIn({ '/admin': 500 })
-  const crashed = results.find((r) => r.name === 'signed-in GET /admin → denied')
+  const results = await runSignedIn({ '/admin/schedule': 500 })
+  const crashed = results.find((r) => r.name === 'signed-in GET /admin/schedule → denied')
   assert.equal(crashed.ok, false, 'a crash must not read as a successful denial')
 })
 

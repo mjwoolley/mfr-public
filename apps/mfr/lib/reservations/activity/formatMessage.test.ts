@@ -24,6 +24,12 @@ describe('formatActivityMessage', () => {
     )
   })
 
+  it('formats user_auto_approved', () => {
+    expect(formatActivityMessage(makeEvent({ eventType: 'user_auto_approved' }), users)).toBe(
+      'Jane signed up and was approved automatically.',
+    )
+  })
+
   it('formats user_approved', () => {
     const event = makeEvent({
       eventType: 'user_approved',
