@@ -55,25 +55,19 @@ export default async function AdminActivityPage() {
                 className="card elev-sm px-4 py-3 text-[13px] sm:text-sm"
                 style={{ gap: 5 }}
               >
-                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                  <span className={`${categoryTag.className} flex-none`}>
-                    Expense · {categoryTag.label}
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+                    <span className={categoryTag.className}>Expense · {categoryTag.label}</span>
+                    {x.capital && (
+                      <span className="tag tag-outline px-[7px] py-0 text-[10px]">Capital</span>
+                    )}
                   </span>
-                  {x.capital && (
-                    <span className="tag tag-outline flex-none px-[7px] py-0 text-[10px]">
-                      Capital
-                    </span>
-                  )}
-                  <span className="min-w-0 text-[13px] font-semibold sm:text-sm">
-                    {formatUSD0(x.amount)}
-                  </span>
-                  <span className="text-muted ml-auto flex-none text-[11px] whitespace-nowrap sm:text-xs">
+                  <span className="text-muted flex-none text-[11px] whitespace-nowrap sm:text-xs">
                     <LocalDateTime iso={x.createdAt.toISOString()} />
                   </span>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-muted text-[11px] sm:text-xs">{x.description}</span>
-                </div>
+                <div className="text-[13px] font-semibold sm:text-sm">{formatUSD0(x.amount)}</div>
+                <div className="text-muted text-[11px] sm:text-xs">{x.description}</div>
                 <div className="text-muted text-[11px] sm:text-xs">
                   Dated {formatDate(x.incurredAt)} · Recorded by{' '}
                   {x.createdByName ?? x.createdByEmail ?? 'an admin'}
@@ -93,37 +87,40 @@ export default async function AdminActivityPage() {
               className="card elev-sm px-4 py-3 text-[13px] sm:text-sm"
               style={{ gap: 5 }}
             >
-              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                <span className={`${typeTag.className} flex-none`}>{typeTag.label}</span>
-                {t.inKind && (
-                  <span className={`${IN_KIND_TAG.className} flex-none px-[7px] py-0 text-[10px]`}>
-                    {IN_KIND_TAG.label}
-                  </span>
-                )}
-                <span
-                  className={`min-w-0 text-[13px] font-semibold sm:text-sm ${t.deleted ? 'line-through opacity-60' : ''}`}
-                >
-                  {entryLine}
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+                  <span className={typeTag.className}>{typeTag.label}</span>
+                  {t.inKind && (
+                    <span className={`${IN_KIND_TAG.className} px-[7px] py-0 text-[10px]`}>
+                      {IN_KIND_TAG.label}
+                    </span>
+                  )}
+                  {t.deleted && (
+                    <span className="tag tag-outline px-[7px] py-0 text-[10px]">Corrected</span>
+                  )}
                 </span>
-                {t.deleted && (
-                  <span className="tag tag-outline flex-none px-[7px] py-0 text-[10px]">
-                    Corrected
-                  </span>
-                )}
-                <span className="text-muted ml-auto flex-none text-[11px] whitespace-nowrap sm:text-xs">
+                <span className="text-muted flex-none text-[11px] whitespace-nowrap sm:text-xs">
                   <LocalDateTime iso={t.enteredAt.toISOString()} />
                 </span>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {t.description && (
-                  <span className="text-muted text-[11px] sm:text-xs">{t.description}</span>
-                )}
-                {t.correctsTransaction && (
-                  <span className="text-muted text-[10px] sm:text-[11px]">
-                    · Corrects {t.correctsTransaction.type} #{t.correctsTransaction.id.slice(-6)}
-                  </span>
-                )}
-                <span className="ml-auto flex flex-wrap items-center gap-[5px]">
+              <div
+                className={`text-[13px] font-semibold sm:text-sm ${t.deleted ? 'line-through opacity-60' : ''}`}
+              >
+                {entryLine}
+              </div>
+              {(t.description || t.correctsTransaction) && (
+                <div className="text-muted text-[11px] sm:text-xs">
+                  {t.description}
+                  {t.correctsTransaction && (
+                    <span className="text-[10px] sm:text-[11px]">
+                      {t.description ? ' · ' : ''}Corrects {t.correctsTransaction.type} #
+                      {t.correctsTransaction.id.slice(-6)}
+                    </span>
+                  )}
+                </div>
+              )}
+              {(t.approvals.length > 0 || !t.deleted) && (
+                <div className="flex flex-wrap items-center gap-[5px]">
                   {t.approvals.map((a) => {
                     const tag = approvalStatusTag(a.status)
                     const label =
@@ -144,8 +141,8 @@ export default async function AdminActivityPage() {
                       Correct
                     </Link>
                   )}
-                </span>
-              </div>
+                </div>
+              )}
               {disputedApprovals.map((a) => (
                 <div
                   key={a.id}
