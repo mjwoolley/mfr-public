@@ -161,4 +161,28 @@ test.describe('web portal', () => {
     await expect(adminPage.getByRole('heading', { name: 'Site settings.' })).toBeVisible()
     await adminCtx.close()
   })
+
+  test('an admin sees the site-wide activity feed under Admin', async ({ browser }) => {
+    const context = await contextFor(browser, 'admin')
+    const page = await context.newPage()
+    await page.goto(`${WEB_URL}/admin/activity`)
+    await expect(page.getByRole('heading', { name: 'Site settings.' })).toBeVisible()
+    // Feed shell: either events render or the empty state — both prove the
+    // admin-gated API answered rather than 401/403ing.
+    await expect(
+      page.getByText(/No activity yet\.|Load more/).or(page.locator('.card')),
+    ).toBeVisible()
+    await context.close()
+  })
+
+  test('the old reservations activity URL bounces members through the admin gate', async ({
+    browser,
+  }) => {
+    const context = await contextFor(browser, 'member')
+    const page = await context.newPage()
+    await page.goto(`${WEB_URL}/reservations/activity`)
+    // Redirect shim → /admin/activity → content-admin gate → home.
+    await expect(page).toHaveURL(`${WEB_URL}/`)
+    await context.close()
+  })
 })

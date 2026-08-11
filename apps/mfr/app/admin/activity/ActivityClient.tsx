@@ -1,10 +1,12 @@
 'use client'
 
-// Activity feed: infinite-scrolling list of activity_log events via
-// useInfiniteQuery, paging on the API's `nextCursor` and rendering each
-// event through formatActivityMessage.
+// Activity feed: paged list of activity_log events via useInfiniteQuery,
+// paging on the API's `nextCursor` and rendering each event through
+// formatActivityMessage. Carries its own QueryClientProvider — it is the only
+// React Query consumer under /admin, so no layout-level provider exists here.
 
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { QueryClient, QueryClientProvider, useInfiniteQuery } from '@tanstack/react-query'
 import {
   formatActivityMessage,
   type ActivityEvent,
@@ -19,14 +21,14 @@ interface ActivityPage {
 
 async function fetchActivityPage(cursor: string | null): Promise<ActivityPage> {
   const url = cursor
-    ? `/reservations/api/activity?before=${encodeURIComponent(cursor)}`
-    : '/reservations/api/activity'
+    ? `/api/admin/activity?before=${encodeURIComponent(cursor)}`
+    : '/api/admin/activity'
   const res = await fetch(url)
   if (!res.ok) throw new Error('Failed to load activity')
   return res.json()
 }
 
-export function ActivityClient() {
+function ActivityFeed() {
   const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useInfiniteQuery({
       queryKey: ['activity'],
@@ -52,8 +54,7 @@ export function ActivityClient() {
   const events = pages.flatMap((page) => page.events)
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 pt-7 pb-16 sm:px-7">
-      <h1 className="mb-5 text-4xl">Recent activity</h1>
+    <div className="w-full max-w-3xl">
       {events.length === 0 && (
         <div
           className="text-muted p-12 text-center text-[15px]"
@@ -102,5 +103,14 @@ export function ActivityClient() {
         </button>
       )}
     </div>
+  )
+}
+
+export function ActivityClient() {
+  const [queryClient] = useState(() => new QueryClient())
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ActivityFeed />
+    </QueryClientProvider>
   )
 }

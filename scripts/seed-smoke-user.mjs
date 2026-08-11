@@ -18,7 +18,9 @@ if (!url) throw new Error('DIRECT_URL is not set')
 if (!token || token.length < 24)
   throw new Error('SMOKE_SESSION_TOKEN missing or too short (>=24 chars)')
 
-// Stable identity so re-seeding any branch is idempotent.
+// Stable identity so re-seeding any branch is idempotent. Keep in sync with
+// SMOKE_TEST_USER_ID in apps/mfr/lib/smokeTestUser.ts (this .mjs can't import
+// TS) — the app uses it to keep smoke rows out of the admin activity feed.
 const USER_ID = 'e5e0f1a2-0000-4000-8000-000000000001'
 const EMAIL = 'smoke-test@millerfamilyreunions.org'
 const NAME = 'Smoke Test (automated)'

@@ -15,11 +15,12 @@ import { requirePortalContentAdmin } from '@/lib/authz'
 export type ActionResult = { ok: true } | { error: string }
 
 // Content edits show up on Home / Photos / Meals, so revalidate them all.
+// 'layout' covers every /admin sub-page (schedule, links, events, …) at once.
 function revalidatePublic() {
   revalidatePath('/')
   revalidatePath('/photos')
   revalidatePath('/meals')
-  revalidatePath('/admin')
+  revalidatePath('/admin', 'layout')
 }
 
 // ── Reunion schedule + links (the settings singleton) ────────────────────────

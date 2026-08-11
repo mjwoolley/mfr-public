@@ -38,6 +38,9 @@ export function formatActivityMessage(event: ActivityEvent, users: UserNameMap):
     case 'user_signed_up':
       return `${actor} signed up.`
 
+    case 'user_auto_approved':
+      return `${actor} signed up and was approved automatically.`
+
     case 'user_approved':
       return `${actor} approved ${nameOf(str(m, 'targetUserId'), users)}.`
 

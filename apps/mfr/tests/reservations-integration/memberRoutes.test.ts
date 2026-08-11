@@ -1,6 +1,7 @@
-// Integration: the member-visible read routes (blocked-dates, booking-rules,
-// activity feed) and the admin blocked-dates list/delete + booking-rules read
-// that admin.test.ts (create/patch focused) doesn't reach.
+// Integration: the member-visible read routes (blocked-dates, booking-rules),
+// the admin-only activity feed (now at /api/admin/activity), and the admin
+// blocked-dates list/delete + booking-rules read that admin.test.ts
+// (create/patch focused) doesn't reach.
 
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
@@ -9,6 +10,7 @@ import { testDb } from './testDb'
 import { testIdentityDb } from './testIdentityDb'
 import { blockedDates, activityLog } from '../../lib/db/schema'
 import { users } from '@mfr/auth'
+import { SMOKE_TEST_USER_ID } from '../../lib/smokeTestUser'
 
 // See tests/integration/reservations.test.ts for why `auth` is mocked.
 vi.mock('@/lib/auth', () => ({ auth: vi.fn() }))
@@ -16,7 +18,7 @@ vi.mock('@/lib/auth', () => ({ auth: vi.fn() }))
 import { auth } from '@/lib/auth'
 import { GET as getBlockedDates } from '../../app/reservations/api/blocked-dates/route'
 import { GET as getBookingRules } from '../../app/reservations/api/booking-rules/route'
-import { GET as getActivity } from '../../app/reservations/api/activity/route'
+import { GET as getActivity } from '../../app/api/admin/activity/route'
 import {
   GET as adminListBlockedDates,
   POST as adminCreateBlockedDate,
@@ -26,6 +28,9 @@ import { GET as adminGetBookingRules } from '../../app/reservations/api/admin/bo
 
 const createdUserIds: string[] = []
 const createdBlockedDateIds: string[] = []
+// Activity rows whose actor isn't a created user (NULL actor, smoke user)
+// need their own cleanup list — the actor-based sweep won't catch them.
+const createdActivityIds: string[] = []
 
 async function makeUser(status: 'approved' | 'pending' = 'approved') {
   const [row] = await testIdentityDb
@@ -66,6 +71,10 @@ afterEach(async () => {
     await testDb.delete(blockedDates).where(inArray(blockedDates.id, createdBlockedDateIds))
     createdBlockedDateIds.length = 0
   }
+  if (createdActivityIds.length) {
+    await testDb.delete(activityLog).where(inArray(activityLog.id, createdActivityIds))
+    createdActivityIds.length = 0
+  }
   if (createdUserIds.length) {
     await testDb.delete(activityLog).where(inArray(activityLog.actorUserId, createdUserIds))
     for (const id of createdUserIds) {
@@ -81,9 +90,7 @@ describe('member read routes', () => {
 
     expect((await getBlockedDates()).status).toBe(401)
     expect((await getBookingRules()).status).toBe(401)
-    const activity = await getActivity(
-      new NextRequest('http://localhost/reservations/api/activity'),
-    )
+    const activity = await getActivity(new NextRequest('http://localhost/api/admin/activity'))
     expect(activity.status).toBe(401)
   })
 
@@ -124,31 +131,78 @@ describe('member read routes', () => {
   })
 })
 
-describe('GET /api/activity', () => {
-  it('returns newest-first events with the user-name map and no cursor on a short page', async () => {
+describe('GET /api/admin/activity', () => {
+  it('rejects a role-less approved member with 403', async () => {
     const member = await makeUser()
-    mockSession(member)
+    mockSession(member) // no siteManager role
+
+    const res = await getActivity(new NextRequest('http://localhost/api/admin/activity'))
+    expect(res.status).toBe(403)
+  })
+
+  it('returns newest-first events with the user-name map and no cursor on a short page', async () => {
+    const admin = await makeUser()
+    mockSession(admin, { siteManager: true })
 
     await testDb.insert(activityLog).values({
       eventType: 'blocked_date_created',
-      actorUserId: member.id,
+      actorUserId: admin.id,
       metadata: { probe: 'activity-route' },
     })
 
-    const res = await getActivity(new NextRequest('http://localhost/reservations/api/activity'))
+    const res = await getActivity(new NextRequest('http://localhost/api/admin/activity'))
     expect(res.status).toBe(200)
     const body = await res.json()
 
     const mine = body.events.find(
-      (e: { actorUserId: string; metadata: { probe?: string } }) => e.actorUserId === member.id,
+      (e: { actorUserId: string; metadata: { probe?: string } }) => e.actorUserId === admin.id,
     )
     expect(mine?.metadata?.probe).toBe('activity-route')
-    expect(body.users[member.id]).toBe('Member Routes Tester')
+    expect(body.users[admin.id]).toBe('Member Routes Tester')
+  })
+
+  it('filters out photo events and smoke-user rows but keeps NULL-actor rows', async () => {
+    const admin = await makeUser()
+    mockSession(admin, { siteManager: true })
+
+    const probe = `feed-filter-${Date.now()}`
+    const inserted = await testDb
+      .insert(activityLog)
+      .values([
+        { eventType: 'photo_uploaded', actorUserId: admin.id, metadata: { probe } },
+        { eventType: 'blocked_date_created', actorUserId: SMOKE_TEST_USER_ID, metadata: { probe } },
+        // NULL actor (system row) — the filter must NOT drop it (`ne` against
+        // NULL would; the route's isNull arm is the regression under test).
+        { eventType: 'booking_rules_updated', actorUserId: null, metadata: { probe } },
+        { eventType: 'blocked_date_created', actorUserId: admin.id, metadata: { probe } },
+      ])
+      .returning({ id: activityLog.id })
+    createdActivityIds.push(...inserted.map((r) => r.id))
+
+    const res = await getActivity(new NextRequest('http://localhost/api/admin/activity'))
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    const probeRows = body.events.filter(
+      (e: { metadata: { probe?: string } }) => e.metadata?.probe === probe,
+    )
+
+    const kinds = probeRows.map((e: { eventType: string; actorUserId: string | null }) => ({
+      eventType: e.eventType,
+      actor: e.actorUserId,
+    }))
+    expect(kinds).toContainEqual({ eventType: 'booking_rules_updated', actor: null })
+    expect(kinds).toContainEqual({ eventType: 'blocked_date_created', actor: admin.id })
+    expect(probeRows.some((e: { eventType: string }) => e.eventType === 'photo_uploaded')).toBe(
+      false,
+    )
+    expect(
+      probeRows.some((e: { actorUserId: string | null }) => e.actorUserId === SMOKE_TEST_USER_ID),
+    ).toBe(false)
   })
 
   it('pages with the before cursor and reports nextCursor on a full page', async () => {
-    const member = await makeUser()
-    mockSession(member)
+    const admin = await makeUser()
+    mockSession(admin, { siteManager: true })
 
     // A full PAGE_SIZE (30) of older events forces a nextCursor; the `before`
     // filter then excludes anything newer than our probe window.
@@ -156,21 +210,19 @@ describe('GET /api/activity', () => {
     await testDb.insert(activityLog).values(
       Array.from({ length: 31 }, (_, i) => ({
         eventType: 'blocked_date_created',
-        actorUserId: member.id,
+        actorUserId: admin.id,
         metadata: { i },
         createdAt: new Date(base + i * 1000),
       })),
     )
 
-    const firstPage = await getActivity(
-      new NextRequest('http://localhost/reservations/api/activity'),
-    )
+    const firstPage = await getActivity(new NextRequest('http://localhost/api/admin/activity'))
     const firstBody = await firstPage.json()
     expect(firstBody.nextCursor).not.toBeNull()
 
     const paged = await getActivity(
       new NextRequest(
-        `http://localhost/reservations/api/activity?before=${encodeURIComponent(
+        `http://localhost/api/admin/activity?before=${encodeURIComponent(
           new Date(base + 5 * 1000).toISOString(),
         )}`,
       ),
