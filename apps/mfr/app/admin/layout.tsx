@@ -14,7 +14,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <section
-      className="mx-auto max-w-5xl px-7 pt-6 pb-2"
+      className="mx-auto max-w-5xl px-4 pt-6 pb-2 sm:px-7"
       style={{ animation: 'fadeup .4s ease both' }}
     >
       <div

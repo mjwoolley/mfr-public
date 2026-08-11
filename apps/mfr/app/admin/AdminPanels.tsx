@@ -1,8 +1,8 @@
 'use client'
 
-// The four content-admin editor panels composed by admin/page.tsx: reunion
-// schedule, sharing links, photo albums, and events — each a small form
-// wrapping its server action in ./actions.ts with busy/error state.
+// The content-admin editor panels, one per tab under /admin (reunion
+// schedule, sharing links, events) — each a small form wrapping its server
+// action in ./actions.ts with busy/error state.
 
 import { useState, useTransition, type CSSProperties } from 'react'
 import {
@@ -24,6 +24,10 @@ const inputStyle: CSSProperties = {
   border: '1.5px solid var(--color-neutral-300)',
   borderRadius: 12,
   padding: '10px 13px',
+  // Date/time inputs carry a wide intrinsic width (wider on iOS Safari than on
+  // Chromium); without this they refuse to shrink and push the card past the
+  // viewport, where the root overflow-x guard clips it out of reach.
+  minWidth: 0,
 }
 const labelStyle: CSSProperties = {
   display: 'flex',
@@ -34,7 +38,14 @@ const labelStyle: CSSProperties = {
   letterSpacing: '.04em',
   textTransform: 'uppercase',
   color: 'var(--color-neutral-600)',
+  // Flex items default to min-width:auto — same shrink problem as above.
+  minWidth: 0,
 }
+
+// Card padding that eases off on narrow phones, where 24px a side is most of
+// the room. Inline because organic.css's unlayered `.card` rule outranks
+// Tailwind's layered padding utilities.
+const cardPadding = 'clamp(15px, 4.5vw, 24px)'
 
 function useAction() {
   const [pending, start] = useTransition()
@@ -100,7 +111,7 @@ export function ScheduleForm({
   const days = buildDays(start, end)
 
   return (
-    <div className="card elev-sm bg-white" style={{ padding: '24px 24px 22px' }}>
+    <div className="card elev-sm bg-white" style={{ padding: cardPadding }}>
       <h2 className="m-0 text-[22px]">Reunion schedule</h2>
       <p
         className="mt-2"
@@ -201,7 +212,7 @@ export function LinksForm({
   )
 
   return (
-    <div className="card elev-sm bg-white" style={{ padding: '24px 24px 22px' }}>
+    <div className="card elev-sm bg-white" style={{ padding: cardPadding }}>
       <h2 className="m-0 text-[22px]">Links &amp; sharing</h2>
       <p
         className="mt-2"
@@ -244,10 +255,7 @@ interface EventItem {
 export function EventsEditor({ events }: { events: EventItem[] }) {
   const { pending, error, run } = useAction()
   return (
-    <div
-      className="card elev-sm bg-white"
-      style={{ padding: '24px 24px 22px', gridColumn: '1 / -1' }}
-    >
+    <div className="card elev-sm bg-white" style={{ padding: cardPadding }}>
       <h2 className="m-0 text-[22px]">Upcoming events</h2>
       <p
         className="mt-2"
