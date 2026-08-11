@@ -15,8 +15,20 @@ import {
 } from './actions'
 import { buildDays } from '@/lib/reunionDays'
 
+// Keeping a field inside its card takes all four of these. iOS Safari gives
+// `input[type=date]` an intrinsic width and honours neither width:100% nor a
+// flex shrink until `appearance: none` turns off the native control, so the
+// field ends up its padding-width too wide, runs past the card, and the root
+// `overflow-x: hidden` guard in organic.css clips it out of reach instead of
+// letting the page scroll to it. box-sizing and maxWidth are the belt to that
+// brace — cheap, and they hold whichever way the browser resolves the width.
 const inputStyle: CSSProperties = {
   width: '100%',
+  maxWidth: '100%',
+  minWidth: 0,
+  boxSizing: 'border-box',
+  appearance: 'none',
+  WebkitAppearance: 'none',
   fontFamily: 'var(--font-body)',
   fontSize: 15,
   color: 'var(--color-text)',
@@ -24,10 +36,6 @@ const inputStyle: CSSProperties = {
   border: '1.5px solid var(--color-neutral-300)',
   borderRadius: 12,
   padding: '10px 13px',
-  // Date/time inputs carry a wide intrinsic width (wider on iOS Safari than on
-  // Chromium); without this they refuse to shrink and push the card past the
-  // viewport, where the root overflow-x guard clips it out of reach.
-  minWidth: 0,
 }
 const labelStyle: CSSProperties = {
   display: 'flex',
@@ -38,8 +46,10 @@ const labelStyle: CSSProperties = {
   letterSpacing: '.04em',
   textTransform: 'uppercase',
   color: 'var(--color-neutral-600)',
-  // Flex items default to min-width:auto — same shrink problem as above.
+  // Flex items default to min-width:auto, so a label would otherwise refuse to
+  // shrink below whatever the input inside it claims to need.
   minWidth: 0,
+  maxWidth: '100%',
 }
 
 // Card padding that eases off on narrow phones, where 24px a side is most of
