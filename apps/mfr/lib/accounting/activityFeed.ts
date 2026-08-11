@@ -5,29 +5,31 @@
  * @/lib/accounting/expenses — so the interleaving is unit-testable without a
  * database.
  *
- * Each side sorts by its *effective* date: `transaction.createdAt` IS the
- * transaction date (back-dating writes the entered day into it — see
- * @/lib/accounting/transactionDate), and `expense.incurredAt` plays the same
- * role for expenses. Sorting an expense by its row-creation time instead would
- * shuffle the feed against the dates the cards display.
+ * The feed is an audit log: it orders by when each row was *entered*, not by
+ * its business date. For transactions that means `enteredAt` — `createdAt`
+ * can't serve because back-dating writes the chosen business day into it (see
+ * @/lib/accounting/transactionDate). For expenses it means `createdAt`, the
+ * insert timestamp; `incurredAt` is the business date. The business dates
+ * still appear on the cards as data.
  */
 
 export type ActivityFeedItem<T, E> =
   { kind: 'transaction'; date: Date; transaction: T } | { kind: 'expense'; date: Date; expense: E }
 
-export function mergeActivityFeed<T extends { createdAt: Date }, E extends { incurredAt: Date }>(
+export function mergeActivityFeed<T extends { enteredAt: Date }, E extends { createdAt: Date }>(
   transactions: T[],
   expenses: E[],
 ): ActivityFeedItem<T, E>[] {
   const items: ActivityFeedItem<T, E>[] = [
     ...transactions.map((t) => ({
       kind: 'transaction' as const,
-      date: t.createdAt,
+      date: t.enteredAt,
       transaction: t,
     })),
-    ...expenses.map((e) => ({ kind: 'expense' as const, date: e.incurredAt, expense: e })),
+    ...expenses.map((e) => ({ kind: 'expense' as const, date: e.createdAt, expense: e })),
   ]
-  // Newest first. Ties are real (back-dated rows all land at noon UTC): put
+  // Newest first. Rows that predate the enteredAt column were backfilled from
+  // createdAt, so historical back-dated entries can still tie at noon UTC: put
   // the transaction before the expense so the order is deterministic, and rely
   // on sort stability to keep each side's own DB order otherwise.
   return items.sort((a, b) => {
