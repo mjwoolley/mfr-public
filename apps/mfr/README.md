@@ -1,61 +1,64 @@
-# MFR — Portal (apps/web)
+# MFR — the site (apps/mfr)
 
-The portal at **millerfamilyreunions.org**: the family's public front door and the
-members' hub. It is also the control plane for the whole suite — it hosts the
-**canonical sign-in page** (reservations and accounting redirect here) and the
-admin screens where users are approved and roles granted.
+Everything at **millerfamilyreunions.org** is this one Next.js app: the public
+front door, the members' hub, cabin reservations, and the shareholder ledger.
+It hosts the only sign-in page and the admin screens where users are approved
+and roles granted.
 
 ## Routes
 
-| Route                     | Access                    | What it is                                                                                    |
-| ------------------------- | ------------------------- | --------------------------------------------------------------------------------------------- |
-| `/`                       | public                    | Home: hero slideshow; fundraising goal card + upcoming events (signed-in only)                |
-| `/photos`                 | approved members          | Per-year Google Photos album cards                                                            |
-| `/meals`                  | approved members          | Reunion-week lunch/dinner RSVPs, headcounts, roster grid                                      |
-| `/documents`              | approved members          | Embedded shared Google Drive folder                                                           |
-| `/sign-in`                | public                    | Canonical Google sign-in for all three apps (callbackUrl round-trip)                          |
-| `/admin`                  | site owner **or** manager | Content editing: reunion schedule, links, photo albums, events                                |
-| `/admin/users`            | site owner **or** manager | Approve/block users; role grants (siteOwner / siteManager / accountingManager) are owner-only |
-| `/api/auth/[...nextauth]` | —                         | Auth.js handlers                                                                              |
+| Route                     | Access                       | What it is                                                                                    |
+| ------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------- |
+| `/`                       | public                       | Home: hero slideshow; fundraising goal card + upcoming events (signed-in only)                |
+| `/photos`                 | approved members             | Self-hosted photo gallery (by year / by uploader), plus Featured and History sub-pages        |
+| `/meals`                  | approved members             | Reunion-week lunch/dinner RSVPs, headcounts, roster grid                                      |
+| `/documents`              | approved members             | In-site browser/viewer for the shared Google Drive folder (service-account read)              |
+| `/reservations/*`         | approved members             | Cabin booking calendar, my reservations, summary; admin screens for reservation admins        |
+| `/accounting/*`           | linked shareholders + admins | Shareholder dashboard, contributions, ownership, expenses, reports; admin for accounting mgrs |
+| `/sign-in`                | public                       | Google sign-in (also the Auth.js error page)                                                  |
+| `/admin`                  | site owner **or** manager    | Content editing (schedule, links, events) and the site-wide activity feed                     |
+| `/admin/users`            | site owner **or** manager    | Approve/block users; role grants (siteOwner / siteManager / accountingManager) are owner-only |
+| `/api/auth/[...nextauth]` | —                            | Auth.js handlers                                                                              |
+| `/api/health`             | `CRON_SECRET`                | Deep health check (DB + R2) used by the smoke tests                                           |
 
 ## Stack & data
 
-Next.js (App Router) on Vercel · **its own Neon Postgres project (`mfr-portal`)**
-via Drizzle (`lib/db/schema.ts`: `portal_user_roles`, `portal_settings`,
-`portal_photo_albums`, `portal_events`, `portal_meal_rsvps`) · plus read access
-to the shared identity DB (`@mfr/auth`) for attendee names and user management.
+Next.js (App Router) on Vercel (project `mfr_web`) · **one Neon Postgres
+project (`mfr`)** via Drizzle. The schema lives in `lib/db/schema/`, one file
+per domain: `identity.ts` (Auth.js tables), `portal.ts` (`portal_*`: roles,
+settings, photos, events, meal RSVPs), `reservations.ts`, and `accounting.ts`.
 
 Notable design points:
 
-- **Roles live here.** `portal_user_roles` is the single authorization source
-  for the whole portal; the other apps read it through `@mfr/auth`'s roles
-  reader. See `packages/auth/README.md`.
-- **Fundraising is not duplicated.** The home goal card fetches accounting's
-  public `/accounting/api/contributions/current-year` live (60s revalidate,
-  degrades to hidden if unreachable).
-- **Schema deploys are manual.** `npx drizzle-kit push` from this directory
-  (uses `PORTAL_DIRECT_DATABASE_URL`); there is no migration journal and no CI
-  Drizzle step — see the schema-change notes in [docs/workflow.md](../../docs/workflow.md).
+- **Roles are the single authorization source.** `portal_user_roles` is read
+  into every session by `@mfr/auth`; pages check the capability helpers
+  (`canAdminReservations`, `canAdminAccounting`, …), never raw flags. See
+  `packages/auth/README.md`.
+- **Schema changes ship as migrations.** `npm run db:generate` (on Node 22)
+  writes a migration under `drizzle/`; deploys apply it via `vercel-build` →
+  `scripts/migrate-deploy.mjs`, which also re-applies `lib/db/push-only.sql`
+  (the objects drizzle-kit can't express). See the schema-change section in
+  [docs/workflow.md](../../docs/workflow.md).
 
 ## Local development
 
 ```bash
 npm install            # at the repo root
-npm run dev:web        # http://localhost:3002
+npm run dev            # http://localhost:3000
 ```
 
-Env vars live in `.env` — see `.env.example` for the commented list
-(`PORTAL_DATABASE_URL`, `IDENTITY_DATABASE_URL`, the shared `AUTH_*` values,
-`NEXT_PUBLIC_*` cross-app URLs). Shared values must match the other apps.
+Env vars live in `.env.local` — see `.env.example` for the commented list
+(`DATABASE_URL` / `DIRECT_URL` for the Neon `dev` branch, `AUTH_*`, and the
+optional R2 / Drive / cron / email values).
 
 ## Tests
 
 ```bash
 npm test                   # vitest unit project
-npm run test:integration   # real queries against Neon test branches; needs
-                           # TEST_PORTAL_DATABASE_URL + TEST_IDENTITY_DATABASE_URL
+npm run test:integration   # real queries against a Neon test branch; needs
+                           # TEST_DATABASE_URL + TEST_DIRECT_URL
 ```
 
-Integration setup **truncates** the test branches — the `TEST_*` env names are
-the only guard; never point them at real databases. Coverage thresholds are
-enforced at 100% for `lib/**`, `app/**/actions.ts`, and API routes.
+Integration setup **truncates** the test branch — the `TEST_*` env names are
+the only guard; never point them at real databases. Coverage floors and what
+they mean are in the "Coverage policy" section of the workflow doc.
