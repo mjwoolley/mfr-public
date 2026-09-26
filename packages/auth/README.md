@@ -1,26 +1,25 @@
 # @mfr/auth
 
-The shared identity layer: one Auth.js (NextAuth v5) setup, one identity
-database, one portal-roles model — consumed by all three apps as raw TypeScript
-via `transpilePackages`, so a change here ships to the whole portal at once.
+The identity layer: the Auth.js (NextAuth v5) config factory, the identity
+table definitions, and the portal-roles model — consumed by `apps/mfr` as raw
+TypeScript via `transpilePackages`.
 
 ## What it provides
 
 - **`createAuthConfig(opts)`** (`src/config.ts`) — the NextAuth config factory:
-  Google-only sign-in, **database sessions** via the Drizzle adapter, the
-  cross-subdomain cookie setup (`cookieDomain`, `sessionCookieName`), and the
+  Google-only sign-in, **database sessions** via the Drizzle adapter, and the
   session callback that attaches `id`, `status`, and `roles` to every session.
-  Per-app hooks: `extendSession` (e.g. accounting attaches `shareholderId`),
-  `onUserCreated` (e.g. reservations logs sign-ups).
-- **Identity DB schema + clients** (`src/schema.ts`, `src/db.ts`,
-  `src/identityDbFromEnv.ts`) — `users` (with portal status
-  pending/approved/blocked), `accounts`, `sessions`, `verification_tokens`.
-  Its own Neon project (`mfr-identity`); migrated with drizzle-kit via
-  `IDENTITY_DIRECT_DATABASE_URL`.
+  Hooks: `extendSession` (the app attaches `shareholderId`) and
+  `onUserCreated` (the app logs the sign-up and auto-approves shareholders).
+  The optional cross-subdomain cookie options (`cookieDomain`,
+  `sessionCookieName`) are unused now that the site is one origin.
+- **Identity schema + client** (`src/schema.ts`, `src/db.ts`) — `users` (with
+  portal status pending/approved/blocked), `accounts`, `sessions`,
+  `verification_tokens`. These tables live in the app's single database and are
+  migrated with the rest of the app schema (`apps/mfr/lib/db/schema/identity.ts`).
 - **Portal roles** (`src/roles.ts`) — the authorization model. Three stackable
-  role flags stored in the **portal DB's** `portal_user_roles` (managed at the
-  portal's `/admin/users`; role grants are site-owner only), read via
-  `createRolesReaderFromEnv()` (`PORTAL_DATABASE_URL`):
+  role flags stored in `portal_user_roles` (managed at `/admin/users`; role
+  grants are site-owner only), read via `createRolesReader(DATABASE_URL)`:
 
   | Role                | Capabilities                                                |
   | ------------------- | ----------------------------------------------------------- |
@@ -28,26 +27,24 @@ via `transpilePackages`, so a change here ships to the whole portal at once.
   | `siteManager`       | portal content admin + reservations admin + member approval |
   | `accountingManager` | accounting admin                                            |
 
-  Apps never check role flags directly — they use the derived capability
+  The app never checks role flags directly — they use the derived capability
   helpers (`canManageUsers`, `canApproveMembers`, `canManagePortalContent`,
   `canAdminReservations`, `canAdminAccounting`) so the mapping lives in exactly
   one place.
 
-- **`createPortalStatusGate`** (`src/portalStatusGate.ts`) — the shared
-  pending/blocked/sign-in redirect ladder each app configures with its paths.
+- **`createPortalStatusGate`** (`src/portalStatusGate.ts`) — the
+  pending/blocked/sign-in redirect ladder that reservations and accounting each
+  configure with their own paths.
 - **`@mfr/auth/types`** — the `AppSessionUser` module-augmentation pattern for
   app-specific session fields.
 
 ## The one-login design
 
-Same `AUTH_SECRET` + same identity DB + `AUTH_COOKIE_DOMAIN=
-.millerfamilyreunions.org` ⇒ a database-session cookie that every subdomain
-shares — sign in once at the portal, recognized everywhere. Any second
-environment sharing that registrable domain would set a distinct
-`AUTH_SESSION_COOKIE_NAME` so production's cookie (which rides along to every
-subdomain) is never read as that environment's session; per-PR previews live on
-`*.vercel.app` (a different registrable domain) and so leave it unset. Business
-databases store `users.id` as a plain string — **no cross-database FKs**.
+One NextAuth instance at `/api/auth`, one host-only session cookie on
+millerfamilyreunions.org. Per-PR previews (on `*.vercel.app`) sign in through
+production's redirect proxy and must share its `AUTH_SECRET` — see
+`docs/preview-deploys.md`. Business tables store `users.id` as a plain value —
+no cross-domain foreign keys.
 
 Note: the `users.is_reservations_admin` / `is_accounting_admin` columns are
 legacy — nothing reads them (superseded by portal roles); kept only as a
@@ -55,7 +52,10 @@ backfill source until a follow-up migration drops them.
 
 ## Env & scripts
 
-`IDENTITY_DATABASE_URL` (pooled, runtime) · `IDENTITY_DIRECT_DATABASE_URL`
-(drizzle-kit) · `PORTAL_DATABASE_URL` (roles reader) · `AUTH_GOOGLE_ID/SECRET`
-· `AUTH_SECRET` (identical across apps). Scripts: `npm run generate` /
-`migrate` (drizzle-kit), `npm test`.
+The app passes everything in explicitly (`DATABASE_URL`, plus `AUTH_SECRET` /
+`AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` read by Auth.js). Scripts: `npm test`,
+`test:coverage`, `test:mutation`. The package's own `generate` / `migrate`
+scripts, `drizzle.config.ts`, `createIdentityDbFromEnv`, and
+`createRolesReaderFromEnv` (which read the retired `IDENTITY_*` /
+`PORTAL_DATABASE_URL` vars) are leftovers from the multi-database era and
+unused.
