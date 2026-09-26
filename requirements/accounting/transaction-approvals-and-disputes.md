@@ -79,6 +79,7 @@ Feature: Transaction approvals and disputes
 
 ## Open Questions
 
+- **[medium]** A shareholder can still edit their dispute reason after an admin has marked it resolved, because a resolved dispute keeps its disputed status. Should resolved disputes be locked? (`apps/mfr/actions/accounting/approvals.ts:72-96, 105-122`)
 - **[medium]** Recording a correction does not resolve the dispute that prompted it; the admin must also "Mark resolved" and type the correction's identifier by hand. The identifier is never checked, and the screens only ever show its last 4–6 characters. Should a correction resolve its dispute automatically? (`apps/mfr/actions/accounting/approvals.ts:105-122`, `apps/mfr/app/accounting/admin/activity/resolve-dispute-form.tsx`)
 - **[medium]** Nobody is notified when a shareholder disputes an entry. Admins only find out by checking the activity log. Should admins be emailed? (`apps/mfr/actions/accounting/approvals.ts:42-70`)
 

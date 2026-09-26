@@ -67,15 +67,16 @@ Feature: Share purchase goal
     When a linked shareholder opens their dashboard
     Then there is no "Contribute via Venmo" option
 
-  Scenario: The home page shows the same total without signing in
-    # The home page card itself is owned by CAP-006.
+  Scenario: The home page shows the same total as the dashboard
+    # The home page card itself is owned by CAP-006; signed-out visitors don't see it.
     Given 5,000 shares were purchased this fiscal year against a goal of 20,000
-    When anyone, signed in or not, views the fundraising total
+    When a signed-in member views the share goal on the home page
     Then it shows the current fiscal year, 5,000 raised and the 20,000 goal, with no names
 ```
 
 ## Open Questions
 
+- **[medium]** A fundraising total (fiscal year, shares raised, goal) is still published to anyone without signing in, but nothing on the site reads it any more — the home page card now gets its figures directly and is hidden from signed-out visitors. Should the public total be kept (e.g. for another site) or removed? (`apps/mfr/app/accounting/api/contributions/current-year/route.ts`)
 - **[low]** The goal form accepts any fiscal year from 2000 to 2100, but only the current year's goal is ever shown back to the admin. Past or future goals can't be reviewed. Is that enough? (`apps/mfr/app/accounting/admin/settings-cards.tsx:94-118`, `apps/mfr/app/accounting/admin/layout.tsx:17-18`)
 - **[low]** Just below the goal, the percentage rounds up: 99.6% shows "100% funded · 0.4 shares to go" with a full bar. Is that acceptable? (`apps/mfr/lib/accounting/goals.ts:27-32`)
 

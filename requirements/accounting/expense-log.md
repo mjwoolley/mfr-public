@@ -127,6 +127,7 @@ Feature: Expense log
 
 ## Open Questions
 
+- **[low]** A save request that leaves out the date field entirely (only possible outside the normal form) is stored as 1 January 1970 instead of being refused with "Enter a valid date"; an empty date is refused correctly. Should a missing date be refused too? (`apps/mfr/actions/accounting/expenses.ts:20`)
 - **[high]** Edits and deletes leave no audit trail. An edit overwrites the amount, category and description in place without recording who changed it or what it was before. A delete removes the expense permanently. The activity log only shows when an expense was first entered, with its current values. Should changes and deletions to expenses (e.g. a tax payment) be logged, and should deletes be reversible like ledger corrections? (`apps/mfr/actions/accounting/expenses.ts:92-101`, `:109-129`; `apps/mfr/app/accounting/admin/activity/page.tsx:49-76`)
 - **[medium]** A wrong date incurred can only be fixed by deleting the expense and recording it again, which also loses the original entry time and recorder. Any date is accepted when recording, including future dates and dates decades in the past. Is that the intended policy? (`apps/mfr/actions/accounting/expenses.ts:15-26`)
 - **[low]** Cents are rounded away everywhere, including the delete confirmation ($84.50 shows as "$85"). Amounts also have no upper limit, so a value too large to store fails with an unexplained error rather than a message. (`apps/mfr/app/accounting/admin/expenses/page.tsx:25`; `apps/mfr/lib/accounting/format.ts:37`)
