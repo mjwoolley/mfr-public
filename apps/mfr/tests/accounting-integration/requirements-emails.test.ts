@@ -5,6 +5,7 @@
 // Deliberately NOT asserted: the rendered amount wording of transfer /
 // adjustment / correction emails ("25 shares shares" — CAP-039 open question).
 import { describe, it, expect, afterEach, vi } from 'vitest'
+import { render } from '@react-email/render'
 
 vi.mock('@/lib/auth', () => ({ auth: vi.fn() }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
@@ -29,12 +30,16 @@ afterEach(async () => {
   await cleanupFixtures()
 })
 
-/** The one email sent, reduced to what the scenarios name. */
-function onlyEmail() {
+/**
+ * The one email sent: its envelope, plus its body as plain text. The actions
+ * call the templates as functions, so the element holds the rendered email,
+ * not the template's inputs — read what the recipient reads instead.
+ */
+async function onlyEmail() {
   expect(sendEmail).toHaveBeenCalledTimes(1)
   const { to, subject, replyTo, react } = vi.mocked(sendEmail).mock.calls[0][0]
-  const props = react.props as { description?: string; shares?: string; adminName?: string }
-  return { to, subject, replyTo, description: props.description, adminName: props.adminName }
+  const text = await render(react, { plainText: true })
+  return { envelope: { to, subject, replyTo }, text }
 }
 
 describe('CAP-039 Ledger email notifications — what each action sends', () => {
@@ -44,13 +49,13 @@ describe('CAP-039 Ledger email notifications — what each action sends', () => 
 
     await createContribution(undefined, fd({ shareholderId: sh.id, amount: '500' }))
 
-    expect(onlyEmail()).toEqual({
+    const { envelope, text } = await onlyEmail()
+    expect(envelope).toEqual({
       to: sh.email,
       subject: 'Share purchase of 500 shares recorded',
       replyTo: 'ada.admin@example.com',
-      description: null,
-      adminName: 'Ada Admin',
     })
+    expect(text).toContain('Ada Admin')
   })
 
   it.each([
@@ -81,13 +86,10 @@ describe('CAP-039 Ledger email notifications — what each action sends', () => 
       }
 
       // Replies reach the recording admin for these too.
-      expect(onlyEmail()).toEqual({
-        to: sh.email,
-        subject,
-        replyTo: 'ada.admin@example.com',
-        description: 'reconcile 2019 import',
-        adminName: 'Ada Admin',
-      })
+      const { envelope, text } = await onlyEmail()
+      expect(envelope).toEqual({ to: sh.email, subject, replyTo: 'ada.admin@example.com' })
+      expect(text).toContain('reconcile 2019 import')
+      expect(text).toContain('Ada Admin')
     },
   )
 })

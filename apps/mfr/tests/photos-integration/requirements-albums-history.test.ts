@@ -3,7 +3,13 @@
 // alphabetical order) and the 100-event history limit, against the real test
 // branch. Identity rows are created here and removed by id afterwards.
 
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
+
+// The gallery and history readers load the auth module, which pulls in
+// next-auth; mock it as the other photos integration files do.
+vi.mock('@/lib/auth', () => ({ auth: vi.fn() }))
+vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
+
 import { inArray } from 'drizzle-orm'
 import { users } from '@mfr/auth'
 import { testDb } from './testDb'
