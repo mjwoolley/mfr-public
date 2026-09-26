@@ -1,7 +1,7 @@
 # MFR change workflow
 
 The standard workflow for making any change to this monorepo. `main` auto-deploys
-to production (all three Vercel projects build and auto-promote on push), and
+to production (the `mfr_web` Vercel project builds and auto-promotes on push), and
 `main` is protected: changes land through a pull request whose CI must be green
 before merging. CI plus the discipline below is what stands between an edit and
 the family seeing it.
@@ -11,12 +11,12 @@ the family seeing it.
 1. **Branch first.** `git checkout -b fix/whatever`. Direct pushes to `main`
    are rejected by branch protection (even for admins).
 
-2. **Develop against local + `dev` branch data.** `npm run dev:reservations`
-   (or `:accounting` / `:web`) runs the app on your machine, connected to the
-   `dev` branch of the Neon databases in the cloud. Production data cannot be
+2. **Develop against local + `dev` branch data.** `npm run dev` runs the app on
+   your machine (localhost:3000), connected to the `dev` branch of the `mfr`
+   Neon project in the cloud. Production data cannot be
    touched from here.
 
-3. **Verify locally.** In the app(s) you changed:
+3. **Verify locally.**
    - `npm run test` — unit tests (fast, no database)
    - `npm run lint` and `npm run typecheck`
    - Click through the actual flow you changed in the browser — this catches
@@ -29,7 +29,7 @@ the family seeing it.
      the enforced floors assume the merged unit+integration run).
    - For riskier changes, run what CI will run anyway (fail fast locally):
      `npm run test:integration` (real queries against the `test` Neon branch)
-     and `npm run build`. `npm run test:coverage` in an app runs the full
+     and `npm run build`. `npm run test:coverage` in `apps/mfr` runs the full
      merged unit+integration coverage with threshold enforcement — exactly
      what CI checks (needs the `TEST_*` env vars).
    - See [Coverage policy & mutation testing](#coverage-policy--mutation-testing)
@@ -46,16 +46,17 @@ the family seeing it.
 5. **Push the branch and open a PR.** `git push -u origin fix/whatever`, then
    `gh pr create`. CI runs on the PR:
 
-   | Job                     | What it does                                                                                                                                                            |
-   | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-   | Format, lint, typecheck | `prettier --check`, eslint, `tsc --noEmit` across all workspaces                                                                                                        |
-   | Unit tests + coverage   | fast unit runs for the three apps + coverage **with ratchet thresholds** for `packages/ui` / `packages/auth`                                                            |
-   | Build (×3)              | `next build` for each app with dummy DB env                                                                                                                             |
-   | Integration (×3)        | Creates **ephemeral Neon branches** cloned from `production`, runs the app's merged unit+integration coverage and **enforces its ratchet thresholds**, deletes branches |
-   | E2E (Playwright)        | Ephemeral branches for all 4 DBs, builds and boots all 3 apps, runs the ~45-test browser suite (smoke + lifecycle/flows/auth/admin specs), single worker                |
-   | Secret scan             | gitleaks over full history                                                                                                                                              |
-   | Semgrep                 | Advisory only — never blocks a merge                                                                                                                                    |
-   | **CI OK**               | The single required status check; merge is blocked until it's green                                                                                                     |
+   | Job                     | What it does                                                                                                                                                         |
+   | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | Format, lint, typecheck | `prettier --check`, eslint, `tsc --noEmit` across all workspaces                                                                                                     |
+   | Unit tests + coverage   | fast unit runs for `apps/mfr` + coverage **with ratchet thresholds** for `packages/ui` / `packages/auth`                                                             |
+   | Schema migration check  | Re-runs `db:generate` and fails if `schema.ts` has changes with no committed migration                                                                               |
+   | Build                   | `next build` for `apps/mfr` with dummy DB env                                                                                                                        |
+   | Integration             | Creates an **ephemeral Neon branch** cloned from `production`, applies migrations, runs the merged unit+integration coverage and **enforces its ratchet thresholds** |
+   | E2E (Playwright)        | Its own ephemeral branch; builds and boots the app, runs the browser suite (smoke + lifecycle/flows/auth/admin specs), single worker                                 |
+   | Secret scan             | gitleaks over full history                                                                                                                                           |
+   | Semgrep                 | Advisory only — never blocks a merge                                                                                                                                 |
+   | **CI OK**               | The single required status check; merge is blocked until it's green                                                                                                  |
 
 6. **Test it on the PR's own preview before merging — this is the default, not
    an extra.** Every PR gets its own Vercel preview URL, backed by its **own**
@@ -88,7 +89,7 @@ the family seeing it.
    (The PR's preview and its Neon branch are torn down automatically when the PR
    is merged or closed — nothing to clean up by hand.)
 
-**Rollback:** `vercel rollback` in the affected app's directory instantly
+**Rollback:** `vercel rollback` (project `mfr_web`) instantly
 restores the previous deployment; `git revert` the commit afterward (via a PR).
 A **critical** production smoke failure (user-facing site broken,
 smoke exit code 1) now does this automatically — `production-smoke.yml` rolls
@@ -130,16 +131,15 @@ Notes:
 
 ### Refreshing dev with production data
 
-When you want local dev to run against a fresh copy of real data, run
-`./scripts/refresh-dev-from-prod.sh` (needs `NEON_API_KEY` and a PG17+
-`pg_dump`/`pg_restore` — see the script header). It snapshots each `dev` branch
-to `backup-dev-<timestamp>`, then replaces its contents with a dump of
-`production`. Production is only read; the dev branch IDs don't change, so local
-`.env` files keep working. Note this **overwrites** any local-only data you'd
-set up in dev.
+The `dev` branch of the `mfr` Neon project is a child of `production`. To give
+local dev a fresh copy of real data, delete `dev` and re-create it from
+`production` (Neon console or `neon branches create --name dev --parent production`), then
+update `DATABASE_URL` / `DIRECT_URL` in `apps/mfr/.env.local` with the new
+branch's connection strings. Production is only read. This **discards** any
+local-only data you'd set up in dev. (`scripts/refresh-dev-from-prod.sh` is
+obsolete — it targets the pre-merge Neon projects, which no longer exist.)
 
-Because dev then holds real family emails, the accounting app's `sendEmail`
-never delivers to real recipients outside production: only prod sets
+Because dev then holds real family emails, `sendEmail` never delivers to real recipients outside production: only prod sets
 `EMAIL_ENABLED=true`; everywhere else mail is redirected to `EMAIL_OVERRIDE_TO`
 (or dropped). Keep `EMAIL_ENABLED` unset in every local/dev env.
 
@@ -176,19 +176,19 @@ disposable, so PRs no longer queue through a single shared slot.
 
 ### Shared packages (`packages/ui`, `packages/auth`)
 
-A change there ships to all three apps at once — verify all three, not just
-the one you were working on. (CI builds and e2e-tests all three on every PR.)
+`apps/mfr` is their only consumer, so verify a package change the same way as
+an app change — run the package's own tests plus the app's, and click through
+the affected screens.
 
 ### Environment variables
 
-- Set per-project ×3 on Vercel (`vercel env add` from the app's directory).
+- Set on the `mfr_web` Vercel project (`vercel env add`), scoped to
+  Production and/or Preview.
 - Nothing takes effect until a redeploy.
-- Shared values (`AUTH_SECRET`, `AUTH_COOKIE_DOMAIN`, identity DB URLs) must be
-  identical across all three projects. When one app misbehaves and the others
-  don't, suspect env drift first.
+- `AUTH_SECRET` must be identical on Production and Preview — previews sign in
+  through the prod redirect proxy, which decrypts their OAuth state with it.
 - When copying Neon connection strings, always pick the branch explicitly:
-  `production` for Vercel env vars, `dev` for local env files. The Neon
-  console and CLI default to the `dev` branch (it's the project default).
+  `production` for Vercel env vars, `dev` for local env files.
 
 ## Coverage policy & mutation testing
 
@@ -197,7 +197,7 @@ the one you were working on. (CI builds and e2e-tests all three on every PR.)
 Every vitest config sets explicit `coverage.include` globs, so **all source
 files count toward coverage — untested files show up at 0%** instead of being
 invisible (vitest's default only counts files a test happens to import).
-`test:coverage` in the three apps runs the unit **and** integration projects
+`test:coverage` in `apps/mfr` runs the unit **and** integration projects
 in one go and reports one merged number (this is what CI enforces; it needs
 the `TEST_*` env vars). `test:coverage:unit` is the no-database variant for
 quick local runs; it skips thresholds since unit-only numbers sit below the
@@ -266,7 +266,7 @@ seeding rows, not by clicking through Google OAuth: `e2e/global-setup.ts`
 truncates the e2e databases and inserts fixed personas (member / admin /
 pending / outsider) plus matching `sessions` rows, and each test attaches the
 `authjs.session-token` cookie for its persona. **There is no test-login code
-path in any app** — nothing to guard, nothing that can ship to production.
+path in the app** — nothing to guard, nothing that can ship to production.
 (A guarded Credentials provider was rejected: Auth.js forces JWT sessions for
 credentials sign-ins, conflicting with the database-session architecture.)
 
@@ -300,18 +300,16 @@ obsolete — those projects were consolidated into `mfr` and deleted.
 
 ## Reference: environments
 
-| Environment       | App runs                                             | Database (each Neon project)            | Used for                       |
-| ----------------- | ---------------------------------------------------- | --------------------------------------- | ------------------------------ |
-| Local dev         | your machine (`npm run dev:*`)                       | `dev` branch                            | day-to-day development         |
-| Integration tests | vitest on your machine                               | `test` branch (via `TEST_*` env vars)   | destructive schema/query tests |
-| Local e2e         | `next start` ×3 via Playwright                       | `test` branch (via `E2E_*` env vars)    | full browser suite             |
-| CI                | GitHub Actions (PRs + pushes to `main`)              | ephemeral `ci-*` branches, auto-deleted | the merge gate                 |
-| Preview           | Vercel preview of the PR branch                      | per-PR Neon branch forked from prod     | testing the deployed site      |
-| Production        | Vercel (mfr_web / mfr_reservations / mfr_accounting) | `production` branch                     | the family                     |
+| Environment       | App runs                                | Database (each Neon project)            | Used for                       |
+| ----------------- | --------------------------------------- | --------------------------------------- | ------------------------------ |
+| Local dev         | your machine (`npm run dev`)            | `dev` branch                            | day-to-day development         |
+| Integration tests | vitest on your machine                  | `test` branch (via `TEST_*` env vars)   | destructive schema/query tests |
+| Local e2e         | `next start` via Playwright             | `test` branch (via `E2E_*` env vars)    | full browser suite             |
+| CI                | GitHub Actions (PRs + pushes to `main`) | ephemeral `ci-*` branches, auto-deleted | the merge gate                 |
+| Preview           | Vercel preview of the PR branch         | per-PR Neon branch forked from prod     | testing the deployed site      |
+| Production        | Vercel (`mfr_web`)                      | `production` branch                     | the family                     |
 
-Neon projects: `mfr-identity` (shared Auth.js tables — sessions/users),
-`mfr-reservations` and `mfr-accounting` (per-app business data). Identity
-production branch: `br-patient-water-ajen7oii`.
+All branches are in the one Neon project, `mfr` (`lucky-butterfly-29223414`).
 
 **The short mnemonic: branch → build it locally on `dev` data →
 test/lint/click-through → PR → open the PR's preview and test the deployed site →
