@@ -64,9 +64,15 @@ Feature: Reservation emails
     Then my cancellation email says "Cancelled by Ada."
     And replying to the email goes to Ada
 
-  Scenario: Every reservation email explains who is copied
-    When I receive any reservation email
-    Then it says "Reservations admins are CC'd on this notification. If something looks wrong, just reply to this email."
+  Scenario Outline: Every reservation email explains who is copied
+    When I receive a <email> email
+    Then it says "Reservations admins are CC'd on this <word>. If something looks wrong, just reply to this email."
+
+    Examples:
+      | email                    | word         |
+      | reservation confirmed    | confirmation |
+      | reservation updated      | notification |
+      | reservation cancelled    | notification |
 
   Scenario Outline: No email when nothing was booked or changed
     Given I am signed in as an approved member
