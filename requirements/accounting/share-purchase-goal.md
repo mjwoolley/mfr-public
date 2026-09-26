@@ -53,8 +53,15 @@ Feature: Share purchase goal
 
   Scenario: No goal set
     Given no goal has been set for FY2026
+    And the family's Venmo account is configured
     When a linked shareholder opens their dashboard
     Then they see "No share purchase goal set for FY2026 yet."
+
+  Scenario: No goal and no Venmo hides the goal card
+    Given no goal has been set for FY2026
+    And the family's Venmo account is not configured
+    When a linked shareholder opens their dashboard
+    Then there is no share purchase goal card
 
   Scenario: Contributing through Venmo
     Given the family's Venmo account is configured
@@ -76,6 +83,7 @@ Feature: Share purchase goal
 
 ## Open Questions
 
+- **[high]** A correction's own amount never counts toward "raised this year", the goal, "Shares sold by year" or a shareholder's "Purchased" figure, because those count only share purchases and a correction is a different kind of entry. So fixing a 100-share purchase down to 90 removes all 100 from those figures while balances correctly show 90. Should a corrected share purchase still count as a share purchase? (`apps/mfr/lib/accounting/ledger.ts:13-29,135-156`, `apps/mfr/actions/accounting/corrections.ts:84`)
 - **[medium]** A fundraising total (fiscal year, shares raised, goal) is still published to anyone without signing in, but nothing on the site reads it any more — the home page card now gets its figures directly and is hidden from signed-out visitors. Should the public total be kept (e.g. for another site) or removed? (`apps/mfr/app/accounting/api/contributions/current-year/route.ts`)
 - **[low]** The goal form accepts any fiscal year from 2000 to 2100, but only the current year's goal is ever shown back to the admin. Past or future goals can't be reviewed. Is that enough? (`apps/mfr/app/accounting/admin/settings-cards.tsx:94-118`, `apps/mfr/app/accounting/admin/layout.tsx:17-18`)
 - **[low]** Just below the goal, the percentage rounds up: 99.6% shows "100% funded · 0.4 shares to go" with a full bar. Is that acceptable? (`apps/mfr/lib/accounting/goals.ts:27-32`)
