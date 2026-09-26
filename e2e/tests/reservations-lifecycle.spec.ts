@@ -1,9 +1,11 @@
 // The full reservation lifecycle through the real UI — create, edit, cancel —
 // plus the booking-rule rejections (overlap, horizon, blocked dates) and the
 // calendar/summary read surfaces. Complements reservations.spec.ts's smoke
-// checks. The lifecycle stay sits in the current calendar year (the summary
-// page only shows the current year); the rejection tests use July–August 2027
-// so this file and reservations.spec.ts never collide on dates.
+// checks. The lifecycle stay starts today (UTC, like the app's todayISO): it is
+// never a past stay (members can't book those) and always in the current
+// calendar year (the summary page only shows the current year). The rejection
+// tests use July–August 2027 so this file and reservations.spec.ts never
+// collide on dates.
 
 import { test, expect, type Page } from '@playwright/test'
 import { RESERVATIONS_URL } from '../../playwright.config'
@@ -11,6 +13,22 @@ import { contextFor } from '../session'
 
 const MY_RESERVATIONS = `${RESERVATIONS_URL}/reservations/my-reservations`
 const API = `${RESERVATIONS_URL}/reservations/api`
+
+/** YYYY-MM-DD for today (UTC) plus `days`. */
+function isoFromToday(days: number): string {
+  const d = new Date()
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().slice(0, 10)
+}
+
+/** "Sep 1" — the app's niceDate format for a YYYY-MM-DD day. */
+function niceDate(iso: string): string {
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  })
+}
 
 /** Fill the booking dialog's date fields. `checkOut` is the departure day —
  * the exclusive end of the half-open stay (nights = checkOut − checkIn). */
@@ -25,20 +43,28 @@ test.describe('reservation lifecycle (UI)', () => {
     const page = await context.newPage()
     await page.goto(MY_RESERVATIONS)
 
-    // Create: Sep 1 check-in → Sep 3 check-out 2026 = 2 nights, shown as
-    // Sep 1 → Sep 3.
+    const checkIn = isoFromToday(0)
+    const checkOut = isoFromToday(2)
+    const extendedCheckOut = isoFromToday(3)
+
+    // Create: check in today, check out in two days = 2 nights.
     await page.getByRole('button', { name: 'New reservation' }).click()
-    await fillBookingDates(page, '2026-09-01', '2026-09-03')
+    await fillBookingDates(page, checkIn, checkOut)
     await expect(page.getByText('2 nights at the cabin')).toBeVisible()
     await page.getByRole('button', { name: 'Confirm reservation' }).click()
-    const created = page.getByRole('button', { name: /Sep 1 → Sep 3/ })
+    const created = page.getByRole('button', {
+      name: `${niceDate(checkIn)} → ${niceDate(checkOut)}`,
+    })
     await expect(created).toBeVisible()
 
-    // Edit: extend the check-out to Sep 4 (3 nights).
+    // Edit: extend the check-out by a day (3 nights).
     await page.getByRole('button', { name: 'Edit' }).first().click()
-    await page.locator('#booking-check-out').fill('2026-09-04')
+    await page.locator('#booking-check-out').fill(extendedCheckOut)
     await page.getByRole('button', { name: 'Save changes' }).click()
-    await expect(page.getByRole('button', { name: /Sep 1 → Sep 4/ })).toBeVisible()
+    const extended = page.getByRole('button', {
+      name: `${niceDate(checkIn)} → ${niceDate(extendedCheckOut)}`,
+    })
+    await expect(extended).toBeVisible()
 
     // The summary page reflects the stay.
     await page.goto(`${RESERVATIONS_URL}/reservations/summary`)
@@ -48,7 +74,7 @@ test.describe('reservation lifecycle (UI)', () => {
     // Cancel: the row disappears.
     await page.goto(MY_RESERVATIONS)
     await page.getByRole('button', { name: 'Cancel', exact: true }).first().click()
-    await expect(page.getByRole('button', { name: /Sep 1 → Sep 4/ })).toHaveCount(0)
+    await expect(extended).toHaveCount(0)
 
     await context.close()
   })
