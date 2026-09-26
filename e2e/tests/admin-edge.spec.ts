@@ -8,6 +8,13 @@ import { test, expect } from '@playwright/test'
 import { WEB_URL, RESERVATIONS_URL } from '../../playwright.config'
 import { contextFor } from '../session'
 
+/** YYYY-MM-DD for today (UTC, like the app's todayISO) plus `days`. */
+function isoFromToday(days: number): string {
+  const d = new Date()
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().slice(0, 10)
+}
+
 test.describe('reservations admin', () => {
   test('tightening the booking rules immediately constrains member bookings', async ({
     browser,
@@ -26,9 +33,10 @@ test.describe('reservations admin', () => {
     const memberPage = await member.newPage()
     await memberPage.goto(`${RESERVATIONS_URL}/reservations/my-reservations`)
     await memberPage.getByRole('button', { name: 'New reservation' }).click()
-    await memberPage.locator('#booking-check-in').fill('2026-10-01')
-    // Check-out Oct 7 = 6 nights (Oct 1–6), one over the tightened max of 5.
-    await memberPage.locator('#booking-check-out').fill('2026-10-07')
+    // A stay starting next week (always in the future, so PAST_DATE can't mask
+    // the rule under test): 6 nights, one over the tightened max of 5.
+    await memberPage.locator('#booking-check-in').fill(isoFromToday(7))
+    await memberPage.locator('#booking-check-out').fill(isoFromToday(13))
     await expect(
       memberPage.getByText('Reservations cannot exceed 5 consecutive nights.'),
     ).toBeVisible()
