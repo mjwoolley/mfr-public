@@ -78,6 +78,7 @@ Feature: New sign-up handling
 
 ## Open Questions
 
+- **[high]** A new sign-up whose email matches a shareholder record that an admin has already linked by hand to someone else (e.g. a spouse) takes that record over and is approved automatically; the spouse silently loses access. The code comment says a uniqueness rule prevents this, but that rule only stops one login holding two records. Same policy question as CAP-047's household link. (`apps/mfr/lib/portal/signup.ts:110-120`, `apps/mfr/lib/portal/signup.test.ts:131-136`)
 - **[medium]** Auto-approval happens only on the first-ever sign-in. If an admin later puts a pending person's email on a shareholder record, the account gets linked but stays pending until someone approves it. Should a later email match approve them too? (`apps/mfr/lib/portal/signup.ts:98-124`, `apps/mfr/lib/auth.ts:43-84`)
 - **[medium]** Alerts go to accounting managers, who cannot approve anyone. The code comment claims only site owners can approve, but site managers can too. Also, the text-message number is a personal phone hard-coded as the default. Who should receive signup alerts, and should that number live in configuration instead of code? (`apps/mfr/lib/portal/signup.ts:35-63`)
 

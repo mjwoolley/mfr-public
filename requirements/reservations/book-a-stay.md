@@ -85,7 +85,7 @@ Feature: Book a stay
     Given the booking dialog shows dates that were free when I opened it
     And another member books overlapping dates before I confirm
     When I press "Confirm reservation"
-    Then I see "Those dates were just booked or blocked by someone else. Please pick different dates."
+    Then I see "Those dates overlap an existing reservation."
     And no stay is saved for me
     And I can change the dates in the same dialog and try again
 

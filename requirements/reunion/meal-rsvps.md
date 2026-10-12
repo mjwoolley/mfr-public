@@ -16,7 +16,7 @@ Feature: Meal RSVPs
 
   Background:
     Given I am signed in as an approved member
-    And the reunion runs from Saturday, July 1 to Wednesday, July 5
+    And the reunion runs from Saturday, July 1, 2023 to Wednesday, July 5, 2023
 
   Scenario: Every reunion day has a lunch and a dinner
     When I open Meals
