@@ -46,17 +46,17 @@ the family seeing it.
 5. **Push the branch and open a PR.** `git push -u origin fix/whatever`, then
    `gh pr create`. CI runs on the PR:
 
-   | Job                     | What it does                                                                                                                                                         |
-   | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-   | Format, lint, typecheck | `prettier --check`, eslint, `tsc --noEmit` across all workspaces                                                                                                     |
-   | Unit tests + coverage   | fast unit runs for `apps/mfr` + coverage **with ratchet thresholds** for `packages/ui` / `packages/auth`                                                             |
-   | Schema migration check  | Re-runs `db:generate` and fails if `schema.ts` has changes with no committed migration                                                                               |
-   | Build                   | `next build` for `apps/mfr` with dummy DB env                                                                                                                        |
-   | Integration             | Creates an **ephemeral Neon branch** cloned from `production`, applies migrations, runs the merged unit+integration coverage and **enforces its ratchet thresholds** |
-   | E2E (Playwright)        | Its own ephemeral branch; builds and boots the app, runs the browser suite (smoke + lifecycle/flows/auth/admin specs), single worker                                 |
-   | Secret scan             | gitleaks over full history                                                                                                                                           |
-   | Semgrep                 | Advisory only — never blocks a merge                                                                                                                                 |
-   | **CI OK**               | The single required status check; merge is blocked until it's green                                                                                                  |
+   | Job                     | What it does                                                                                                                                                                                                                                |
+   | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | Format, lint, typecheck | `prettier --check`, eslint, `tsc --noEmit` across all workspaces                                                                                                                                                                            |
+   | Unit tests + coverage   | fast unit runs for `apps/mfr` + coverage **with ratchet thresholds** for `packages/ui` / `packages/auth`                                                                                                                                    |
+   | Schema migration check  | Re-runs `db:generate` and fails if `schema.ts` has changes with no committed migration                                                                                                                                                      |
+   | Build                   | `next build` for `apps/mfr` with dummy DB env                                                                                                                                                                                               |
+   | Integration             | Creates **one ephemeral Neon branch** from `production`, migrates it, copies its app database into two isolated databases, runs two parallel unit+integration shards, then merges coverage and **enforces the original ratchet thresholds** |
+   | E2E (Playwright)        | Its own ephemeral branch; builds and boots the app, runs the browser suite (smoke + lifecycle/flows/auth/admin specs), single worker                                                                                                        |
+   | Secret scan             | gitleaks over full history                                                                                                                                                                                                                  |
+   | Semgrep                 | Advisory only — never blocks a merge                                                                                                                                                                                                        |
+   | **CI OK**               | The single required status check; merge is blocked until it's green                                                                                                                                                                         |
 
 6. **Test it on the PR's own preview before merging — this is the default, not
    an extra.** Every PR gets its own Vercel preview URL, backed by its **own**
