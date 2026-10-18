@@ -16,6 +16,16 @@ on:
   schedule:
     - cron: '17 6 * * *'
   workflow_dispatch:
+    inputs:
+      mode:
+        description: Standard cleanup or emergency dependency-preview cleanup
+        type: choice
+        options: [standard, dependency-previews]
+        default: standard
+      dry_run:
+        description: In dependency-previews mode, list targets without deleting
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -35,6 +45,7 @@ jobs:
       NEON_PROJECT_ID: lucky-butterfly-29223414
     steps:
       - name: Delete ci-* branches older than 24h
+        if: inputs.mode != 'dependency-previews'
         run: |
           set -euo pipefail
           cutoff=$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)
@@ -54,6 +65,7 @@ jobs:
       # each survivor's head ref against the repo's OPEN PRs; anything with no
       # open PR is safe to drop — a reopened PR just gets a fresh fork.
       - name: Delete preview/* branches whose PR is closed
+        if: inputs.mode != 'dependency-previews'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -91,3 +103,71 @@ jobs:
                 "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$id" > /dev/null
             fi
           done
+
+      - name: Reclaim dependency-PR previews only
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'dependency-previews'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          case "$DRY_RUN" in true|false) ;; *) echo "Invalid dry_run value"; exit 1 ;; esac
+
+          # Require a same-repository PR authored by Dependabot, not just a name prefix.
+          refs=$(gh api --paginate --slurp \
+            "repos/$GITHUB_REPOSITORY/pulls?state=open&per_page=100" |
+            jq -c --arg repo "$GITHUB_REPOSITORY" \
+              '[.[][] | select(.state == "open" and .user.login == "dependabot[bot]")
+                | select(.head.repo.full_name == $repo)
+                | .head.ref | select(startswith("dependabot/"))] | unique')
+
+          api="https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID"
+          list_branches() {
+            local response
+            response=$(curl -fsS -H "Authorization: Bearer $NEON_API_KEY" "$api/branches") || return 1
+            if ! jq -e '(.branches | type == "array") and (.pagination.next == null)' <<< "$response" > /dev/null; then
+              echo "Incomplete branch inventory; refusing cleanup" >&2
+              return 1
+            fi
+            printf '%s\n' "$response"
+          }
+          inventory=$(list_branches)
+          echo "Branch inventory before cleanup:"
+          jq -r '.branches[] | [.id, .name, (.default // false), (.protected // false)] | @tsv' <<< "$inventory"
+
+          # Never delete roots, protected/default branches, or a parent of another branch.
+          filter='def eligible($refs):
+            .creation_source == "vercel" and
+            (.name | startswith("preview/dependabot/")) and
+            .default != true and .primary != true and .protected != true and .parent_id != null and
+            (.name | ltrimstr("preview/") | IN($refs[]));
+            .branches as $all | $all[] | select(eligible($refs))
+            | . as $candidate
+            | select(any($all[]; .parent_id == $candidate.id) | not)
+            | [.id, .name] | @tsv'
+          candidates=$(jq -r --argjson refs "$refs" "$filter" <<< "$inventory")
+          if [ -z "$candidates" ]; then
+            echo "No eligible dependency-preview branches. Nothing deleted."
+            exit 0
+          fi
+
+          while IFS=$'\t' read -r id name; do
+            if [ "$DRY_RUN" = true ]; then
+              echo "Would delete dependency preview: $name ($id)"
+              continue
+            fi
+            # Recheck the live branch immediately before deletion.
+            current=$(list_branches)
+            eligible=$(jq -r --argjson refs "$refs" "$filter" <<< "$current")
+            if ! grep -Fxq "$id"$'\t'"$name" <<< "$eligible"; then
+              echo "Skipping changed or no-longer-eligible branch: $name ($id)"
+              continue
+            fi
+            echo "Deleting dependency preview: $name ($id)"
+            curl -fsS -X DELETE -H "Authorization: Bearer $NEON_API_KEY" \
+              "$api/branches/$id" > /dev/null
+          done <<< "$candidates"
+
+          echo "Branch inventory after cleanup:"
+          list_branches |
+            jq -r '.branches[] | [.id, .name] | @tsv'
