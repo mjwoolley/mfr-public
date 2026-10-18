@@ -32,6 +32,9 @@ bug report to the admins. Feedback happens over text or email and gets lost.
 **Specified behavior.** Approved members get a small floating Feedback control
 on every portal page. One plain-text message creates a labeled Task on the
 existing Jira board, then MFR sends the member and site admins email updates.
+Members are notified of every Jira status change, including moves to To Do.
+Member email replies add a comment to the same Jira issue and are also delivered
+to the site-admin mailbox.
 Jira is the system of record; no Feedback table or Admin list is added to MFR.
 
 The full design, including Jira project `KAN`, status notifications, failure

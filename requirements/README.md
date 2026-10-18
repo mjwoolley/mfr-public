@@ -85,7 +85,7 @@ _Updated 2026-10-18 · 48 features · next id CAP-049_
 | CAP-008 | [Site settings](portal/site-settings.md)                                     | implemented | 12        | CAP-004, CAP-006, CAP-011, CAP-012, CAP-014                            | 2              |
 | CAP-009 | [Site activity feed](portal/site-activity-feed.md)                           | implemented | 7         | CAP-002, CAP-004, CAP-005, CAP-018, CAP-020, CAP-024, CAP-026, CAP-027 | 2              |
 | CAP-010 | [Email safety outside production](portal/email-safety-outside-production.md) | implemented | 7         | CAP-002, CAP-029, CAP-039                                              | 1              |
-| CAP-048 | [Member Feedback](portal/member-feedback.md)                                 | proposed    | 24        | CAP-003, CAP-004, CAP-010                                              | 0              |
+| CAP-048 | [Member Feedback](portal/member-feedback.md)                                 | proposed    | 30        | CAP-003, CAP-004, CAP-010                                              | 0              |
 
 ## reservations
 
