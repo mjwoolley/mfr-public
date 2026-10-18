@@ -29,8 +29,8 @@ export default defineConfig({
       // apply to ALL included files, pages included.
       // Raise these as tests are added (target: 90). CI enforces them in the
       // integration job, where the merged unit+integration run happens.
-      ...(process.env.COVERAGE_UNIT_ONLY
-        ? {} // unit-only local run: merged thresholds would spuriously fail
+      ...(process.env.COVERAGE_UNIT_ONLY || process.env.COVERAGE_SHARD === '1'
+        ? {} // Partial runs collect coverage; only the merged run enforces floors.
         : {
             // Floors are a regression backstop (cap 90 lines/stmts/funcs, 85
             // branches), NOT a target — genuine coverage of key logic/flows/

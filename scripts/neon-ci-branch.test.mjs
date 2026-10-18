@@ -10,6 +10,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   buildUrl,
+  cloneShardDatabases,
   connectionUrls,
   makeNeonApi,
   createWithWait,
@@ -19,11 +20,169 @@ import {
   outputLines,
   pooledUrl,
   resolveConnection,
+  resolveCiDatabase,
   selectStaleCiBranches,
 } from './neon-ci-branch.mjs'
 
 const DIRECT =
   'postgresql://neondb_owner:pw@ep-x-1.c-3.us-east-2.aws.neon.tech/neondb?sslmode=require'
+
+const CI_BRANCH = 'ci-123-1-int'
+
+function shardApi({ branch = { id: 'br-ci', name: CI_BRANCH, parent_id: 'br-prod' }, fail } = {}) {
+  const calls = []
+  return {
+    calls,
+    listBranches: async () => ({
+      status: fail === 'branches' ? 500 : 200,
+      body: { branches: [branch] },
+    }),
+    listDatabases: async (id) => {
+      calls.push(['databases', id])
+      return {
+        status: fail === 'databases' ? 500 : 200,
+        body: {
+          databases: ['neondb', 'int_shard_1', 'int_shard_2'].map((name) => ({
+            name,
+            owner_name: 'neondb_owner',
+          })),
+        },
+      }
+    },
+    connectionUri: async (args) => {
+      calls.push(['uri', args])
+      return {
+        status: fail === 'uri' ? 500 : 200,
+        body: { uri: DIRECT.replace('/neondb?', `/${args.database}?`) },
+      }
+    },
+  }
+}
+
+test('Neon shard API requests scope database credentials to an explicit branch and owner', async () => {
+  const { calls, fetchImpl } = recordingFetch()
+  const api = makeNeonApi({ apiKey: 'test-key', projectId: 'proj', fetchImpl })
+  await api.listDatabases('br-ci')
+  await api.connectionUri({ branchId: 'br-ci', database: 'int_shard_2', role: 'owner@example' })
+  assert.equal(new URL(calls[0].url).pathname, '/api/v2/projects/proj/branches/br-ci/databases')
+  assert.deepEqual(Object.fromEntries(new URL(calls[1].url).searchParams), {
+    branch_id: 'br-ci',
+    database_name: 'int_shard_2',
+    role_name: 'owner@example',
+    pooled: 'false',
+  })
+})
+
+test('integration shards resolve different databases on the same CI endpoint', async () => {
+  const api = shardApi()
+  const first = await resolveCiDatabase(api, { branchName: CI_BRANCH, database: 'int_shard_1' })
+  const second = await resolveCiDatabase(api, { branchName: CI_BRANCH, database: 'int_shard_2' })
+  assert.equal(new URL(first.direct).pathname, '/int_shard_1')
+  assert.equal(new URL(second.pooled).pathname, '/int_shard_2')
+  assert.equal(new URL(first.direct).hostname, new URL(second.direct).hostname)
+  assert.match(new URL(second.pooled).hostname, /^ep-x-1-pooler\./)
+  assert.equal(first.password, 'pw')
+  assert.ok(api.calls.filter(([call]) => call === 'databases').every(([, id]) => id === 'br-ci'))
+})
+
+test('shard operations reject non-CI branches and reserved databases before API access', async () => {
+  for (const branchName of ['production', 'main', 'dev', 'preview/ci-123-1-int', 'ci-123-1-e2e']) {
+    await assert.rejects(
+      resolveCiDatabase({}, { branchName, database: 'int_shard_1' }),
+      /integration CI branch/,
+    )
+  }
+  for (const databases of [
+    [],
+    ['postgres'],
+    ['neondb'],
+    ['int_shard_1', 'int_shard_1'],
+    ['int_shard_1; DROP DATABASE neondb'],
+  ]) {
+    await assert.rejects(
+      cloneShardDatabases({}, { branchName: CI_BRANCH, databases }),
+      /unique integration shard/,
+    )
+  }
+  await assert.rejects(
+    resolveCiDatabase({}, { branchName: CI_BRANCH, database: 'postgres' }),
+    /shard database/,
+  )
+})
+
+test('shard operations fail closed for root/default/primary/protected or missing CI branches', async () => {
+  for (const extra of [
+    { parent_id: null },
+    { default: true },
+    { primary: true },
+    { protected: true },
+    { name: 'other' },
+  ]) {
+    const api = shardApi({
+      branch: { id: 'br-ci', name: CI_BRANCH, parent_id: 'br-prod', ...extra },
+    })
+    await assert.rejects(resolveCiDatabase(api, { branchName: CI_BRANCH }), /missing or protected/)
+    assert.deepEqual(api.calls, [])
+  }
+})
+
+test('database lookup stops on every API failure and refuses missing or unexpected databases', async () => {
+  for (const fail of ['branches', 'databases', 'uri']) {
+    await assert.rejects(
+      resolveCiDatabase(shardApi({ fail }), { branchName: CI_BRANCH }),
+      /failed \(500\)/,
+    )
+  }
+  await assert.rejects(
+    resolveCiDatabase(shardApi(), { branchName: CI_BRANCH, database: 'int_shard_9' }),
+    /not found/,
+  )
+  for (const uri of [DIRECT, pooledUrl(DIRECT.replace('/neondb?', '/int_shard_1?'))]) {
+    const api = shardApi()
+    api.connectionUri = async () => ({ status: 200, body: { uri } })
+    await assert.rejects(
+      resolveCiDatabase(api, { branchName: CI_BRANCH, database: 'int_shard_1' }),
+      /unexpected direct/,
+    )
+  }
+})
+
+test('shard databases copy the migrated application template through the maintenance database', async () => {
+  for (const fail of [false, true]) {
+    const calls = []
+    const sql = (strings, ...values) => {
+      if (typeof strings === 'string') return { identifier: strings }
+      calls.push([strings.join('?'), values])
+      if (fail) throw new Error('template unavailable')
+    }
+    let ended = false
+    sql.end = async () => {
+      ended = true
+    }
+    const connect = (url, options) => {
+      assert.equal(new URL(url).pathname, '/postgres')
+      assert.deepEqual(options, { max: 1, prepare: false })
+      return sql
+    }
+    const result = cloneShardDatabases(shardApi(), {
+      branchName: CI_BRANCH,
+      databases: ['int_shard_1', 'int_shard_2'],
+      connect,
+    })
+    if (fail) await assert.rejects(result, /template unavailable/)
+    else {
+      await result
+      assert.deepEqual(
+        calls,
+        ['int_shard_1', 'int_shard_2'].map((name) => [
+          'CREATE DATABASE ? TEMPLATE ?',
+          [{ identifier: name }, { identifier: 'neondb' }],
+        ]),
+      )
+    }
+    assert.equal(ended, true)
+  }
+})
 
 // A fake clock: `now()` advances only when the code under test sleeps, so a
 // 15-minute wait is exercised in microseconds and the give-up boundary is exact.

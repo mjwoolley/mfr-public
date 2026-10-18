@@ -2,6 +2,8 @@
 //
 //   node scripts/neon-ci-branch.mjs create ci-123-1-int
 //   node scripts/neon-ci-branch.mjs delete ci-123-1-int
+//   node scripts/neon-ci-branch.mjs clone-shards ci-123-1-int int_shard_1 int_shard_2
+//   node scripts/neon-ci-branch.mjs connect ci-123-1-int int_shard_1
 //
 // Replaces neondatabase/create-branch-action + delete-branch-action. The reason
 // is not the actions themselves — it is what we had to wrap around them.
@@ -199,6 +201,16 @@ export function makeNeonApi({ apiKey, projectId, fetchImpl = fetch }) {
     deleteBranch: (id) => call(`/branches/${id}`, { method: 'DELETE' }),
     revealPassword: (branchId, roleName) =>
       call(`/branches/${branchId}/roles/${encodeURIComponent(roleName)}/reveal_password`),
+    listDatabases: (branchId) => call(`/branches/${branchId}/databases`),
+    connectionUri: ({ branchId, database, role }) =>
+      call(
+        `/connection_uri?${new URLSearchParams({
+          branch_id: branchId,
+          database_name: database,
+          role_name: role,
+          pooled: 'false',
+        })}`,
+      ),
   }
 }
 
@@ -334,10 +346,80 @@ export async function resolveConnection(api, created) {
   }
 }
 
+export async function resolveCiDatabase(api, { branchName, database = APP_DATABASE }) {
+  if (!/^ci-\d+-\d+-int$/.test(branchName)) throw new Error('Expected an integration CI branch')
+  if (database !== APP_DATABASE && !/^int_shard_[1-9]\d*$/.test(database)) {
+    throw new Error('Expected an integration shard database')
+  }
+  const inventory = await api.listBranches()
+  if (inventory.status !== 200) throw new Error(`Neon list branches failed (${inventory.status})`)
+  const branch = inventory.body.branches?.find((b) => b.name === branchName)
+  if (!branch?.parent_id || branch.default || branch.primary || branch.protected) {
+    throw new Error('Integration CI branch missing or protected')
+  }
+  const databases = await api.listDatabases(branch.id)
+  if (databases.status !== 200) throw new Error(`Neon list databases failed (${databases.status})`)
+  const owner = databases.body.databases?.find((db) => db.name === database)?.owner_name
+  if (!owner) throw new Error(`Database ${database} not found on integration CI branch`)
+  const response = await api.connectionUri({ branchId: branch.id, database, role: owner })
+  if (response.status !== 200 || !response.body.uri) {
+    throw new Error(`Neon connection URI failed (${response.status})`)
+  }
+  const uri = new URL(response.body.uri)
+  if (uri.pathname !== `/${database}` || uri.hostname.split('.')[0].endsWith('-pooler')) {
+    throw new Error('Neon returned an unexpected direct database URI')
+  }
+  return {
+    direct: uri.toString(),
+    pooled: pooledUrl(uri.toString()),
+    password: decodeURIComponent(uri.password),
+  }
+}
+
+export async function cloneShardDatabases(
+  api,
+  { branchName, databases, connect, mask = () => {} },
+) {
+  if (
+    !databases.length ||
+    new Set(databases).size !== databases.length ||
+    databases.some((name) => !/^int_shard_[1-9]\d*$/.test(name))
+  ) {
+    throw new Error('Expected unique integration shard database names')
+  }
+  const connection = await resolveCiDatabase(api, { branchName })
+  mask(connection)
+  const { direct } = connection
+  // The source must have no open sessions while Postgres copies its template.
+  const maintenance = new URL(direct)
+  maintenance.pathname = '/postgres'
+  connect ??= (await import('postgres')).default
+  const sql = connect(maintenance.toString(), { max: 1, prepare: false })
+  try {
+    for (const database of databases) {
+      await sql`CREATE DATABASE ${sql(database)} TEMPLATE ${sql(APP_DATABASE)}`
+    }
+  } finally {
+    await sql.end()
+  }
+}
+
+function maskConnection({ direct, pooled, password }) {
+  if (password) console.log(`::add-mask::${password}`)
+  console.log(`::add-mask::${direct}`)
+  console.log(`::add-mask::${pooled}`)
+}
+
 async function main(argv = process.argv, env = process.env) {
-  const [command, branchName] = argv.slice(2)
-  if (!command || !branchName || !['create', 'delete'].includes(command)) {
-    console.error('usage: node scripts/neon-ci-branch.mjs <create|delete> <branch-name>')
+  const [command, branchName, ...databases] = argv.slice(2)
+  if (
+    !command ||
+    !branchName ||
+    !['create', 'delete', 'connect', 'clone-shards'].includes(command)
+  ) {
+    console.error(
+      'usage: node scripts/neon-ci-branch.mjs <create|delete|connect|clone-shards> <branch-name> [databases...]',
+    )
     return 2
   }
 
@@ -356,16 +438,26 @@ async function main(argv = process.argv, env = process.env) {
     return 0
   }
 
-  if (!parentBranch) {
+  if (command === 'clone-shards') {
+    await cloneShardDatabases(api, { branchName, databases, mask: maskConnection })
+    return 0
+  }
+  if (command === 'connect' && (databases.length !== 1 || !env.GITHUB_OUTPUT)) {
+    console.error('connect requires one database and GITHUB_OUTPUT')
+    return 2
+  }
+  if (command === 'create' && !parentBranch) {
     console.error('NEON_PARENT_BRANCH must be set for `create`')
     return 2
   }
 
-  const created = await createWithWait(api, { branchName, parentBranch })
-  const { direct, pooled, password } = await resolveConnection(api, created)
+  const { direct, pooled, password } =
+    command === 'connect'
+      ? await resolveCiDatabase(api, { branchName, database: databases[0] })
+      : await resolveConnection(api, await createWithWait(api, { branchName, parentBranch }))
 
   // Mask the credential before anything else can echo it into the log.
-  if (password) console.log(`::add-mask::${password}`)
+  maskConnection({ direct, pooled, password })
 
   const out = env.GITHUB_OUTPUT
   if (out) {

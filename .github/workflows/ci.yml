@@ -6,7 +6,8 @@
 # Post single-app merge there is ONE app (apps/mfr) and ONE Neon database.
 # Integration + e2e each run against their own ephemeral Neon branch created off
 # the unified project's production branch; migrations are applied onto it
-# (db:migrate + push-only.sql) and the branch is deleted when the job ends.
+# (db:migrate + push-only.sql). Integration shards use separate database copies
+# within ONE branch; the merge job deletes it after both shards finish.
 # Branch creation waits for a free slot rather than queueing via GitHub
 # `concurrency:` — see the long note on the `integration` job for why.
 name: CI
@@ -137,11 +138,13 @@ jobs:
       - run: npm ci
       - run: npm run build -w apps/mfr
 
-  integration:
-    name: Integration tests + coverage
+  integration-db:
+    name: Prepare integration databases
+    # Retry integration with "Re-run all jobs": cleanup removes the shared
+    # branch even on failure, so rerunning only a shard cannot reuse it.
     runs-on: ubuntu-latest
     # Generous because the job may WAIT for a free Neon branch slot before it
-    # starts (see "Create DB branch" below), on top of its own ~5 min runtime.
+    # starts (see "Create DB branch" below).
     timeout-minutes: 40
     # DELIBERATELY NO `concurrency:` HERE. This job used to carry a repo-global
     # group (`neon-integration`, cancel-in-progress: false) so DB jobs queued
@@ -176,13 +179,79 @@ jobs:
         # blocked-date triggers drizzle-kit can't emit). The branch is forked from
         # `production` (baselined), so this exercises exactly what a deploy would.
         run: npm run db:migrate
-      # Merged unit+integration coverage; the ratchet thresholds in
-      # vitest.config.ts are enforced here (exit 1 on regression).
-      - name: Run tests with coverage
+      - name: Copy migrated production data into isolated shard databases
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: node scripts/neon-ci-branch.mjs clone-shards ci-${{ github.run_id }}-${{ github.run_attempt }}-int int_shard_1 int_shard_2
+
+  integration-shard:
+    name: Integration shard ${{ matrix.shard }}/2
+    needs: integration-db
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # Resolve credentials within each job, never through job outputs/artifacts.
+      - name: Connect to shard database
+        id: db
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: node scripts/neon-ci-branch.mjs connect ci-${{ github.run_id }}-${{ github.run_attempt }}-int int_shard_${{ matrix.shard }}
+      - name: Run shard with coverage
         env:
           TEST_DATABASE_URL: ${{ steps.db.outputs.db_url_pooled }}
           TEST_DIRECT_URL: ${{ steps.db.outputs.db_url }}
-        run: npm run test:coverage -w apps/mfr
+          COVERAGE_SHARD: '1'
+        working-directory: apps/mfr
+        run: npx vitest run --coverage --shard=${{ matrix.shard }}/2 --reporter=default --reporter=blob
+      - name: Upload shard report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: integration-blob-${{ matrix.shard }}
+          path: apps/mfr/.vitest-reports/blob-${{ matrix.shard }}-2.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+
+  integration:
+    name: Integration tests + coverage
+    needs: [integration-db, integration-shard]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Require successful provisioning and both shards
+        env:
+          DB_RESULT: ${{ needs.integration-db.result }}
+          SHARD_RESULT: ${{ needs.integration-shard.result }}
+        run: test "$DB_RESULT" = success && test "$SHARD_RESULT" = success
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: integration-blob-*
+          merge-multiple: true
+          path: apps/mfr/.vitest-reports
+      - name: Merge unit and integration coverage and enforce original thresholds
+        working-directory: apps/mfr
+        run: |
+          test -s .vitest-reports/blob-1-2.json
+          test -s .vitest-reports/blob-2-2.json
+          npx vitest run --merge-reports --coverage
       - name: Coverage summary
         if: always()
         run: |

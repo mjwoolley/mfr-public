@@ -12,6 +12,7 @@ test-results/
 playwright-report/
 .env*
 coverage/
+.vitest-reports/
 .stryker-tmp/
 # Stryker mutation reports (NOT a bare `reports/` — that would ignore real
 # source like apps/accounting/src/app/accounting/reports/)
