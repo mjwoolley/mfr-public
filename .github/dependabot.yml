@@ -8,19 +8,28 @@
 # dependency PRs were 10 of 22 -- pure cadence cost. SECURITY updates ignore
 # this schedule entirely and still arrive as soon as an advisory lands, so
 # slowing the routine cadence costs nothing on the axis that matters.
+# Group security updates separately: they also bypass the routine PR limit,
+# and individual PR previews can exhaust the free Neon branch allowance.
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 1
     schedule:
       interval: monthly
     groups:
-      # Everything shippable lands in a single weekly PR.
+      # Routine minor and patch updates land in a single monthly PR.
       minor-and-patch:
+        applies-to: version-updates
+        patterns:
+          - '*'
         update-types:
           - minor
           - patch
+      security:
+        applies-to: security-updates
+        patterns:
+          - '*'
     ignore:
       # Stay current on minor/patch, but never auto-propose a major-version
       # jump — majors are breaking changes to adopt deliberately, not on
@@ -45,7 +54,7 @@ updates:
         versions: ['>=0.35.0']
   - package-ecosystem: github-actions
     directory: /
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 1
     schedule:
       interval: monthly
     # One grouped PR for all action bumps. Majors are NOT ignored here on
@@ -54,5 +63,10 @@ updates:
     # and let deprecations (e.g. the Node 20 runner sunset) pile up silently.
     groups:
       github-actions:
+        applies-to: version-updates
+        patterns:
+          - '*'
+      github-actions-security:
+        applies-to: security-updates
         patterns:
           - '*'
