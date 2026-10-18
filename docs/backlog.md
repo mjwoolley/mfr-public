@@ -24,30 +24,21 @@ grew a Link button that suggests logins by name. What's left:
   `handleNewSignup` writes a `user_auto_approved` activity row, but the
   `extendSession` link at sign-in still happens silently.
 
-### 2. Member suggestions / feedback
+### 2. Member Feedback
 
-**Problem.** Members have no in-app way to send an idea, request, or gripe to
-the admins. Feedback happens over text/email and gets lost.
+**Problem.** Members have no in-app way to send an idea, request, complaint or
+bug report to the admins. Feedback happens over text or email and gets lost.
 
-**Desired behavior.** A lightweight "Suggest something" box any signed-in member
-can reach (e.g. a link in the footer or dashboard). Submitting records the
-suggestion with the author and timestamp and notifies the admins; admins see a
-list they can read and mark handled/dismissed.
+**Specified behavior.** Approved members get a small floating Feedback control
+on every portal page. One plain-text message creates a labeled Task on the
+existing Jira board, then MFR sends the member and site admins email updates.
+Members are notified of every Jira status change, including moves to To Do.
+Member email replies add a comment to the same Jira issue and are also delivered
+to the site-admin mailbox.
+Jira is the system of record; no Feedback table or Admin list is added to MFR.
 
-**Sketch (keep it small):**
-
-- New `Suggestion` model (id, author link to identity user, body, createdAt,
-  status: `OPEN` / `HANDLED` / `DISMISSED`, optional admin note). Lives in the
-  accounting DB alongside the rest of the domain data.
-- Member side: a short form (textarea + submit) behind the normal shareholder
-  auth gate; confirmation toast on submit. No editing after send — keep it
-  append-only.
-- Admin side: a simple list under Admin with status controls, newest first.
-  Reuse the existing email helper to notify admins on new submissions.
-
-**Open questions:** where the entry point lives (footer vs dashboard card);
-whether non-shareholder portal users can submit too; whether to allow optional
-categories/tags or keep it a single free-text field to start.
+The full design, including Jira project `KAN`, status notifications, failure
+behavior and security checks, is [CAP-048](../requirements/portal/member-feedback.md).
 
 ### 3. Google Chat integration (or a link to it)
 
