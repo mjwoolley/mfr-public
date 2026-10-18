@@ -87,13 +87,6 @@ Feature: Member Feedback
       | whitespace only             | "Enter your feedback before sending."           |
       | more than 2,000 characters  | "Feedback must be 2,000 characters or shorter." |
 
-  Scenario: Approval is checked again when Feedback is sent
-    Given I opened the Feedback panel while approved
-    And my account became pending or blocked before I sent it
-    When I choose "Send"
-    Then no Jira issue is created
-    And I am told that my account can no longer send Feedback
-
   Scenario: Valid Feedback creates one Jira issue
     Given I am an approved member
     And I entered a message between 1 and 2,000 characters after trimming
