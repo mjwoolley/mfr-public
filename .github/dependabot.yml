@@ -1,5 +1,6 @@
-# Monthly dependency update PRs. npm workspaces are handled from the root
-# lockfile. Grouping + a low PR limit keep the volume down: without them
+# Monthly dependency update PRs. npm workspaces share the root lockfile,
+# but security-update rules must cover each workspace's manifest directory.
+# Grouping + a low PR limit keep the volume down: without them
 # Dependabot's first run opened nine PRs at once, each triggering a full CI
 # run and three Vercel preview builds.
 #
@@ -13,7 +14,10 @@
 version: 2
 updates:
   - package-ecosystem: npm
-    directory: /
+    directories:
+      - /
+      - /apps/*
+      - /packages/*
     open-pull-requests-limit: 1
     schedule:
       interval: monthly
