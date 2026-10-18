@@ -396,8 +396,16 @@ export async function cloneShardDatabases(
   connect ??= (await import('postgres')).default
   const sql = connect(maintenance.toString(), { max: 1, prepare: false })
   try {
-    for (const database of databases) {
-      await sql`CREATE DATABASE ${sql(database)} TEMPLATE ${sql(APP_DATABASE)}`
+    await sql`ALTER DATABASE ${sql(APP_DATABASE)} ALLOW_CONNECTIONS false`
+    try {
+      // Neon may retain idle connections after migration; this is CI-only.
+      await sql`SELECT pg_terminate_backend(pid, 5000) FROM pg_stat_activity
+        WHERE datname = ${APP_DATABASE} AND usename = current_user AND pid <> pg_backend_pid()`
+      for (const database of databases) {
+        await sql`CREATE DATABASE ${sql(database)} TEMPLATE ${sql(APP_DATABASE)}`
+      }
+    } finally {
+      await sql`ALTER DATABASE ${sql(APP_DATABASE)} ALLOW_CONNECTIONS true`
     }
   } finally {
     await sql.end()

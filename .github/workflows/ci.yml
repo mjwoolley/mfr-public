@@ -213,8 +213,27 @@ jobs:
           COVERAGE_SHARD: '1'
         working-directory: apps/mfr
         run: npx vitest run --coverage --shard=${{ matrix.shard }}/2 --reporter=default --reporter=blob
+      - name: Redact database credentials from shard report
+        id: redact
+        if: always() && steps.db.outcome == 'success'
+        env:
+          TEST_DATABASE_URL: ${{ steps.db.outputs.db_url_pooled }}
+          TEST_DIRECT_URL: ${{ steps.db.outputs.db_url }}
+          REPORT_PATH: apps/mfr/.vitest-reports/blob-${{ matrix.shard }}-2.json
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs'
+          const urls = [process.env.TEST_DATABASE_URL, process.env.TEST_DIRECT_URL]
+          const secrets = urls.flatMap(url => [url, new URL(url).password, decodeURIComponent(new URL(url).password)])
+          let report = fs.readFileSync(process.env.REPORT_PATH, 'utf8')
+          for (const secret of [...new Set(secrets)].filter(Boolean).sort((a, b) => b.length - a.length)) {
+            report = report.replaceAll(JSON.stringify(secret).slice(1, -1), '[REDACTED]')
+          }
+          JSON.parse(report)
+          fs.writeFileSync(process.env.REPORT_PATH, report)
+          JS
       - name: Upload shard report
-        if: always()
+        if: always() && steps.redact.outcome == 'success'
         uses: actions/upload-artifact@v7
         with:
           name: integration-blob-${{ matrix.shard }}

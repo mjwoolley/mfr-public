@@ -153,7 +153,7 @@ test('shard databases copy the migrated application template through the mainten
     const sql = (strings, ...values) => {
       if (typeof strings === 'string') return { identifier: strings }
       calls.push([strings.join('?'), values])
-      if (fail) throw new Error('template unavailable')
+      if (fail && strings[0].startsWith('CREATE DATABASE')) throw new Error('template unavailable')
     }
     let ended = false
     sql.end = async () => {
@@ -173,13 +173,24 @@ test('shard databases copy the migrated application template through the mainten
     else {
       await result
       assert.deepEqual(
-        calls,
+        calls.filter(([query]) => query.startsWith('CREATE DATABASE')),
         ['int_shard_1', 'int_shard_2'].map((name) => [
           'CREATE DATABASE ? TEMPLATE ?',
           [{ identifier: name }, { identifier: 'neondb' }],
         ]),
       )
     }
+    assert.deepEqual(calls[0], [
+      'ALTER DATABASE ? ALLOW_CONNECTIONS false',
+      [{ identifier: 'neondb' }],
+    ])
+    assert.match(calls[1][0], /pg_terminate_backend\(pid, 5000\).*pg_stat_activity/s)
+    assert.match(calls[1][0], /usename = current_user/)
+    assert.deepEqual(calls[1][1], ['neondb'])
+    assert.deepEqual(calls.at(-1), [
+      'ALTER DATABASE ? ALLOW_CONNECTIONS true',
+      [{ identifier: 'neondb' }],
+    ])
     assert.equal(ended, true)
   }
 })
