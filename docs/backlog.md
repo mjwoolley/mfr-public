@@ -346,3 +346,21 @@ Backup branches to delete:
 - `backup-pre-fy2025-import` — `br-nameless-lab-a63u9jh0`
 - `backup-2026-07-12-pre-fy2024-detail` — `br-weathered-lake-a6oezehk`
 - `backup-pre-fy2021-import` — `br-muddy-cake-a69zz297`
+
+### Exercise the Feedback → Jira path on previews
+
+`e2e/preview/feedback.spec.ts` (run by `preview-smoke.yml` on every preview
+deploy) drives the CAP-048 Feedback panel on real Vercel infrastructure, but
+Preview deliberately has no `JIRA_FEEDBACK_*` secrets, so Send ends at the
+"unavailable" error. Nothing anywhere exercises the real create-a-Task path
+except a manual submission on production after each deploy.
+
+If that ever bites (a Jira API or ADF change that CI's fakes don't model), the
+spec's `member-feedback.md` contract allows the fix: give the Vercel **Preview**
+environment its own least-privilege Jira credential pointing at a sandbox
+project (or `KAN` with a distinct label such as `mfr-feedback-preview`), plus
+`FEEDBACK_REPLY_DOMAIN`/`FEEDBACK_REPLY_TOKEN_SECRET` if the Reply-To address
+should be exercised too. Then switch the spec to assert the success
+confirmation and delete the Task it created through the same credential, the
+way `upload.spec.ts` deletes its blob. Not built yet because the problem has
+not occurred.
