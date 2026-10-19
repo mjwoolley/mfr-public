@@ -96,15 +96,32 @@ describe('SES receipt checks', () => {
     expect(senderAuthenticated(receipt)).toBe(ok)
   })
 
-  it('decodes UTF-8 and Base64 content', () => {
+  it('passes UTF-8 content through and keeps Base64 content as raw bytes', () => {
     expect(rawMime({ content: 'raw', receipt: { action: { encoding: 'UTF8' } } })).toBe('raw')
-    expect(
-      rawMime({
-        content: Buffer.from('raw').toString('base64'),
-        receipt: { action: { encoding: 'BASE64' } },
-      }),
-    ).toBe('raw')
+    const decoded = rawMime({
+      content: Buffer.from('raw').toString('base64'),
+      receipt: { action: { encoding: 'BASE64' } },
+    })
+    expect(Buffer.isBuffer(decoded)).toBe(true)
+    expect(decoded?.toString()).toBe('raw')
     expect(rawMime({})).toBeNull()
+  })
+
+  it('preserves non-UTF-8 8bit bodies when given raw bytes', async () => {
+    const config = { domain: 'reply.example.org', tokenSecret: 's' }
+    const to = 'feedback+kan-1-0123456789abcdef0123456789@reply.example.org'
+    const mime = Buffer.concat([
+      Buffer.from(
+        `From: Ann <ann@x.org>\r\nTo: ${to}\r\nContent-Type: text/plain; charset=iso-8859-1\r\nContent-Transfer-Encoding: 8bit\r\n\r\n`,
+        'ascii',
+      ),
+      Buffer.from('caf\xe9', 'latin1'),
+    ])
+    const parsed = await parseReplyEmail(mime, 'ann@x.org', [], config)
+    expect(parsed.text).toBe('café')
+    // Decoding the same bytes as UTF-8 before parsing would have lost the "é".
+    const garbled = await parseReplyEmail(mime.toString('utf8'), 'ann@x.org', [], config)
+    expect(garbled.text).not.toBe('café')
   })
 
   it.each([

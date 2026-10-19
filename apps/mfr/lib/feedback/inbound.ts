@@ -152,10 +152,15 @@ export function senderAuthenticated(r: SesReceipt['receipt']): boolean {
   return status(r.dmarcVerdict) === 'PASS'
 }
 
-export function rawMime(n: SesReceipt): string | null {
+/**
+ * Base64 content is handed on as raw bytes so PostalMime can honour the
+ * message's declared charset; decoding to UTF-8 here would garble 8bit
+ * bodies in other charsets (e.g. ISO-8859-1) before they reach the parser.
+ */
+export function rawMime(n: SesReceipt): Buffer | string | null {
   if (typeof n.content !== 'string') return null
   return n.receipt?.action?.encoding?.toUpperCase() === 'BASE64'
-    ? Buffer.from(n.content, 'base64').toString('utf8')
+    ? Buffer.from(n.content, 'base64')
     : n.content
 }
 
@@ -200,7 +205,7 @@ export function isAutomated(
 }
 
 export async function parseReplyEmail(
-  mime: string,
+  mime: Buffer | string,
   envelopeSender: string,
   recipients: string[],
   config: FeedbackReplyConfig,
