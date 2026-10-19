@@ -59,21 +59,21 @@ callbacks return 404.
 
 All are server-only. Set them on the `mfr_web` Vercel project.
 
-| Variable                           | Value                                                                                                  |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `JIRA_FEEDBACK_CLOUD_ID`           | The Jira site's cloud id (`https://<site>.atlassian.net/_edge/tenant_info`)                            |
-| `JIRA_FEEDBACK_PROJECT_KEY`        | `KAN` (default)                                                                                        |
-| `JIRA_FEEDBACK_ISSUE_TYPE`         | `Task` (default)                                                                                       |
-| `JIRA_FEEDBACK_LABEL`              | `mfr-feedback` (default)                                                                               |
-| `JIRA_FEEDBACK_CLIENT_ID`          | OAuth client id of the MFR service account's credential                                                |
-| `JIRA_FEEDBACK_CLIENT_SECRET`      | Its client secret                                                                                      |
-| `JIRA_FEEDBACK_CREATOR_ACCOUNT_ID` | The service account's Atlassian account id (issue creator check)                                       |
-| `JIRA_FEEDBACK_WEBHOOK_SECRET`     | Random secret the Automation rule sends as `Authorization: Bearer`                                     |
-| `FEEDBACK_REPLY_DOMAIN`            | Inbound reply domain, e.g. `reply.millerfamilyreunions.org`                                            |
-| `FEEDBACK_REPLY_TOKEN_SECRET`      | Random secret that signs reply addresses (rotating it breaks old addresses)                            |
-| `FEEDBACK_INBOUND_WEBHOOK_SECRET`  | Random secret in the SNS subscription URL's `token` parameter                                          |
-| `FEEDBACK_SNS_TOPIC_ARN`           | ARN of the `mfr-feedback-replies` topic; notifications from any other topic are rejected (recommended) |
-| `FEEDBACK_REPLY_TO`                | Site-admin mailbox that receives forwarded member replies                                              |
+| Variable                           | Value                                                                                                                                    |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `JIRA_FEEDBACK_CLOUD_ID`           | The Jira site's cloud id (`https://<site>.atlassian.net/_edge/tenant_info`)                                                              |
+| `JIRA_FEEDBACK_PROJECT_KEY`        | `KAN` (default)                                                                                                                          |
+| `JIRA_FEEDBACK_ISSUE_TYPE`         | `Task` (default)                                                                                                                         |
+| `JIRA_FEEDBACK_LABEL`              | `mfr-feedback` (default)                                                                                                                 |
+| `JIRA_FEEDBACK_CLIENT_ID`          | OAuth client id of the MFR service account's credential                                                                                  |
+| `JIRA_FEEDBACK_CLIENT_SECRET`      | Its client secret                                                                                                                        |
+| `JIRA_FEEDBACK_CREATOR_ACCOUNT_ID` | The service account's Atlassian account id (issue creator check)                                                                         |
+| `JIRA_FEEDBACK_WEBHOOK_SECRET`     | Random secret the Automation rule sends as `Authorization: Bearer`                                                                       |
+| `FEEDBACK_REPLY_DOMAIN`            | Inbound reply domain, e.g. `reply.millerfamilyreunions.org`                                                                              |
+| `FEEDBACK_REPLY_TOKEN_SECRET`      | Random secret that signs reply addresses (rotating it breaks old addresses)                                                              |
+| `FEEDBACK_INBOUND_WEBHOOK_SECRET`  | Random secret in the SNS subscription URL's `token` parameter                                                                            |
+| `FEEDBACK_SNS_TOPIC_ARN`           | ARN of the `mfr-feedback-replies` topic; required: replies stay off until it is set, and notifications from any other topic are rejected |
+| `FEEDBACK_REPLY_TO`                | Site-admin mailbox that receives forwarded member replies                                                                                |
 
 Generate secrets with `openssl rand -hex 32`.
 

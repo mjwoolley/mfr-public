@@ -57,8 +57,8 @@ export function inboundWebhookSecret(): string | null {
 }
 
 /**
- * The SNS topic SES publishes inbound replies to. When set, notifications
- * from any other (even AWS-signed) topic are rejected.
+ * The SNS topic SES publishes inbound replies to. Required for the reply
+ * route: notifications from any other (even AWS-signed) topic are rejected.
  */
 export function inboundTopicArn(): string | null {
   return env('FEEDBACK_SNS_TOPIC_ARN') || null

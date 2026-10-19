@@ -709,13 +709,15 @@ describe('CAP-048 Member Feedback · email replies', () => {
 
   it('CAP-048 · Untrusted email replies: a signed message from another SNS topic is rejected', async () => {
     seedIssue()
-    vi.stubEnv('FEEDBACK_SNS_TOPIC_ARN', 'arn:aws:sns:us-east-1:123:mfr-feedback-replies')
-    expect((await emailReply(replyRequest(memberReply()))).status).toBe(200)
-    expect(jira.issues.get('KAN-123')!.comments).toHaveLength(1)
-    vi.stubEnv('FEEDBACK_SNS_TOPIC_ARN', 'arn:aws:sns:us-east-1:999:somebody-elses-topic')
-    expect((await emailReply(replyRequest(memberReply()))).status).toBe(401)
-    expect(jira.issues.get('KAN-123')!.comments).toHaveLength(1)
-    expect(sendEmailMock).toHaveBeenCalledTimes(1)
+    const foreign = snsNotification(JSON.parse(memberReply().Message), {
+      TopicArn: 'arn:aws:sns:us-east-1:999:somebody-elses-topic',
+    })
+    expect((await emailReply(replyRequest(foreign))).status).toBe(401)
+    expect(jira.issues.get('KAN-123')!.comments).toHaveLength(0)
+    expect(sendEmailMock).not.toHaveBeenCalled()
+    // Replies stay off entirely until the topic is bound.
+    vi.stubEnv('FEEDBACK_SNS_TOPIC_ARN', '')
+    expect((await emailReply(replyRequest(memberReply()))).status).toBe(404)
   })
 
   it('reports a rejected SNS subscription confirmation instead of claiming success', async () => {
@@ -729,7 +731,7 @@ describe('CAP-048 Member Feedback · email replies', () => {
     const confirmation = signSns({
       Type: 'SubscriptionConfirmation',
       MessageId: 'm',
-      TopicArn: 'arn:aws:sns:us-east-1:123:t',
+      TopicArn: JIRA_ENV.FEEDBACK_SNS_TOPIC_ARN,
       Message: 'confirm',
       Timestamp: new Date().toISOString(),
       Token: 'tok',
@@ -768,7 +770,7 @@ describe('CAP-048 Member Feedback · email replies', () => {
     const confirmation = signSns({
       Type: 'SubscriptionConfirmation',
       MessageId: 'm',
-      TopicArn: 'arn:aws:sns:us-east-1:123:t',
+      TopicArn: JIRA_ENV.FEEDBACK_SNS_TOPIC_ARN,
       Message: 'confirm',
       Timestamp: new Date().toISOString(),
       Token: 'tok',
@@ -791,7 +793,7 @@ describe('CAP-048 Member Feedback · email replies', () => {
       signSns({
         Type: 'SubscriptionConfirmation',
         MessageId: 'm',
-        TopicArn: 'arn:aws:sns:us-east-1:123:t',
+        TopicArn: JIRA_ENV.FEEDBACK_SNS_TOPIC_ARN,
         Message: 'confirm',
         Timestamp: new Date().toISOString(),
         Token: 'tok',
@@ -802,7 +804,7 @@ describe('CAP-048 Member Feedback · email replies', () => {
     const notJson = signSns({
       Type: 'Notification',
       MessageId: 'n',
-      TopicArn: 't',
+      TopicArn: JIRA_ENV.FEEDBACK_SNS_TOPIC_ARN,
       Message: 'not json',
       Timestamp: new Date().toISOString(),
     })
@@ -813,7 +815,7 @@ describe('CAP-048 Member Feedback · email replies', () => {
     const other = signSns({
       Type: 'UnsubscribeConfirmation',
       MessageId: 'u',
-      TopicArn: 't',
+      TopicArn: JIRA_ENV.FEEDBACK_SNS_TOPIC_ARN,
       Message: 'bye',
       Timestamp: new Date().toISOString(),
       Token: 't',

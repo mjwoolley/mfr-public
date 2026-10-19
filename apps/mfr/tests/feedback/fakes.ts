@@ -17,6 +17,7 @@ export const JIRA_ENV = {
   FEEDBACK_REPLY_DOMAIN: 'reply.example.org',
   FEEDBACK_REPLY_TOKEN_SECRET: 'reply-token-secret',
   FEEDBACK_INBOUND_WEBHOOK_SECRET: 'inbound-secret',
+  FEEDBACK_SNS_TOPIC_ARN: 'arn:aws:sns:us-east-1:123:mfr-feedback-replies',
   FEEDBACK_REPLY_TO: 'admins@example.org',
 }
 

@@ -148,11 +148,27 @@ describe('CAP-048 Member Feedback · the panel', () => {
     await openPanel()
     fireEvent.change(box(), { target: { value: 'Dock light is out.' } })
     fireEvent.click(screen.getByRole('button', { name: 'Send' }))
-    fireEvent.change(box(), { target: { value: 'Also the gate is broken.' } })
+    // Appended while in flight: only the appended part survives, so a second
+    // Send cannot repeat the dock report.
+    fireEvent.change(box(), { target: { value: 'Dock light is out. Also the gate is broken.' } })
     await act(async () => resolve(new Response('{"ok":true}')))
     await waitFor(() => expect(document.querySelector('dialog')).toBeNull())
     await openPanel()
     expect(box().value).toBe('Also the gate is broken.')
+  })
+
+  it('keeps a draft rewritten during a send whole', async () => {
+    let resolve!: (r: Response) => void
+    fetchMock.mockReturnValue(new Promise<Response>((r) => (resolve = r)))
+    render(<FeedbackButton />)
+    await openPanel()
+    fireEvent.change(box(), { target: { value: 'Dock light is out.' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+    fireEvent.change(box(), { target: { value: 'The gate is broken.' } })
+    await act(async () => resolve(new Response('{"ok":true}')))
+    await waitFor(() => expect(document.querySelector('dialog')).toBeNull())
+    await openPanel()
+    expect(box().value).toBe('The gate is broken.')
   })
 
   it('CAP-048 · A successful submission confirms receipt without exposing Jira', async () => {

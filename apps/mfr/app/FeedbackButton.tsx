@@ -93,8 +93,10 @@ export function FeedbackButton() {
         body: JSON.stringify({ message: check.message, pagePath: pathname }),
       })
       if (res.ok) {
-        // Only clear what was sent; keep anything typed while it was in flight.
-        setDraft((d) => (d === submitted ? '' : d))
+        // Clear only what was sent. Text appended while the request was in
+        // flight is kept on its own, so it cannot resend the first message;
+        // any other edit is kept whole rather than guessed at.
+        setDraft((d) => (d.startsWith(submitted) ? d.slice(submitted.length).trimStart() : d))
         setOpen(false)
         setConfirmation(FEEDBACK_SENT)
         return

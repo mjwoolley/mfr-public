@@ -34,7 +34,10 @@ export async function POST(request: Request): Promise<Response> {
   const secret = inboundWebhookSecret()
   const jira = jiraFeedbackConfig()
   const reply = feedbackReplyConfig()
-  if (!secret || !jira || !reply) return Response.json({ error: 'Not configured' }, { status: 404 })
+  const topic = inboundTopicArn()
+  if (!secret || !jira || !reply || !topic) {
+    return Response.json({ error: 'Not configured' }, { status: 404 })
+  }
   if (!tokenMatches(new URL(request.url).searchParams.get('token'), secret)) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -56,8 +59,8 @@ export async function POST(request: Request): Promise<Response> {
     logger.error({ err, messageId: message.MessageId }, 'feedback reply: SNS cert unavailable')
     return unavailable()
   }
-  const topic = inboundTopicArn()
-  if (!signed || (topic && message.TopicArn !== topic)) {
+  // Only our SES topic may drive this route, however well-signed the message.
+  if (!signed || message.TopicArn !== topic) {
     logger.warn({ messageId: message.MessageId }, 'feedback reply: rejected SNS message')
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
