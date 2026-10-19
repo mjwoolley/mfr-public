@@ -154,3 +154,26 @@ describe('CAP-007 Site navigation', () => {
     expect(header).not.toContain('href="/sign-in"')
   })
 })
+
+describe('CAP-048 Member Feedback', () => {
+  beforeEach(() => {
+    settingsMock.mockResolvedValue(settings)
+  })
+
+  it.each([
+    ['approved', sessionWith(null), true],
+    ['signed out', null, false],
+    ['pending', { user: { ...sessionWith(null).user, status: 'pending' } }, false],
+    ['blocked', { user: { ...sessionWith(null).user, status: 'blocked' } }, false],
+  ])('CAP-048 · Only approved members see the Feedback button: %s', async (_s, session, shown) => {
+    authMock.mockResolvedValue(session)
+    const html = await render()
+    expect(html.includes('aria-label="Feedback"')).toBe(shown)
+  })
+
+  it('CAP-048 · Admins do not manage a Feedback feature switch', async () => {
+    const { readFileSync } = await import('node:fs')
+    const schema = readFileSync(new URL('../lib/db/schema/portal.ts', import.meta.url), 'utf8')
+    expect(schema).not.toMatch(/feedback/i)
+  })
+})

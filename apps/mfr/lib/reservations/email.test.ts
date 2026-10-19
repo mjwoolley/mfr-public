@@ -107,9 +107,9 @@ describe('sendEmail', () => {
 
   it('logs and does not throw when the SES send fails', async () => {
     sendMock.mockRejectedValue(new Error('credentials missing'))
-    await expect(
-      sendEmail({ to: 'owner@example.com', subject: 'Test', react }),
-    ).resolves.toBeUndefined()
+    await expect(sendEmail({ to: 'owner@example.com', subject: 'Test', react })).resolves.toBe(
+      false,
+    )
     expect(logger.error).toHaveBeenCalled()
   })
 })

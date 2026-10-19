@@ -24,23 +24,7 @@ grew a Link button that suggests logins by name. What's left:
   `handleNewSignup` writes a `user_auto_approved` activity row, but the
   `extendSession` link at sign-in still happens silently.
 
-### 2. Member Feedback
-
-**Problem.** Members have no in-app way to send an idea, request, complaint or
-bug report to the admins. Feedback happens over text or email and gets lost.
-
-**Specified behavior.** Approved members get a small floating Feedback control
-on every portal page. One plain-text message creates a labeled Task on the
-existing Jira board, then MFR sends the member and site admins email updates.
-Members are notified of every Jira status change, including moves to To Do.
-Member email replies add a comment to the same Jira issue and are also delivered
-to the site-admin mailbox.
-Jira is the system of record; no Feedback table or Admin list is added to MFR.
-
-The full design, including Jira project `KAN`, status notifications, failure
-behavior and security checks, is [CAP-048](../requirements/portal/member-feedback.md).
-
-### 3. Google Chat integration (or a link to it)
+### 2. Google Chat integration (or a link to it)
 
 **Problem.** The family coordinates in a Google Chat space, but there's no path
 to it from the portal — members have to know it exists and find it themselves.
@@ -58,7 +42,7 @@ with the cheap version and only go deeper if it's worth it:
 **Open questions:** one shared space vs per-topic; whether deep integration is
 worth the OAuth/API scope cost versus just a link; who administers the space.
 
-### 4. Member photo gallery (in-site uploads) — SHIPPED
+### 3. Member photo gallery (in-site uploads) — SHIPPED
 
 The in-site gallery is built (see `docs/photos-design.md` → "Member photo
 gallery"): approved members add photos on `/photos` (Albums), which groups the
@@ -362,3 +346,21 @@ Backup branches to delete:
 - `backup-pre-fy2025-import` — `br-nameless-lab-a63u9jh0`
 - `backup-2026-07-12-pre-fy2024-detail` — `br-weathered-lake-a6oezehk`
 - `backup-pre-fy2021-import` — `br-muddy-cake-a69zz297`
+
+### Exercise the Feedback → Jira path on previews
+
+`e2e/preview/feedback.spec.ts` (run by `preview-smoke.yml` on every preview
+deploy) drives the CAP-048 Feedback panel on real Vercel infrastructure, but
+Preview deliberately has no `JIRA_FEEDBACK_*` secrets, so Send ends at the
+"unavailable" error. Nothing anywhere exercises the real create-a-Task path
+except a manual submission on production after each deploy.
+
+If that ever bites (a Jira API or ADF change that CI's fakes don't model), the
+spec's `member-feedback.md` contract allows the fix: give the Vercel **Preview**
+environment its own least-privilege Jira credential pointing at a sandbox
+project (or `KAN` with a distinct label such as `mfr-feedback-preview`), plus
+`FEEDBACK_REPLY_DOMAIN`/`FEEDBACK_REPLY_TOKEN_SECRET` if the Reply-To address
+should be exercised too. Then switch the spec to assert the success
+confirmation and delete the Task it created through the same credential, the
+way `upload.spec.ts` deletes its blob. Not built yet because the problem has
+not occurred.

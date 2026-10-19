@@ -2,7 +2,7 @@
 id: CAP-048
 title: Member Feedback
 area: portal
-status: proposed
+status: implemented
 source: specified
 related: [CAP-003, CAP-004, CAP-010]
 ---
@@ -365,6 +365,7 @@ Feature: Member Feedback
 - `FEEDBACK_REPLY_DOMAIN` (inbound domain for issue-specific member replies)
 - `FEEDBACK_REPLY_TOKEN_SECRET` (protects issue/member routing data)
 - `FEEDBACK_INBOUND_WEBHOOK_SECRET` (provider callback verification credential)
+- `FEEDBACK_SNS_TOPIC_ARN` (binds inbound callbacks to the one SNS topic)
 - `FEEDBACK_REPLY_TO` (destination site-admin mailbox, not the member Reply-To)
 
 Secrets are stored in Vercel and are never exposed to the browser. Production
