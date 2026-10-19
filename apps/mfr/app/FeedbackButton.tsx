@@ -85,7 +85,6 @@ export function FeedbackButton() {
     inFlight.current = true
     setSending(true)
     setError(null)
-    const submitted = draft
     try {
       const res = await fetch('/api/feedback', {
         method: 'POST',
@@ -93,10 +92,8 @@ export function FeedbackButton() {
         body: JSON.stringify({ message: check.message, pagePath: pathname }),
       })
       if (res.ok) {
-        // Clear only what was sent. Text appended while the request was in
-        // flight is kept on its own, so it cannot resend the first message;
-        // any other edit is kept whole rather than guessed at.
-        setDraft((d) => (d.startsWith(submitted) ? d.slice(submitted.length).trimStart() : d))
+        // The box is read-only while sending, so the draft is exactly what went out.
+        setDraft('')
         setOpen(false)
         setConfirmation(FEEDBACK_SENT)
         return
@@ -158,6 +155,9 @@ export function FeedbackButton() {
               ref={textareaRef}
               className="input min-h-32"
               value={draft}
+              // Frozen while the request is in flight: an edit mid-send can't be
+              // told apart from an append, and the box must match what was sent.
+              readOnly={sending}
               maxLength={MAX_FEEDBACK_LENGTH + 500}
               aria-invalid={error ? true : undefined}
               aria-describedby={error ? 'feedback-error' : undefined}

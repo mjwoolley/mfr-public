@@ -141,34 +141,18 @@ describe('CAP-048 Member Feedback · the panel', () => {
     await act(async () => resolve(new Response('{"ok":true}')))
   })
 
-  it('keeps text typed while a send is in flight instead of clearing it with the sent draft', async () => {
+  it('freezes the message box while a send is in flight and unfreezes it on failure', async () => {
     let resolve!: (r: Response) => void
     fetchMock.mockReturnValue(new Promise<Response>((r) => (resolve = r)))
     render(<FeedbackButton />)
     await openPanel()
     fireEvent.change(box(), { target: { value: 'Dock light is out.' } })
     fireEvent.click(screen.getByRole('button', { name: 'Send' }))
-    // Appended while in flight: only the appended part survives, so a second
-    // Send cannot repeat the dock report.
-    fireEvent.change(box(), { target: { value: 'Dock light is out. Also the gate is broken.' } })
-    await act(async () => resolve(new Response('{"ok":true}')))
-    await waitFor(() => expect(document.querySelector('dialog')).toBeNull())
-    await openPanel()
-    expect(box().value).toBe('Also the gate is broken.')
-  })
-
-  it('keeps a draft rewritten during a send whole', async () => {
-    let resolve!: (r: Response) => void
-    fetchMock.mockReturnValue(new Promise<Response>((r) => (resolve = r)))
-    render(<FeedbackButton />)
-    await openPanel()
-    fireEvent.change(box(), { target: { value: 'Dock light is out.' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
-    fireEvent.change(box(), { target: { value: 'The gate is broken.' } })
-    await act(async () => resolve(new Response('{"ok":true}')))
-    await waitFor(() => expect(document.querySelector('dialog')).toBeNull())
-    await openPanel()
-    expect(box().value).toBe('The gate is broken.')
+    // What is in the box is exactly what was sent, so it can't drift mid-flight.
+    expect(box().readOnly).toBe(true)
+    await act(async () => resolve(new Response('{"error":"x"}', { status: 502 })))
+    await waitFor(() => expect(box().readOnly).toBe(false))
+    expect(box().value).toBe('Dock light is out.')
   })
 
   it('CAP-048 · A successful submission confirms receipt without exposing Jira', async () => {
