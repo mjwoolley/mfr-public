@@ -104,7 +104,8 @@ test.describe('shareholder linking', () => {
 
     // A confirmation naming both sides, not a link.
     await expect(page.getByText(/doesn't appear in/)).toBeVisible()
-    await page.getByRole('button', { name: 'Back' }).click()
+    // exact: the global "Feedback" button also matches a substring "Back".
+    await page.getByRole('button', { name: 'Back', exact: true }).click()
 
     await page.goto(SHAREHOLDERS)
     await expect(
