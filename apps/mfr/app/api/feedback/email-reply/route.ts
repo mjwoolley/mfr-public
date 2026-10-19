@@ -8,6 +8,7 @@ import { timingSafeEqual } from 'node:crypto'
 import { logger } from '@/lib/reservations/logger'
 import {
   feedbackReplyConfig,
+  inboundTopicArn,
   inboundWebhookSecret,
   jiraFeedbackConfig,
 } from '@/lib/feedback/config'
@@ -16,9 +17,12 @@ import {
   isFresh,
   isTrustedCertUrl,
   parseSnsMessage,
+  SnsCertUnavailableError,
   verifySnsSignature,
   type SesReceipt,
 } from '@/lib/feedback/inbound'
+
+const unavailable = () => Response.json({ error: 'Temporarily unavailable' }, { status: 503 })
 
 function tokenMatches(given: string | null, secret: string): boolean {
   const a = Buffer.from(given ?? '')
@@ -43,7 +47,17 @@ export async function POST(request: Request): Promise<Response> {
     message = null
   }
   if (!message) return Response.json({ error: 'Invalid payload' }, { status: 400 })
-  if (!isFresh(message) || !(await verifySnsSignature(message))) {
+  let signed = false
+  try {
+    signed = isFresh(message) && (await verifySnsSignature(message))
+  } catch (err) {
+    if (!(err instanceof SnsCertUnavailableError)) throw err
+    // Not a bad signature: the cert could not be fetched. Let SNS retry.
+    logger.error({ err, messageId: message.MessageId }, 'feedback reply: SNS cert unavailable')
+    return unavailable()
+  }
+  const topic = inboundTopicArn()
+  if (!signed || (topic && message.TopicArn !== topic)) {
     logger.warn({ messageId: message.MessageId }, 'feedback reply: rejected SNS message')
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -59,7 +73,14 @@ export async function POST(request: Request): Promise<Response> {
     ) {
       return Response.json({ error: 'Invalid payload' }, { status: 400 })
     }
-    await fetch(confirm, { signal: AbortSignal.timeout(5000) })
+    const res = await fetch(confirm, { signal: AbortSignal.timeout(5000) })
+    if (!res.ok) {
+      logger.error(
+        { topic: message.TopicArn, status: res.status },
+        'feedback reply: SNS subscription confirmation failed',
+      )
+      return unavailable()
+    }
     logger.info({ topic: message.TopicArn }, 'feedback reply: SNS subscription confirmed')
     return Response.json({ ok: true })
   }
@@ -77,6 +98,6 @@ export async function POST(request: Request): Promise<Response> {
   } catch (err) {
     // Jira lookups failed before anything was delivered: let SNS retry.
     logger.error({ err, deliveryId: receipt.mail?.messageId }, 'feedback reply: processing failed')
-    return Response.json({ error: 'Temporarily unavailable' }, { status: 503 })
+    return unavailable()
   }
 }

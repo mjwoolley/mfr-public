@@ -93,6 +93,8 @@ export async function forwardReplyToAdmins(input: {
   memberEmail: string
   reply: string
   deliveryId: string
+  /** Whether the matching Jira comment was added; the email says so either way. */
+  jiraDelivered: boolean
 }): Promise<boolean> {
   const mailbox = adminReplyMailbox()
   if (!mailbox) {

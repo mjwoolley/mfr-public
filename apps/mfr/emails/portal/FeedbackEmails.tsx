@@ -126,6 +126,7 @@ export function FeedbackReplyForward(props: {
   memberEmail: string
   reply: string
   deliveryId: string
+  jiraDelivered: boolean
 }) {
   return (
     <Frame
@@ -138,8 +139,11 @@ export function FeedbackReplyForward(props: {
       </Text>
       <Text style={quoteStyle}>{props.reply}</Text>
       <Text style={{ color: '#666', fontSize: '12px' }}>
-        Reply to this email to answer the member directly. The reply was also added to{' '}
-        {props.issueKey} in Jira. Delivery {props.deliveryId}.
+        Reply to this email to answer the member directly.{' '}
+        {props.jiraDelivered
+          ? `The reply was also added to ${props.issueKey} in Jira.`
+          : `Adding the reply to ${props.issueKey} in Jira failed — please add it as a comment by hand.`}{' '}
+        Delivery {props.deliveryId}.
       </Text>
     </Frame>
   )

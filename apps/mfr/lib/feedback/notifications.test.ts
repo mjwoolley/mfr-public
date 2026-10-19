@@ -47,6 +47,7 @@ describe('feedback notifications', () => {
         memberEmail: 'a@x.org',
         reply: 'r',
         deliveryId: 'd',
+        jiraDelivered: true,
       }),
     ).toBe(false)
     expect(sendEmailMock).not.toHaveBeenCalled()

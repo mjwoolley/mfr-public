@@ -35,7 +35,11 @@ export interface SnsMessage {
 }
 
 /** SNS retries for up to about an hour; anything older is a replay. */
-export const MAX_MESSAGE_AGE_MS = 60 * 60 * 1000
+// Wide enough for SNS to finish retrying a delivery the route answered 503 to
+// (e.g. Jira down); replays inside the window are caught by the delivery-id
+// check against the issue's comments. The runbook asks for an SNS delivery
+// policy that gives up well inside this window.
+export const MAX_MESSAGE_AGE_MS = 6 * 60 * 60 * 1000
 const CERT_HOST = /^sns\.[a-z0-9-]+\.amazonaws\.com(\.cn)?$/
 
 export function parseSnsMessage(body: unknown): SnsMessage | null {
@@ -82,16 +86,30 @@ export function snsStringToSign(m: SnsMessage): string {
 
 const certCache = new Map<string, string>()
 
+/** The signing certificate could not be fetched: a transient failure, not a bad signature. */
+export class SnsCertUnavailableError extends Error {
+  constructor(cause: unknown) {
+    super('SNS signing certificate unavailable', { cause })
+    this.name = 'SnsCertUnavailableError'
+  }
+}
+
 async function fetchCert(url: string): Promise<string> {
   const cached = certCache.get(url)
   if (cached) return cached
-  const res = await fetch(url, { signal: AbortSignal.timeout(5000) })
+  // The URL host was allow-listed; never follow a redirect off it.
+  const res = await fetch(url, { signal: AbortSignal.timeout(5000), redirect: 'error' })
   if (!res.ok) throw new Error(`SNS certificate fetch failed (${res.status})`)
   const pem = await res.text()
   certCache.set(url, pem)
   return pem
 }
 
+/**
+ * Resolves false for an invalid signature and throws SnsCertUnavailableError
+ * when the certificate cannot be fetched, so callers can ask SNS to retry
+ * instead of discarding the delivery.
+ */
 export async function verifySnsSignature(
   m: SnsMessage,
   getCert: (url: string) => Promise<string> = fetchCert,
@@ -100,8 +118,13 @@ export async function verifySnsSignature(
   const algorithm =
     m.SignatureVersion === '2' ? 'RSA-SHA256' : m.SignatureVersion === '1' ? 'RSA-SHA1' : null
   if (!algorithm) return false
+  let cert: string
   try {
-    const cert = await getCert(m.SigningCertURL)
+    cert = await getCert(m.SigningCertURL)
+  } catch (err) {
+    throw new SnsCertUnavailableError(err)
+  }
+  try {
     return createVerify(algorithm)
       .update(snsStringToSign(m), 'utf8')
       .verify(cert, m.Signature, 'base64')
@@ -283,31 +306,32 @@ export async function handleInboundReply(
   }
 
   const memberName = member.name || issue.feedback.memberName
-  // Two independent deliveries: a failure at one never undoes the other.
-  const [jiraResult, forwarded] = await Promise.all([
-    addDeliveryComment(
-      jira,
-      issue.key,
-      replyCommentBody(memberName, memberEmail, parsed.text, deliveryId),
-      deliveryId,
-    ).then(
-      () => true,
-      (err) => {
-        logger.error(
-          { err, deliveryId, issueKey: issue.key, destination: 'jira' },
-          'feedback reply: Jira comment failed',
-        )
-        return false
-      },
-    ),
-    forwardReplyToAdmins({
-      issueKey: issue.key,
-      memberName,
-      memberEmail,
-      reply: parsed.text,
-      deliveryId,
-    }),
-  ])
+  // Two independent deliveries: a failure at one never undoes the other. Jira
+  // goes first so the forwarded email can say truthfully whether the comment
+  // landed (admins add it by hand when it did not).
+  const jiraResult = await addDeliveryComment(
+    jira,
+    issue.key,
+    replyCommentBody(memberName, memberEmail, parsed.text, deliveryId),
+    deliveryId,
+  ).then(
+    () => true,
+    (err) => {
+      logger.error(
+        { err, deliveryId, issueKey: issue.key, destination: 'jira' },
+        'feedback reply: Jira comment failed',
+      )
+      return false
+    },
+  )
+  const forwarded = await forwardReplyToAdmins({
+    issueKey: issue.key,
+    memberName,
+    memberEmail,
+    reply: parsed.text,
+    deliveryId,
+    jiraDelivered: jiraResult,
+  })
   if (!forwarded) {
     logger.error(
       { deliveryId, issueKey: issue.key, destination: 'admin-mailbox' },

@@ -12,6 +12,7 @@ import {
   parseReplyEmail,
   parseSnsMessage,
   rawMime,
+  SnsCertUnavailableError,
   senderAuthenticated,
   snsStringToSign,
   verifySnsSignature,
@@ -50,11 +51,14 @@ describe('SNS verification', () => {
     expect(await verifySnsSignature({ ...signed, SignatureVersion: '3' }, async () => pem)).toBe(
       false,
     )
-    expect(
-      await verifySnsSignature(signed, async () => {
+    // A cert that cannot be fetched is a transient failure, not a bad signature.
+    await expect(
+      verifySnsSignature(signed, async () => {
         throw new Error('offline')
       }),
-    ).toBe(false)
+    ).rejects.toBeInstanceOf(SnsCertUnavailableError)
+    // A cert that fetched but cannot verify the signature is a bad signature.
+    expect(await verifySnsSignature(signed, async () => 'not a certificate')).toBe(false)
   })
 
   it.each([
@@ -70,8 +74,8 @@ describe('SNS verification', () => {
 
   it('accepts recent messages only', () => {
     const now = Date.parse(base.Timestamp)
-    expect(isFresh(base, now + 59 * 60_000)).toBe(true)
-    expect(isFresh(base, now + 61 * 60_000)).toBe(false)
+    expect(isFresh(base, now + 359 * 60_000)).toBe(true)
+    expect(isFresh(base, now + 361 * 60_000)).toBe(false)
     expect(isFresh(base, now - 10 * 60_000)).toBe(false)
     expect(isFresh({ ...base, Timestamp: 'garbage' }, now)).toBe(false)
   })

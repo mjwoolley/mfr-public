@@ -85,6 +85,7 @@ export function FeedbackButton() {
     inFlight.current = true
     setSending(true)
     setError(null)
+    const submitted = draft
     try {
       const res = await fetch('/api/feedback', {
         method: 'POST',
@@ -92,7 +93,8 @@ export function FeedbackButton() {
         body: JSON.stringify({ message: check.message, pagePath: pathname }),
       })
       if (res.ok) {
-        setDraft('')
+        // Only clear what was sent; keep anything typed while it was in flight.
+        setDraft((d) => (d === submitted ? '' : d))
         setOpen(false)
         setConfirmation(FEEDBACK_SENT)
         return

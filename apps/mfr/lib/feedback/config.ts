@@ -56,6 +56,14 @@ export function inboundWebhookSecret(): string | null {
   return env('FEEDBACK_INBOUND_WEBHOOK_SECRET') || null
 }
 
+/**
+ * The SNS topic SES publishes inbound replies to. When set, notifications
+ * from any other (even AWS-signed) topic are rejected.
+ */
+export function inboundTopicArn(): string | null {
+  return env('FEEDBACK_SNS_TOPIC_ARN') || null
+}
+
 /** The site-admin mailbox that member replies are forwarded to. */
 export function adminReplyMailbox(): string | null {
   return env('FEEDBACK_REPLY_TO') || null

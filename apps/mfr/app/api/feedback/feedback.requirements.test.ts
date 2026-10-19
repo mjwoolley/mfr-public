@@ -578,7 +578,7 @@ describe('CAP-048 Member Feedback · email replies', () => {
         emailReply(
           replyRequest(
             snsNotification(JSON.parse(memberReply().Message), {
-              Timestamp: new Date(Date.now() - 2 * 3600_000).toISOString(),
+              Timestamp: new Date(Date.now() - 7 * 3600_000).toISOString(),
             }),
           ),
         ),
@@ -686,6 +686,61 @@ describe('CAP-048 Member Feedback · email replies', () => {
       expect.any(String),
     )
     expect(jira.createAttempts).toBe(0)
+    // The forwarded email must not claim the comment landed.
+    const [forward] = await sent()
+    expect(forward.text).toContain('add it as a comment by hand')
+    expect(forward.text).not.toContain('was also added')
+  })
+
+  it('lets SNS retry when the signing certificate cannot be fetched', async () => {
+    seedIssue()
+    vi.mocked(fetch).mockRejectedValueOnce(new TypeError('fetch timed out'))
+    const res = await emailReply(
+      replyRequest({
+        ...memberReply(),
+        // Not the cached test cert, so the (failing) fetch is attempted.
+        SigningCertURL: 'https://sns.us-east-1.amazonaws.com/SimpleNotificationService-b.pem',
+      }),
+    )
+    expect(res.status).toBe(503)
+    expect(sendEmailMock).not.toHaveBeenCalled()
+    expect(jira.issues.get('KAN-123')!.comments).toHaveLength(0)
+  })
+
+  it('CAP-048 · Untrusted email replies: a signed message from another SNS topic is rejected', async () => {
+    seedIssue()
+    vi.stubEnv('FEEDBACK_SNS_TOPIC_ARN', 'arn:aws:sns:us-east-1:123:mfr-feedback-replies')
+    expect((await emailReply(replyRequest(memberReply()))).status).toBe(200)
+    expect(jira.issues.get('KAN-123')!.comments).toHaveLength(1)
+    vi.stubEnv('FEEDBACK_SNS_TOPIC_ARN', 'arn:aws:sns:us-east-1:999:somebody-elses-topic')
+    expect((await emailReply(replyRequest(memberReply()))).status).toBe(401)
+    expect(jira.issues.get('KAN-123')!.comments).toHaveLength(1)
+    expect(sendEmailMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('reports a rejected SNS subscription confirmation instead of claiming success', async () => {
+    const { signSns } = await import('@/tests/feedback/fakes')
+    const real = vi.mocked(fetch).getMockImplementation()!
+    vi.mocked(fetch).mockImplementation((input, init) =>
+      String(input).includes('ConfirmSubscription')
+        ? Promise.resolve(new Response('denied', { status: 403 }))
+        : real(input, init),
+    )
+    const confirmation = signSns({
+      Type: 'SubscriptionConfirmation',
+      MessageId: 'm',
+      TopicArn: 'arn:aws:sns:us-east-1:123:t',
+      Message: 'confirm',
+      Timestamp: new Date().toISOString(),
+      Token: 'tok',
+      SubscribeURL: 'https://sns.us-east-1.amazonaws.com/?Action=ConfirmSubscription&Token=tok',
+    })
+    expect((await emailReply(replyRequest(confirmation))).status).toBe(503)
+    expect(loggerMock.error).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 403 }),
+      expect.stringContaining('confirmation failed'),
+    )
+    vi.mocked(fetch).mockImplementation(real)
   })
 
   it('CAP-048 · A failed reply destination does not undo the successful destination: forwarding fails', async () => {

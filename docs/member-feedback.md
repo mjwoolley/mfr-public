@@ -40,7 +40,9 @@ database. The behavior is specified in
    address to the issue and the original member's email, so it can't be
    altered. SES receives the mail and publishes it to SNS, which posts it to the
    reply route. The route checks the subscription token, the SNS signature and
-   timestamp (under 1 hour old), the SES DMARC verdict (a DMARC pass is
+   timestamp (under 6 hours old, so SNS retries of a 503 still get through;
+   duplicates are caught by the delivery id), the configured topic ARN, the SES
+   DMARC verdict (a DMARC pass is
    required; a bare DKIM pass is not accepted because SES does not check that
    the signing domain is aligned with the From address), drops bounces,
    auto-replies and site-generated mail,
@@ -57,20 +59,21 @@ callbacks return 404.
 
 All are server-only. Set them on the `mfr_web` Vercel project.
 
-| Variable                           | Value                                                                       |
-| ---------------------------------- | --------------------------------------------------------------------------- |
-| `JIRA_FEEDBACK_CLOUD_ID`           | The Jira site's cloud id (`https://<site>.atlassian.net/_edge/tenant_info`) |
-| `JIRA_FEEDBACK_PROJECT_KEY`        | `KAN` (default)                                                             |
-| `JIRA_FEEDBACK_ISSUE_TYPE`         | `Task` (default)                                                            |
-| `JIRA_FEEDBACK_LABEL`              | `mfr-feedback` (default)                                                    |
-| `JIRA_FEEDBACK_CLIENT_ID`          | OAuth client id of the MFR service account's credential                     |
-| `JIRA_FEEDBACK_CLIENT_SECRET`      | Its client secret                                                           |
-| `JIRA_FEEDBACK_CREATOR_ACCOUNT_ID` | The service account's Atlassian account id (issue creator check)            |
-| `JIRA_FEEDBACK_WEBHOOK_SECRET`     | Random secret the Automation rule sends as `Authorization: Bearer`          |
-| `FEEDBACK_REPLY_DOMAIN`            | Inbound reply domain, e.g. `reply.millerfamilyreunions.org`                 |
-| `FEEDBACK_REPLY_TOKEN_SECRET`      | Random secret that signs reply addresses (rotating it breaks old addresses) |
-| `FEEDBACK_INBOUND_WEBHOOK_SECRET`  | Random secret in the SNS subscription URL's `token` parameter               |
-| `FEEDBACK_REPLY_TO`                | Site-admin mailbox that receives forwarded member replies                   |
+| Variable                           | Value                                                                                                  |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `JIRA_FEEDBACK_CLOUD_ID`           | The Jira site's cloud id (`https://<site>.atlassian.net/_edge/tenant_info`)                            |
+| `JIRA_FEEDBACK_PROJECT_KEY`        | `KAN` (default)                                                                                        |
+| `JIRA_FEEDBACK_ISSUE_TYPE`         | `Task` (default)                                                                                       |
+| `JIRA_FEEDBACK_LABEL`              | `mfr-feedback` (default)                                                                               |
+| `JIRA_FEEDBACK_CLIENT_ID`          | OAuth client id of the MFR service account's credential                                                |
+| `JIRA_FEEDBACK_CLIENT_SECRET`      | Its client secret                                                                                      |
+| `JIRA_FEEDBACK_CREATOR_ACCOUNT_ID` | The service account's Atlassian account id (issue creator check)                                       |
+| `JIRA_FEEDBACK_WEBHOOK_SECRET`     | Random secret the Automation rule sends as `Authorization: Bearer`                                     |
+| `FEEDBACK_REPLY_DOMAIN`            | Inbound reply domain, e.g. `reply.millerfamilyreunions.org`                                            |
+| `FEEDBACK_REPLY_TOKEN_SECRET`      | Random secret that signs reply addresses (rotating it breaks old addresses)                            |
+| `FEEDBACK_INBOUND_WEBHOOK_SECRET`  | Random secret in the SNS subscription URL's `token` parameter                                          |
+| `FEEDBACK_SNS_TOPIC_ARN`           | ARN of the `mfr-feedback-replies` topic; notifications from any other topic are rejected (recommended) |
+| `FEEDBACK_REPLY_TO`                | Site-admin mailbox that receives forwarded member replies                                              |
 
 Generate secrets with `openssl rand -hex 32`.
 
@@ -135,7 +138,13 @@ SES email receiving runs only in some regions (e.g. `us-east-1`).
    `https://millerfamilyreunions.org/api/feedback/email-reply?token=<FEEDBACK_INBOUND_WEBHOOK_SECRET>`
    with _raw message delivery off_. The route confirms the subscription itself
    once it validates the SNS signature (look for `SNS subscription confirmed`
-   in the logs).
+   in the logs; `SNS subscription confirmation failed` means SNS rejected the
+   confirm call and the subscription is still pending). Set
+   `FEEDBACK_SNS_TOPIC_ARN` to the topic's ARN. Give the subscription a
+   delivery policy that finishes retrying within about an hour (e.g. 20 retries
+   with exponential backoff up to a 5-minute delay): the route answers 503 while
+   Jira is unreachable so SNS retries, and messages older than 6 hours are
+   rejected as stale.
 3. **SES receipt rule.** In the active receipt rule set, add a rule for the
    reply domain with spam/virus scanning on and one action: _Publish to SNS
    topic_ `mfr-feedback-replies`, encoding **Base64**. SNS actions carry messages
