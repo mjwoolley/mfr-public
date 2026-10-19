@@ -1,7 +1,8 @@
 // Transactional email via Amazon SES with the portal-wide non-prod safety
 // net: real recipients only when EMAIL_ENABLED=true (production only);
 // everywhere else mail redirects to EMAIL_OVERRIDE_TO or is dropped. Mirrors
-// the accounting app's lib/email.ts. Failures are logged, never thrown.
+// the accounting app's lib/email.ts. Failures are logged, never thrown;
+// the result says whether SES accepted the message.
 
 import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2'
 import { render } from '@react-email/render'
@@ -94,11 +95,11 @@ export async function sendEmail(opts: {
   subject: string
   react: React.ReactElement
   replyTo?: string
-}) {
+}): Promise<boolean> {
   const routing = resolveRecipient(opts.to)
   if (!routing.deliver) {
     logger.warn({ to: opts.to }, `email skipped — ${routing.reason}`)
-    return
+    return false
   }
 
   // cc recipients are real admins, so they get the same treatment as `to`:
@@ -133,7 +134,9 @@ export async function sendEmail(opts: {
         },
       }),
     )
+    return true
   } catch (error) {
     logger.error({ error, to: routing.to, subject }, 'failed to send email')
+    return false
   }
 }

@@ -2,7 +2,7 @@
 id: CAP-048
 title: Member Feedback
 area: portal
-status: proposed
+status: implemented
 source: specified
 related: [CAP-003, CAP-004, CAP-010]
 ---

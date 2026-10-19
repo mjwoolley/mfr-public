@@ -189,6 +189,8 @@ the affected screens.
   through the prod redirect proxy, which decrypts their OAuth state with it.
 - When copying Neon connection strings, always pick the branch explicitly:
   `production` for Vercel env vars, `dev` for local env files.
+- Member Feedback's Jira and reply variables are Production-only; see
+  [member-feedback.md](member-feedback.md).
 
 ## Coverage policy & mutation testing
 

@@ -5,6 +5,7 @@ import { canManagePortalContent, canManageUsers } from '@mfr/auth'
 import { auth, signOut } from '@/lib/auth'
 import { getPortalSettings } from '@/lib/portal'
 import { PortalNav } from './PortalNav'
+import { FeedbackButton } from './FeedbackButton'
 import './globals.css'
 
 const caprasimo = Caprasimo({
@@ -66,6 +67,7 @@ export default async function RootLayout({
             Lake Lure, North Carolina &middot; A Miller family corporation
           </div>
         </footer>
+        {session?.user?.status === 'approved' && <FeedbackButton />}
       </body>
     </html>
   )
