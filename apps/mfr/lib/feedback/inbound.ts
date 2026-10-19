@@ -140,15 +140,16 @@ export interface SesReceipt {
 const status = (v?: Verdict) => (v?.status ?? '').toUpperCase()
 
 /**
- * The From domain must be authenticated: DMARC pass, or (for domains with no
- * DMARC policy) a DKIM pass. Spam and virus failures are rejected outright.
+ * The From domain must pass DMARC. A bare DKIM pass is not enough: SES's
+ * receipt verdict only says *some* signature verified, not that the signing
+ * domain is aligned with the From header, so any DKIM-signing relay could
+ * spoof a member at a domain with no DMARC policy. Spam and virus failures
+ * are rejected outright.
  */
 export function senderAuthenticated(r: SesReceipt['receipt']): boolean {
   if (!r) return false
   if (status(r.spamVerdict) === 'FAIL' || status(r.virusVerdict) === 'FAIL') return false
-  const dmarc = status(r.dmarcVerdict)
-  if (dmarc === 'PASS') return true
-  return dmarc === 'GRAY' && status(r.dkimVerdict) === 'PASS'
+  return status(r.dmarcVerdict) === 'PASS'
 }
 
 export function rawMime(n: SesReceipt): string | null {

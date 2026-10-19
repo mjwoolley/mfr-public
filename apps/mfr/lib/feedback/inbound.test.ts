@@ -86,7 +86,7 @@ describe('SNS verification', () => {
 describe('SES receipt checks', () => {
   it.each([
     [{ dmarcVerdict: { status: 'PASS' } }, true],
-    [{ dmarcVerdict: { status: 'GRAY' }, dkimVerdict: { status: 'PASS' } }, true],
+    [{ dmarcVerdict: { status: 'GRAY' }, dkimVerdict: { status: 'PASS' } }, false],
     [{ dmarcVerdict: { status: 'GRAY' }, dkimVerdict: { status: 'FAIL' } }, false],
     [{ dmarcVerdict: { status: 'FAIL' }, dkimVerdict: { status: 'PASS' } }, false],
     [{ dmarcVerdict: { status: 'PASS' }, spamVerdict: { status: 'FAIL' } }, false],

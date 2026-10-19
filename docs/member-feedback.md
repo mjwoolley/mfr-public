@@ -40,8 +40,10 @@ database. The behavior is specified in
    address to the issue and the original member's email, so it can't be
    altered. SES receives the mail and publishes it to SNS, which posts it to the
    reply route. The route checks the subscription token, the SNS signature and
-   timestamp (under 1 hour old), the SES DMARC verdict (or DKIM for domains
-   with no DMARC policy), drops bounces, auto-replies and site-generated mail,
+   timestamp (under 1 hour old), the SES DMARC verdict (a DMARC pass is
+   required; a bare DKIM pass is not accepted because SES does not check that
+   the signing domain is aligned with the From address), drops bounces,
+   auto-replies and site-generated mail,
    then re-validates the issue and member in Jira and MFR. The new text (quoted
    history and signatures stripped, attachments ignored) is added as a Jira
    comment and forwarded to `FEEDBACK_REPLY_TO`. The SES message id is stored

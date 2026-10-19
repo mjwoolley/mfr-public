@@ -69,9 +69,11 @@ export function FeedbackButton() {
     return () => window.clearTimeout(id)
   }, [confirmation])
 
-  const close = useCallback(() => {
-    if (!inFlight.current) setOpen(false)
-  }, [])
+  // Always mirror the native <dialog>: Escape closes it regardless of React
+  // state, and refusing to follow would strand the member with no button and
+  // no panel. An in-flight send keeps running and still clears the draft on
+  // success; on failure the draft (and error) are waiting when they reopen.
+  const close = useCallback(() => setOpen(false), [])
 
   async function send() {
     if (inFlight.current) return

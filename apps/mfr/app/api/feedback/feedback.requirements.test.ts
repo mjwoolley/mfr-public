@@ -604,8 +604,8 @@ describe('CAP-048 Member Feedback · email replies', () => {
       async () => emailReply(replyRequest(memberReply({ dmarc: 'FAIL' }))),
     ],
     [
-      'no DMARC policy and no DKIM pass',
-      async () => emailReply(replyRequest(memberReply({ dmarc: 'GRAY', dkim: 'FAIL' }))),
+      'no DMARC policy even with a DKIM pass',
+      async () => emailReply(replyRequest(memberReply({ dmarc: 'GRAY', dkim: 'PASS' }))),
     ],
     [
       'a sender email different from the original submitting member',
